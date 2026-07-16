@@ -1,0 +1,1 @@
+export function moduleCard({code,title,description,href,status,disabled=false}){const tag=disabled?"article":"a";return `<${tag} class="module-card ${disabled?"disabled":""}" ${disabled?'aria-disabled="true"':`href="${href}"`}><span class="module-code">${code}</span><h3>${title}</h3><p>${description}</p><strong>${status}</strong></${tag}>`}

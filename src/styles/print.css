@@ -1,0 +1,1 @@
+@media print{.app-header,.section-nav,.button,.toast{display:none!important}body{background:white;color:black}.route-view{max-width:none;padding:0}.content-card,.chart-panel,.simulation-controls{box-shadow:none;break-inside:avoid}}

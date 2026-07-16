@@ -1,0 +1,1 @@
+export class AppsScriptAdapter{constructor({url,accessToken}){this.url=url;this.accessToken=accessToken}async saveAttempt(a){if(!this.url)throw new Error("URL não configurada");await fetch(this.url,{method:"POST",mode:"no-cors",body:new URLSearchParams({token:this.accessToken,payload:JSON.stringify(a)})});return{ok:true,storage:"apps-script"}}}

@@ -1,0 +1,26 @@
+[
+  {
+    "organization": "CONTRAN / SENATRAN",
+    "reference": "Código de Trânsito Brasileiro — Lei nº 9.503/1997",
+    "application": "Base legal para segurança, registro e alterações.",
+    "status": "Confirmar texto vigente"
+  },
+  {
+    "organization": "CONTRAN / SENATRAN",
+    "reference": "Resolução CONTRAN nº 916/2022",
+    "application": "Modificações de veículos.",
+    "status": "Confirmar alterações"
+  },
+  {
+    "organization": "CONAMA",
+    "reference": "Resolução CONAMA nº 418/2009",
+    "application": "PCPV e inspeção de veículos em uso.",
+    "status": "Confirmar vigência"
+  },
+  {
+    "organization": "ANTT",
+    "reference": "Resolução ANTT nº 5.998/2022 e alterações",
+    "application": "Transporte rodoviário de produtos perigosos.",
+    "status": "Consultar versão consolidada"
+  }
+]

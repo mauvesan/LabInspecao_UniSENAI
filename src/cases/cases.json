@@ -1,0 +1,14 @@
+[
+  {
+    "code": "C1",
+    "title": "PHEV recuperado de sinistro",
+    "description": "Decidir se o veículo pode retornar à circulação.",
+    "status": "Caso longitudinal"
+  },
+  {
+    "code": "C2",
+    "title": "Semirreboque-tanque",
+    "description": "Classificar achados entre CIV, CIPP, documentação e operação.",
+    "status": "Planejado"
+  }
+]

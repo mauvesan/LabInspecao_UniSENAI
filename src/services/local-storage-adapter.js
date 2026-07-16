@@ -1,0 +1,1 @@
+const KEY="labinspecao_v4_attempts";export class LocalStorageAdapter{async saveAttempt(a){const xs=JSON.parse(localStorage.getItem(KEY)||"[]");xs.push({...a,syncStatus:"local"});localStorage.setItem(KEY,JSON.stringify(xs.slice(-200)));return{ok:true,storage:"local"}}}

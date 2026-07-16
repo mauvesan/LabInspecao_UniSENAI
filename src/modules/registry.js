@@ -1,0 +1,1 @@
+const loaders={frenagem:()=>import("./frenagem/index.js")}; export async function loadModule(slug){if(!loaders[slug])throw new Error(`Módulo não registrado: ${slug}`);return (await loaders[slug]()).default}
