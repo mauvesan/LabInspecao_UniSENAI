@@ -1,0 +1,55 @@
+{
+  "version": "2026.1",
+  "questions": [
+    {
+      "id": "K-Q01",
+      "statement": "A transmitância luminosa corresponde:",
+      "options": [
+        "à parcela da luz que chega ao sensor",
+        "à parcela da luz bloqueada, sempre em porcentagem",
+        "ao comprimento da câmara óptica",
+        "à rotação máxima do motor"
+      ],
+      "correctIndex": 0,
+      "feedback": "A transmitância é a razão entre a intensidade recebida e a intensidade emitida."
+    },
+    {
+      "id": "K-Q02",
+      "statement": "Quando a transmitância diminui, a opacidade:",
+      "options": ["também diminui", "permanece constante", "aumenta", "torna-se sempre zero"],
+      "correctIndex": 2,
+      "feedback": "A opacidade é calculada por N = (1 − T) × 100."
+    },
+    {
+      "id": "K-Q03",
+      "statement": "Na Lei de Beer–Lambert, o coeficiente k representa:",
+      "options": [
+        "a rotação do motor",
+        "a capacidade de atenuação luminosa por unidade de comprimento",
+        "a temperatura do óleo",
+        "o tempo de aceleração"
+      ],
+      "correctIndex": 1,
+      "feedback": "O coeficiente k expressa a absorção ou atenuação luminosa por metro."
+    },
+    {
+      "id": "K-Q04",
+      "statement": "Se I = I₀, a opacidade ideal calculada é:",
+      "options": ["100%", "50%", "1%", "0%"],
+      "correctIndex": 3,
+      "feedback": "Quando toda a luz emitida chega ao sensor, T = 1 e N = 0%."
+    },
+    {
+      "id": "K-Q05",
+      "statement": "Para comparar valores de diferentes opacímetros, o comprimento óptico é relevante porque:",
+      "options": [
+        "não interfere nos resultados",
+        "faz parte do cálculo do coeficiente de absorção",
+        "determina a rotação de marcha lenta",
+        "substitui a medição de intensidade"
+      ],
+      "correctIndex": 1,
+      "feedback": "O coeficiente k normaliza a atenuação pelo comprimento óptico da câmara."
+    }
+  ]
+}

@@ -1,0 +1,1969 @@
+/* =========================================================
+   LABINSPEÇÃO 4.0 — MÓDULO DE OPACIDADE
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   Estrutura geral do simulador
+   --------------------------------------------------------- */
+
+.opacity-module .simulation-layout {
+  align-items: start;
+}
+
+.opacity-visual-column {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   Cabeçalhos das seções
+   --------------------------------------------------------- */
+
+.opacity-module .section-header,
+.module-section .section-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-header__eyebrow {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.section-header h2 {
+  margin: 0 0 0.6rem;
+}
+
+.section-header p {
+  max-width: 78ch;
+  margin: 0;
+  line-height: 1.65;
+  color: #e2e8f0;
+}
+
+/* ---------------------------------------------------------
+   Fluxo do processo de medição
+   --------------------------------------------------------- */
+
+.opacity-process-flow {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.65rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.opacity-process-step {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  flex: 1 1 0;
+  min-width: 110px;
+  min-height: 118px;
+  padding: 1rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 0.9rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+  text-align: center;
+}
+
+.opacity-process-step__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-bottom: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.opacity-process-step strong {
+  margin-bottom: 0.3rem;
+}
+
+.opacity-process-step > span:last-child {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.opacity-process-flow__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 1.45rem;
+  color: #cbd5e1;
+}
+
+/* ---------------------------------------------------------
+   Cartões das equações
+   --------------------------------------------------------- */
+
+.equation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.equation-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 1rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+}
+
+.equation-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.equation-card__header h3 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.equation-card__step {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.13);
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.equation-card__purpose {
+  min-height: 5.2rem;
+  margin: 0 0 1rem;
+  line-height: 1.55;
+  color: #e2e8f0;
+}
+
+/* Fórmula principal */
+
+.equation-card__formula {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  min-height: 94px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.78);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  font-weight: 650;
+  text-align: center;
+}
+
+.equation-symbol {
+  color: #93c5fd;
+  font-weight: 750;
+}
+
+.equation-operator {
+  color: #e2e8f0;
+}
+
+.equation-expression {
+  white-space: nowrap;
+}
+
+/* Fração visual */
+
+.equation-fraction {
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  align-items: center;
+  min-width: 3.8rem;
+  text-align: center;
+}
+
+.equation-fraction__numerator {
+  padding: 0 0.45rem 0.25rem;
+  border-bottom: 2px solid currentColor;
+}
+
+.equation-fraction__denominator {
+  padding: 0.25rem 0.45rem 0;
+}
+
+/* Variáveis */
+
+.equation-card__variables {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
+
+.equation-card__variables > div {
+  display: grid;
+  grid-template-columns: minmax(46px, auto) 1fr;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.65rem;
+  background: rgba(30, 41, 59, 0.72);
+}
+
+.equation-card__variables dt {
+  margin: 0;
+  font-weight: 750;
+  color: #93c5fd;
+}
+
+.equation-card__variables dd {
+  margin: 0;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+/* Relação T + N */
+
+.equation-card__relationship {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--border-color, rgba(148, 163, 184, 0.4));
+  border-radius: 0.7rem;
+  font-size: 0.9rem;
+}
+
+.equation-card__relationship strong {
+  color: #93c5fd;
+}
+
+/* Interpretação e alerta */
+
+.equation-card__interpretation,
+.equation-card__warning {
+  margin-top: auto;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.75rem;
+  line-height: 1.5;
+}
+
+.equation-card__interpretation {
+  border-left: 4px solid var(--accent-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.equation-card__warning {
+  margin-bottom: 0.8rem;
+  border-left: 4px solid var(--warning-color, #f59e0b);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* ---------------------------------------------------------
+   Relação conceitual entre as grandezas
+   --------------------------------------------------------- */
+
+.concept-relation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px dashed var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 0.9rem;
+  font-weight: 650;
+}
+
+.concept-relation span:nth-child(even) {
+  color: #93c5fd;
+  font-size: 1.2rem;
+}
+
+/* ---------------------------------------------------------
+   Lei de Beer–Lambert
+   --------------------------------------------------------- */
+
+.beer-lambert-card {
+  padding: 1.4rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 1rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+}
+
+.beer-lambert-card__formula {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1.2rem;
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.78);
+  font-size: clamp(1.8rem, 4vw, 2.75rem);
+  font-weight: 700;
+}
+
+.beer-lambert-card__formula span:first-child {
+  color: #93c5fd;
+}
+
+.beer-lambert-card__reading,
+.beer-lambert-card__conclusion {
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  line-height: 1.55;
+}
+
+.beer-lambert-card__reading {
+  margin-bottom: 1.25rem;
+  background: rgba(30, 41, 59, 0.68);
+}
+
+.beer-lambert-card__conclusion {
+  margin-top: 1.25rem;
+  border-left: 4px solid var(--accent-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.beer-lambert-derivation {
+  display: grid;
+  justify-items: stretch;
+  gap: 0.45rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.beer-lambert-derivation__step {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 0.75rem;
+}
+
+.beer-lambert-derivation__step > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.beer-lambert-derivation__step strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.beer-lambert-derivation__step div div {
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.beer-lambert-derivation__arrow {
+  text-align: center;
+  color: #93c5fd;
+  font-size: 1.15rem;
+}
+
+/* ---------------------------------------------------------
+   Exemplo orientado
+   --------------------------------------------------------- */
+
+.guided-example {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.guided-example__data {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 0.85rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+}
+
+.guided-example__data h3 {
+  margin: 0 0 0.85rem;
+}
+
+.guided-example__data dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.guided-example__data dl > div {
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(30, 41, 59, 0.72);
+}
+
+.guided-example__data dt {
+  margin-bottom: 0.3rem;
+  color: #e2e8f0;
+}
+
+.guided-example__data dd {
+  margin: 0;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.guided-example__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.calculation-step {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 0.9rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+}
+
+.calculation-step header {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.calculation-step header > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  font-weight: 700;
+}
+
+.calculation-step h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.calculation-step__formula,
+.calculation-step__substitution,
+.calculation-step__result {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.calculation-step__formula {
+  border-radius: 0.65rem 0.65rem 0 0;
+  background: rgba(30, 41, 59, 0.68);
+  font-weight: 650;
+}
+
+.calculation-step__substitution {
+  border-top: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+  background: rgba(30, 41, 59, 0.56);
+}
+
+.calculation-step__result {
+  border-radius: 0 0 0.65rem 0.65rem;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+
+.calculation-step p {
+  margin: 0.9rem 0 0;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+/* ---------------------------------------------------------
+   Cálculos em tempo real
+   --------------------------------------------------------- */
+
+.live-calculation {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 0.9rem;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.04));
+}
+
+.live-calculation__header {
+  margin-bottom: 0.2rem;
+}
+
+.live-calculation__header > span {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.live-calculation__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.live-equation {
+  overflow: hidden;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: 0.75rem;
+}
+
+.live-equation__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(30, 41, 59, 0.68);
+}
+
+.live-equation__heading span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.live-equation__formula,
+.live-equation__substitution,
+.live-equation__result {
+  padding: 0.62rem 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.live-equation__formula {
+  font-weight: 650;
+}
+
+.live-equation__substitution {
+  border-top: 1px solid var(--border-color, rgba(148, 163, 184, 0.22));
+  border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.22));
+  color: #e2e8f0;
+}
+
+.live-equation__result {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  font-weight: 750;
+}
+
+.live-calculation__interpretation {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  border-left: 4px solid var(--accent-color, #3b82f6);
+  border-radius: 0.65rem;
+  background: rgba(59, 130, 246, 0.08);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------
+   Animação da câmara óptica
+   --------------------------------------------------------- */
+
+.opacity-animation-panel svg {
+  min-height: 260px;
+}
+
+.opacity-chamber {
+  fill: var(--surface-raised, rgba(255, 255, 255, 0.04));
+  stroke: var(--border-color, currentColor);
+  stroke-width: 2;
+}
+
+.opacity-source,
+.opacity-sensor {
+  fill: var(--surface-raised, rgba(255, 255, 255, 0.08));
+  stroke: var(--accent-color, currentColor);
+  stroke-width: 2;
+}
+
+.opacity-particle {
+  fill: currentColor;
+}
+
+.opacity-beam {
+  color: var(--accent-color, currentColor);
+}
+
+.opacity-chart-line {
+  stroke: var(--accent-color, currentColor);
+}
+
+.opacity-chart-point {
+  fill: var(--accent-color, currentColor);
+  stroke: var(--surface-color, #111827);
+  stroke-width: 3;
+}
+
+/* ---------------------------------------------------------
+   Responsividade
+   --------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .equation-grid,
+  .guided-example__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .equation-card__purpose {
+    min-height: auto;
+  }
+
+  .guided-example__data dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .opacity-process-flow {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .opacity-process-flow__arrow {
+    transform: rotate(90deg);
+  }
+
+  .opacity-process-step {
+    min-height: 96px;
+  }
+
+  .opacity-animation-panel svg,
+  #beer-lambert-chart {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 640px) {
+  .equation-card,
+  .beer-lambert-card,
+  .guided-example__data,
+  .calculation-step,
+  .live-calculation {
+    padding: 0.9rem;
+  }
+
+  .equation-card__formula {
+    min-height: 82px;
+    font-size: 1.3rem;
+  }
+
+  .equation-card__variables > div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .beer-lambert-card__formula {
+    font-size: 1.75rem;
+  }
+
+  .beer-lambert-derivation__step {
+    grid-template-columns: 1fr;
+  }
+
+  .concept-relation {
+    flex-direction: column;
+  }
+
+  .concept-relation span:nth-child(even) {
+    transform: rotate(90deg);
+  }
+}
+
+/* =========================================================
+   CONTRASTE CONSOLIDADO — MÓDULO DE OPACIDADE
+   ========================================================= */
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) {
+  --opacity-text: #f8fafc;
+  --opacity-text-secondary: #e2e8f0;
+  --opacity-text-muted: #cbd5e1;
+  --opacity-accent: #93c5fd;
+  color: var(--opacity-text);
+}
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) h2,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) h3,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) strong {
+  color: var(--opacity-text);
+}
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) p,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) dd,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .help-text {
+  color: var(--opacity-text-secondary);
+}
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) dt,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .section-header__eyebrow,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .equation-symbol,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .equation-card__step,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .calculation-step__result,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .live-equation__result {
+  color: var(--opacity-accent);
+}
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .equation-card__formula,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module)
+  .beer-lambert-card__formula {
+  background: rgba(15, 23, 42, 0.82);
+  color: var(--opacity-text);
+}
+
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module)
+  .equation-card__variables
+  > div,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module)
+  .guided-example__data
+  dl
+  > div,
+:is(#conceitos, #equipamento, #beer-lambert, #exemplo, .opacity-module) .live-equation__heading {
+  background: rgba(30, 41, 59, 0.76);
+}
+
+.opacity-module .svg-text,
+#beer-lambert-chart .svg-text {
+  fill: #e2e8f0;
+  color: #e2e8f0;
+}
+
+.opacity-module .svg-grid,
+#beer-lambert-chart .svg-grid {
+  stroke: rgba(203, 213, 225, 0.26);
+}
+
+.opacity-module .svg-axis,
+#beer-lambert-chart .svg-axis {
+  stroke: rgba(241, 245, 249, 0.78);
+}
+
+/* =========================================================
+   CORREÇÃO DEFINITIVA DE CONTRASTE DOS TEXTOS
+   Módulo de Opacidade
+   ========================================================= */
+
+/*
+ * Textos corridos e explicações.
+ * Cor escura explícita, adequada aos fundos claros dos cartões.
+ */
+#conceitos .section-header p,
+#equipamento .section-header p,
+#beer-lambert .section-header p,
+#exemplo .section-header p,
+#conceitos .equation-card__purpose,
+#conceitos .equation-card__variables dd,
+#conceitos .equation-card__relationship,
+#conceitos .equation-card__interpretation,
+#conceitos .equation-card__warning,
+#equipamento .content-card p,
+#equipamento .concept-relation,
+#beer-lambert .beer-lambert-card__reading,
+#beer-lambert .beer-lambert-card__conclusion,
+#beer-lambert .beer-lambert-derivation__step,
+#exemplo .guided-example__data dt,
+#exemplo .calculation-step p,
+.opacity-module .help-text,
+.opacity-module .live-equation__substitution,
+.opacity-module .live-calculation__interpretation,
+.opacity-module .metric-card span,
+.opacity-module .range-control label,
+.opacity-module .range-control__label {
+  color: #263548 !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Fórmulas, valores e textos internos que também
+ * precisam de alto contraste.
+ */
+#conceitos .equation-card__formula,
+#conceitos .equation-operator,
+#conceitos .equation-fraction,
+#beer-lambert .beer-lambert-card__formula,
+#exemplo .calculation-step__formula,
+#exemplo .calculation-step__substitution,
+.opacity-module .live-equation__heading,
+.opacity-module .live-equation__formula,
+.opacity-module output,
+.opacity-module .metric-card strong,
+.opacity-module .status-panel {
+  color: #172033 !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Textos em negrito dentro das explicações.
+ */
+#conceitos .equation-card__interpretation strong,
+#conceitos .equation-card__warning strong,
+#equipamento .content-card strong,
+#beer-lambert .beer-lambert-card__reading strong,
+#beer-lambert .beer-lambert-card__conclusion strong,
+#beer-lambert .beer-lambert-derivation__step strong,
+#exemplo .calculation-step p strong,
+.opacity-module .live-calculation__interpretation strong {
+  color: #111827 !important;
+}
+
+/*
+ * Mantém os elementos de destaque em azul legível.
+ */
+#conceitos .equation-symbol,
+#conceitos .equation-card__variables dt,
+#conceitos .equation-card__relationship strong,
+#conceitos .opacity-process-step > span:last-child,
+#beer-lambert .beer-lambert-card__formula span:first-child,
+#beer-lambert .beer-lambert-derivation__step div div,
+#exemplo .guided-example__data dd,
+#exemplo .calculation-step__result,
+.opacity-module .live-equation__result,
+.opacity-module .live-calculation__header > span {
+  color: #1556a8 !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Textos dos cartões do fluxo de medição.
+ */
+#conceitos .opacity-process-step,
+#conceitos .opacity-process-step strong {
+  color: #172033 !important;
+}
+
+/*
+ * Resultados com fundo azul claro e texto azul escuro.
+ */
+#exemplo .calculation-step__result,
+.opacity-module .live-equation__result {
+  background: #e5f0ff !important;
+}
+
+/*
+ * Fundos claros e definidos para evitar mistura com
+ * a cor da página.
+ */
+#conceitos .equation-card,
+#conceitos .opacity-process-step,
+#beer-lambert .beer-lambert-card,
+#exemplo .guided-example__data,
+#exemplo .calculation-step,
+.opacity-module .live-calculation,
+.opacity-module .live-equation {
+  background-color: #f8fafc !important;
+}
+
+/*
+ * Fundos das fórmulas e substituições.
+ */
+#conceitos .equation-card__formula,
+#conceitos .equation-card__variables > div,
+#beer-lambert .beer-lambert-card__formula,
+#beer-lambert .beer-lambert-derivation__step,
+#exemplo .guided-example__data dl > div,
+#exemplo .calculation-step__formula,
+#exemplo .calculation-step__substitution,
+.opacity-module .live-equation__heading,
+.opacity-module .live-equation__formula,
+.opacity-module .live-equation__substitution {
+  background-color: #eef2f7 !important;
+}
+
+/*
+ * Interpretações e observações.
+ */
+#conceitos .equation-card__interpretation,
+#beer-lambert .beer-lambert-card__conclusion,
+.opacity-module .live-calculation__interpretation {
+  background-color: #eaf3ff !important;
+}
+
+#conceitos .equation-card__warning {
+  background-color: #fff4db !important;
+}
+/* =========================================================
+   CONTRASTE DOS SUBTÍTULOS — MÓDULO DE OPACIDADE
+   ========================================================= */
+
+/* Subtítulos dos cartões e blocos didáticos */
+#conceitos .equation-card__header h3,
+#equipamento .content-card h3,
+#beer-lambert .beer-lambert-derivation__step strong,
+#exemplo .guided-example__data h3,
+#exemplo .calculation-step h3,
+.opacity-module .live-calculation__header h3,
+.opacity-module .live-equation__heading strong {
+  color: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 750;
+}
+
+/* Pequenos títulos ou rótulos acima das seções */
+#conceitos .section-header__eyebrow,
+#equipamento .section-header__eyebrow,
+#beer-lambert .section-header__eyebrow,
+#exemplo .section-header__eyebrow,
+.opacity-module .section-header__eyebrow,
+.opacity-module .live-calculation__header > span {
+  color: #1556a8 !important;
+  opacity: 1 !important;
+  font-weight: 800;
+}
+
+/* Subtítulos ou rótulos dentro dos cartões de equação */
+#conceitos .equation-card__step {
+  color: #124a91 !important;
+  background-color: #dbeafe !important;
+  opacity: 1 !important;
+  font-weight: 800;
+}
+
+/* Nomes das variáveis e rótulos técnicos */
+#conceitos .equation-card__variables dt,
+#exemplo .guided-example__data dt,
+.opacity-module .metric-card span,
+.opacity-module .range-control label,
+.opacity-module .range-control__label {
+  color: #263548 !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+
+/* Títulos dos passos da derivação */
+#beer-lambert .beer-lambert-derivation__step strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #172033 !important;
+}
+
+/* Título interno do cálculo dinâmico */
+.opacity-module .live-equation__heading {
+  color: #172033 !important;
+}
+
+.opacity-module .live-equation__heading strong {
+  color: #172033 !important;
+}
+/* =========================================================
+   CORREÇÃO DE CONTRASTE — ELEMENTOS AINDA POUCO VISÍVEIS
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. Títulos principais das seções
+   --------------------------------------------------------- */
+
+#conceitos .section-header h2,
+#equipamento .section-header h2,
+#beer-lambert .section-header h2,
+#exemplo .section-header h2,
+.opacity-module .section-header h2 {
+  color: #111827 !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------------------------------------------------
+   2. Subtítulos e títulos internos
+   --------------------------------------------------------- */
+
+#conceitos h3,
+#equipamento h3,
+#beer-lambert h3,
+#exemplo h3,
+.opacity-module h3,
+#conceitos .equation-card__header h3,
+#equipamento .content-card h3,
+#beer-lambert .beer-lambert-card h3,
+#exemplo .guided-example__data h3,
+#exemplo .calculation-step h3,
+.opacity-module .live-calculation__header h3,
+.opacity-module .simulation-panel h3,
+.opacity-module .chart-panel h3 {
+  color: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------------------------------------------------
+   3. Textos introdutórios das seções
+   --------------------------------------------------------- */
+
+#conceitos .section-header p,
+#equipamento .section-header p,
+#beer-lambert .section-header p,
+#exemplo .section-header p,
+.opacity-module .section-header p,
+.opacity-module .simulation-intro,
+.opacity-module .simulation-description,
+.opacity-module .panel-description,
+.opacity-module .help-text {
+  color: #263548 !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* ---------------------------------------------------------
+   4. Resumo do exemplo:
+   Transmitância, Opacidade e coeficiente k
+   --------------------------------------------------------- */
+
+#exemplo .metric-strip,
+#exemplo .metric-strip span,
+#exemplo .metric-strip strong,
+#exemplo .example-summary,
+#exemplo .example-summary span,
+#exemplo .example-summary strong,
+#exemplo .guided-example__summary,
+#exemplo .guided-example__summary span,
+#exemplo .guided-example__summary strong {
+  color: #172033 !important;
+  opacity: 1 !important;
+}
+
+#exemplo .metric-strip strong,
+#exemplo .example-summary strong,
+#exemplo .guided-example__summary strong {
+  color: #1556a8 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------------------------------------------------
+   5. Rótulos dos controles do simulador
+   --------------------------------------------------------- */
+
+.opacity-module label,
+.opacity-module .range-control label,
+.opacity-module .range-control__label,
+.opacity-module .control-label,
+.opacity-module .simulation-controls label,
+.opacity-module .simulation-controls span,
+.opacity-module .simulation-controls strong {
+  color: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* Intensidade luminosa emitida */
+.opacity-module label[for='opacity-intensity'],
+.opacity-module label[for='opacity-initial-intensity'],
+.opacity-module label[for='initial-intensity'],
+.opacity-module label[for='intensity'] {
+  color: #172033 !important;
+}
+
+/* ---------------------------------------------------------
+   6. Textos explicativos do simulador
+   --------------------------------------------------------- */
+
+.opacity-module .opacity-animation-panel p,
+.opacity-module .simulation-panel p,
+.opacity-module .chart-panel p,
+.opacity-module .visual-panel p,
+.opacity-module .animation-caption,
+.opacity-module .chart-caption,
+.opacity-module figcaption {
+  color: #263548 !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* ---------------------------------------------------------
+   7. Valores e indicadores do simulador
+   --------------------------------------------------------- */
+
+.opacity-module output,
+.opacity-module .metric-card strong,
+.opacity-module .metric-value,
+.opacity-module .simulation-value,
+.opacity-module .current-value {
+  color: #111827 !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+.opacity-module .metric-card span,
+.opacity-module .metric-label {
+  color: #263548 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* ---------------------------------------------------------
+   8. Textos dentro da câmara óptica SVG
+   Câmara óptica, Fonte, Sensor, I₀ e I
+   --------------------------------------------------------- */
+
+.opacity-module svg text,
+.opacity-module svg tspan,
+.opacity-animation-panel svg text,
+.opacity-animation-panel svg tspan {
+  fill: #172033 !important;
+  color: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* Títulos internos do SVG */
+.opacity-module svg .svg-title,
+.opacity-module svg .chamber-title,
+.opacity-module svg .opacity-chamber-title {
+  fill: #111827 !important;
+  font-weight: 800 !important;
+}
+
+/* Fonte e sensor */
+.opacity-module svg .svg-label,
+.opacity-module svg .source-label,
+.opacity-module svg .sensor-label {
+  fill: #172033 !important;
+  font-weight: 700 !important;
+}
+
+/* Valores I₀ e I */
+.opacity-module svg .svg-value,
+.opacity-module svg .intensity-label,
+.opacity-module svg .intensity-value {
+  fill: #1556a8 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------------------------------------------------
+   9. Título do gráfico
+   --------------------------------------------------------- */
+
+.opacity-module .chart-panel h3,
+.opacity-module .chart-panel__title,
+.opacity-module .chart-title,
+#beer-lambert-chart-title {
+  color: #111827 !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------------------------------------------------
+   10. Eixos, números e legendas do gráfico
+   --------------------------------------------------------- */
+
+#beer-lambert-chart text,
+#beer-lambert-chart tspan,
+.opacity-module .chart-panel svg text,
+.opacity-module .chart-panel svg tspan {
+  fill: #172033 !important;
+  color: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 650 !important;
+}
+
+/* Nome dos eixos */
+#beer-lambert-chart .axis-label,
+#beer-lambert-chart .chart-axis-label,
+.opacity-module .chart-panel .axis-label {
+  fill: #111827 !important;
+  font-weight: 800 !important;
+}
+
+/* Valores numéricos dos eixos */
+#beer-lambert-chart .tick text,
+#beer-lambert-chart .chart-tick,
+.opacity-module .chart-panel .tick text {
+  fill: #263548 !important;
+  font-weight: 650 !important;
+}
+
+/* Linhas dos eixos */
+#beer-lambert-chart .domain,
+#beer-lambert-chart .axis-line,
+.opacity-module .chart-panel .domain,
+.opacity-module .chart-panel .axis-line {
+  stroke: #475569 !important;
+  stroke-width: 1.2 !important;
+  opacity: 1 !important;
+}
+
+/* Grades do gráfico */
+#beer-lambert-chart .grid line,
+#beer-lambert-chart .grid-line,
+.opacity-module .chart-panel .grid line {
+  stroke: #94a3b8 !important;
+  opacity: 0.55 !important;
+}
+
+/* ---------------------------------------------------------
+   11. Botão Tela cheia
+   --------------------------------------------------------- */
+
+.opacity-module .fullscreen-button,
+.opacity-module .chart-fullscreen-button,
+.opacity-module button[aria-label*='Tela cheia'],
+.opacity-module button[title*='Tela cheia'],
+.opacity-module button[aria-label*='tela cheia'],
+.opacity-module button[title*='tela cheia'] {
+  color: #172033 !important;
+  background-color: #e2e8f0 !important;
+  border: 1px solid #94a3b8 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.opacity-module .fullscreen-button:hover,
+.opacity-module .chart-fullscreen-button:hover,
+.opacity-module button[aria-label*='Tela cheia']:hover,
+.opacity-module button[title*='Tela cheia']:hover {
+  color: #0f172a !important;
+  background-color: #cbd5e1 !important;
+}
+
+/* ---------------------------------------------------------
+   12. Proteção contra opacity herdada
+   --------------------------------------------------------- */
+
+#conceitos *,
+#equipamento *,
+#beer-lambert *,
+#exemplo *,
+.opacity-module * {
+  text-shadow: none;
+}
+
+/*
+ * Não aplicar opacidade reduzida a textos.
+ */
+#conceitos p,
+#conceitos span,
+#conceitos label,
+#conceitos dt,
+#conceitos dd,
+#equipamento p,
+#equipamento span,
+#equipamento label,
+#beer-lambert p,
+#beer-lambert span,
+#exemplo p,
+#exemplo span,
+#exemplo label,
+#exemplo dt,
+#exemplo dd,
+.opacity-module p,
+.opacity-module label,
+.opacity-module output {
+  opacity: 1 !important;
+}
+/* =========================================================
+   GRÁFICO BEER-LAMBERT
+   ========================================================= */
+
+/* Curva principal */
+#beer-lambert-chart path,
+#beer-lambert-chart polyline,
+#beer-lambert-chart .curve,
+#beer-lambert-chart .line,
+#beer-lambert-chart .chart-line,
+#beer-lambert-chart .opacity-chart-line {
+  stroke: #2563eb !important;
+  stroke-width: 3px !important;
+  opacity: 1 !important;
+  fill: none !important;
+}
+
+/* Pontos da curva */
+#beer-lambert-chart circle,
+#beer-lambert-chart .point,
+#beer-lambert-chart .chart-point,
+#beer-lambert-chart .opacity-chart-point {
+  fill: #2563eb !important;
+  stroke: white !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/* Grade */
+#beer-lambert-chart .grid line,
+#beer-lambert-chart .gridline,
+#beer-lambert-chart .tick line {
+  stroke: #cbd5e1 !important;
+  stroke-width: 1px !important;
+  opacity: 0.8 !important;
+}
+
+/* Eixos */
+#beer-lambert-chart .domain,
+#beer-lambert-chart .axis line {
+  stroke: #475569 !important;
+  stroke-width: 1.5px !important;
+}
+/* =========================================================
+   DIAGRAMA DA CÂMARA ÓPTICA — CONTRASTE E VISIBILIDADE
+   ========================================================= */
+
+/* Fundo da área do diagrama */
+.opacity-animation-panel svg,
+.opacity-chamber svg,
+#opacity-chamber-svg {
+  background-color: #f8fafc !important;
+}
+
+/* Contorno principal da câmara */
+.opacity-animation-panel svg rect,
+.opacity-chamber svg rect,
+#opacity-chamber-svg rect {
+  stroke: #334155 !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Evita que todos os retângulos recebam fundo escuro.
+ * Mantém o interior da câmara claro.
+ */
+.opacity-animation-panel svg .chamber-body,
+.opacity-animation-panel svg .opacity-chamber-body,
+.opacity-chamber svg .chamber-body,
+#opacity-chamber-svg .chamber-body {
+  fill: #eef2f7 !important;
+  stroke: #334155 !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/* Fonte luminosa */
+.opacity-animation-panel svg .opacity-source,
+.opacity-animation-panel svg .light-source,
+.opacity-animation-panel svg .source,
+.opacity-chamber svg .opacity-source,
+#opacity-chamber-svg .opacity-source {
+  fill: #f59e0b !important;
+  stroke: #92400e !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/* Sensor */
+.opacity-animation-panel svg .opacity-sensor,
+.opacity-animation-panel svg .light-sensor,
+.opacity-animation-panel svg .sensor,
+.opacity-chamber svg .opacity-sensor,
+#opacity-chamber-svg .opacity-sensor {
+  fill: #2563eb !important;
+  stroke: #1e3a8a !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/* Feixe luminoso principal */
+.opacity-animation-panel svg .opacity-beam,
+.opacity-animation-panel svg .light-beam,
+.opacity-animation-panel svg .beam,
+.opacity-chamber svg .opacity-beam,
+#opacity-chamber-svg .opacity-beam {
+  fill: #fbbf24 !important;
+  stroke: #d97706 !important;
+  stroke-width: 2px !important;
+  opacity: 0.9 !important;
+}
+
+/* Linhas centrais ou limites do feixe */
+.opacity-animation-panel svg .beam-line,
+.opacity-animation-panel svg .light-ray,
+.opacity-animation-panel svg line.opacity-beam,
+.opacity-chamber svg .beam-line,
+#opacity-chamber-svg .beam-line {
+  stroke: #d97706 !important;
+  stroke-width: 3px !important;
+  stroke-linecap: round;
+  opacity: 1 !important;
+}
+
+/* Partículas de fuligem */
+.opacity-animation-panel svg .particle,
+.opacity-animation-panel svg .soot-particle,
+.opacity-animation-panel svg .opacity-particle,
+.opacity-chamber svg .particle,
+#opacity-chamber-svg .particle {
+  fill: #1f2937 !important;
+  stroke: #111827 !important;
+  stroke-width: 0.8px !important;
+  opacity: 0.9 !important;
+}
+
+/* Setas e linhas auxiliares */
+.opacity-animation-panel svg line,
+.opacity-animation-panel svg polyline,
+.opacity-animation-panel svg .arrow,
+.opacity-animation-panel svg .guide-line,
+.opacity-chamber svg .arrow,
+#opacity-chamber-svg .arrow {
+  stroke: #475569;
+  opacity: 1;
+}
+
+/* Pontas das setas */
+.opacity-animation-panel svg marker path,
+.opacity-chamber svg marker path,
+#opacity-chamber-svg marker path {
+  fill: #475569 !important;
+  stroke: #475569 !important;
+  opacity: 1 !important;
+}
+
+/* Textos da câmara */
+.opacity-animation-panel svg text,
+.opacity-animation-panel svg tspan,
+.opacity-chamber svg text,
+.opacity-chamber svg tspan,
+#opacity-chamber-svg text,
+#opacity-chamber-svg tspan {
+  fill: #172033 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* Título "Câmara óptica" */
+.opacity-animation-panel svg .chamber-title,
+.opacity-animation-panel svg .opacity-chamber-title,
+.opacity-chamber svg .chamber-title,
+#opacity-chamber-svg .chamber-title {
+  fill: #111827 !important;
+  font-weight: 800 !important;
+}
+
+/* Rótulos Fonte e Sensor */
+.opacity-animation-panel svg .source-label,
+.opacity-animation-panel svg .sensor-label,
+.opacity-animation-panel svg .svg-label,
+.opacity-chamber svg .source-label,
+.opacity-chamber svg .sensor-label,
+#opacity-chamber-svg .source-label,
+#opacity-chamber-svg .sensor-label {
+  fill: #172033 !important;
+  font-weight: 800 !important;
+}
+
+/* Valores I₀ e I */
+.opacity-animation-panel svg .intensity-label,
+.opacity-animation-panel svg .intensity-value,
+.opacity-animation-panel svg .svg-value,
+.opacity-chamber svg .intensity-label,
+#opacity-chamber-svg .intensity-label {
+  fill: #1556a8 !important;
+  font-weight: 800 !important;
+}
+/* =========================================================
+   SIMULADOR ÓPTICO — BANCADA DIDÁTICA CONSOLIDADA
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. Layout principal
+   --------------------------------------------------------- */
+
+.opacity-module .optical-workbench {
+  display: grid;
+  grid-template-columns:
+    minmax(310px, 0.72fr)
+    minmax(540px, 1.28fr);
+  gap: 1.5rem;
+  align-items: start;
+  width: 100%;
+}
+
+.opacity-module .optical-workbench__controls {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   2. Gráfico Beer–Lambert fixo
+   --------------------------------------------------------- */
+
+.opacity-module .beer-lambert-sticky {
+  position: sticky;
+
+  /*
+   * Considera o cabeçalho principal e a navegação
+   * interna do módulo.
+   */
+  top: 228px;
+
+  align-self: start;
+  z-index: 8;
+  min-width: 0;
+}
+
+.opacity-module .beer-lambert-sticky > .chart-panel {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+}
+
+.opacity-module .beer-lambert-sticky .chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.opacity-module .beer-lambert-sticky .chart-toolbar h3 {
+  margin: 0;
+  color: #111827 !important;
+  font-weight: 800 !important;
+}
+
+.opacity-module .beer-lambert-sticky #beer-lambert-chart {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+
+  /*
+   * O viewBox 720 × 430 é preservado.
+   * A altura cabe na área restante da tela.
+   */
+  height: auto;
+  min-height: 315px;
+  max-height: calc(100vh - 345px);
+
+  background-color: #f8fafc;
+  border-radius: 0.75rem;
+}
+
+/* Texto explicativo do gráfico */
+
+.opacity-module .beer-lambert-sticky .help-text,
+.opacity-module .beer-lambert-sticky .chart-description {
+  margin: 0.65rem 0 0;
+  color: #263548 !important;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------
+   3. Controles e indicadores
+   --------------------------------------------------------- */
+
+.opacity-module .optical-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.opacity-module .optical-metrics .metric-card {
+  min-height: 108px;
+}
+
+/* ---------------------------------------------------------
+   4. Câmara óptica em largura total
+   --------------------------------------------------------- */
+
+.opacity-module .opacity-chamber-section {
+  margin-top: 1.75rem;
+}
+
+.opacity-module .opacity-chamber-section > .chart-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.opacity-module .opacity-chamber-section .section-header__eyebrow {
+  color: #1556a8 !important;
+}
+
+.opacity-module .opacity-chamber-section h3 {
+  margin: 0.2rem 0 0;
+  color: #111827 !important;
+  font-weight: 800 !important;
+}
+
+.opacity-module .opacity-chamber-section .opacity-animation-panel {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+}
+
+.opacity-module .opacity-chamber-section #opacity-animation {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  min-height: 260px;
+  max-height: 330px;
+
+  background-color: #f8fafc;
+  border-radius: 0.75rem;
+}
+
+.opacity-module .opacity-chamber-section .help-text {
+  margin: 0.75rem 0 0;
+  color: #263548 !important;
+}
+
+/* ---------------------------------------------------------
+   5. Cálculos em tempo real
+   --------------------------------------------------------- */
+
+.opacity-module .optical-live-calculation {
+  margin-top: 1.75rem;
+}
+
+.opacity-module .live-calculation__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.opacity-module .live-calculation__grid .live-equation {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   6. Neutralização definitiva do layout antigo
+   --------------------------------------------------------- */
+
+.opacity-module .simulation-layout,
+.opacity-module .opacity-visual-column,
+.opacity-module .simulation-visuals,
+.opacity-module .simulator-visuals,
+.opacity-module .visualization-column,
+.opacity-module .sticky-chart-panel,
+.opacity-module .simulation-chart-column,
+.opacity-module .chart-panel--sticky {
+  position: static;
+  top: auto;
+
+  max-height: none;
+  overflow: visible;
+}
+
+/*
+ * Não altera display de .simulation-layout globalmente.
+ * A nova seção usa exclusivamente .optical-workbench.
+ */
+
+/* ---------------------------------------------------------
+   7. Telas com menor altura útil
+   --------------------------------------------------------- */
+
+@media (max-height: 820px) and (min-width: 1151px) {
+  .opacity-module .beer-lambert-sticky {
+    top: 205px;
+  }
+
+  .opacity-module .beer-lambert-sticky #beer-lambert-chart {
+    min-height: 270px;
+    max-height: calc(100vh - 305px);
+  }
+}
+
+/* ---------------------------------------------------------
+   8. Tablets e janelas intermediárias
+   --------------------------------------------------------- */
+
+@media (max-width: 1150px) {
+  .opacity-module .optical-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .opacity-module .beer-lambert-sticky {
+    position: static;
+    top: auto;
+  }
+
+  .opacity-module .beer-lambert-sticky #beer-lambert-chart {
+    min-height: 300px;
+    max-height: none;
+  }
+
+  .opacity-module .optical-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------
+   9. Dispositivos estreitos
+   --------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .opacity-module .optical-metrics,
+  .opacity-module .live-calculation__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opacity-module .beer-lambert-sticky #beer-lambert-chart,
+  .opacity-module .opacity-chamber-section #opacity-animation {
+    min-height: 240px;
+    max-height: none;
+  }
+}
+/* =========================================================
+   SELETOR DE MODO — SIMULADOR DE OPACIDADE
+   ========================================================= */
+
+.opacity-mode-selector {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, #d8dee8);
+  border-radius: 1rem;
+  background: var(--surface-color, #ffffff);
+}
+
+.opacity-mode-selector__header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.opacity-mode-selector__header h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.25;
+}
+
+.opacity-mode-selector__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.opacity-mode-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 2px solid var(--border-color, #d8dee8);
+  border-radius: 0.9rem;
+  background: var(--surface-color, #ffffff);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.opacity-mode-card:hover {
+  border-color: var(--primary-color, #1c5fd4);
+  transform: translateY(-2px);
+  box-shadow: 0 0.6rem 1.5rem rgb(15 23 42 / 10%);
+}
+
+.opacity-mode-card:has(.opacity-mode-card__input:checked) {
+  border-color: var(--primary-color, #1c5fd4);
+  background: color-mix(in srgb, var(--primary-color, #1c5fd4) 7%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #1c5fd4) 18%, transparent);
+}
+
+.opacity-mode-card:has(.opacity-mode-card__input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--primary-color, #1c5fd4) 35%, transparent);
+  outline-offset: 3px;
+}
+
+.opacity-mode-card__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.opacity-mode-card__indicator {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid var(--border-strong, #94a3b8);
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.opacity-mode-card__input:checked + .opacity-mode-card__indicator {
+  border: 0.34rem solid var(--primary-color, #1c5fd4);
+}
+
+.opacity-mode-card__icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--primary-color, #1c5fd4) 12%, white);
+  color: var(--primary-color, #1c5fd4);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.opacity-mode-card__content {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+  padding-right: 1.5rem;
+}
+
+.opacity-mode-card__title {
+  display: block;
+  color: var(--text-color, #0f172a);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.opacity-mode-card__description {
+  display: block;
+  color: var(--text-muted, #475569);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.opacity-mode-card__flow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.opacity-mode-card__group {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.opacity-mode-card__label {
+  color: var(--text-muted, #64748b);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.opacity-mode-card__variables {
+  color: var(--text-color, #0f172a);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.opacity-mode-card__arrow {
+  color: var(--primary-color, #1c5fd4);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.opacity-mode-card__formula {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  max-width: 100%;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: var(--surface-muted, #f1f5f9);
+  color: var(--text-color, #0f172a);
+  font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.opacity-mode-selector__description {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-left: 4px solid var(--primary-color, #1c5fd4);
+  border-radius: 0 0.6rem 0.6rem 0;
+  background: var(--surface-muted, #f8fafc);
+  color: var(--text-muted, #475569);
+  line-height: 1.55;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .opacity-mode-selector__options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .opacity-mode-selector {
+    padding: 1rem;
+  }
+
+  .opacity-mode-card {
+    grid-template-columns: auto 1fr;
+    padding: 1rem;
+  }
+
+  .opacity-mode-card__indicator {
+    top: 0.85rem;
+    right: 0.85rem;
+  }
+
+  .opacity-mode-card__content {
+    padding-right: 1.25rem;
+  }
+
+  .opacity-mode-card__flow {
+    align-items: flex-start;
+  }
+
+  .opacity-mode-card__arrow {
+    display: none;
+  }
+}

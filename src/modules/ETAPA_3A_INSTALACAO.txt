@@ -1,0 +1,20 @@
+ETAPA 3A — PADRONIZAÇÃO UX/UI
+
+1. Substitua a pasta:
+   src/modules/frenagem
+   pela pasta "frenagem" deste pacote.
+
+2. Substitua o arquivo global:
+   src/components/quiz.js
+   pelo arquivo "quiz.js" deste pacote.
+
+3. Execute:
+   npm run check
+   npm run dev
+
+Alterações principais:
+- Tomada de Decisão em coluna, com cartões inteiros clicáveis.
+- Avaliação em coluna, com cartões inteiros clicáveis.
+- Numeração destacada das questões.
+- Feedback visual por questão.
+- Limpeza dos estados ao iniciar nova tentativa.

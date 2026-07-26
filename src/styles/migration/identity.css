@@ -1,0 +1,201 @@
+﻿/* ===== LabInspeção_UniSENAI: identidade visual comum ===== */
+:root {
+  --brand-blue: #41c7ff;
+  --brand-teal: #55e6c1;
+  --brand-navy: #07111f;
+  --brand-panel: #10243a;
+  --brand-border: #587491;
+  --brand-text: #f7fbff;
+  --brand-muted: #cad9e8;
+}
+body {
+  padding-top: 0;
+}
+.lab-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(4, 10, 18, 0.97);
+  border-bottom: 1px solid var(--brand-border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(12px);
+}
+.lab-topbar {
+  max-width: 1420px;
+  margin: auto;
+  padding: 12px 22px;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+.lab-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--brand-blue), var(--brand-teal));
+  color: #03101a;
+  font-weight: 1000;
+  font-size: 1.08rem;
+  box-shadow: 0 0 0 3px rgba(65, 199, 255, 0.12);
+}
+.lab-title {
+  min-width: 0;
+}
+.lab-suite {
+  margin: 0;
+  color: #fff;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+.lab-module {
+  margin: 2px 0 0;
+  color: var(--brand-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 800;
+}
+.lab-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.lab-btn {
+  appearance: none;
+  border: 1px solid var(--brand-border);
+  background: #10243a;
+  color: #fff;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+  text-decoration: none;
+  min-height: 40px;
+}
+.lab-btn:hover,
+.lab-btn:focus-visible {
+  border-color: var(--brand-blue);
+  background: #173653;
+  outline: none;
+}
+.lab-btn.primary {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #03101a;
+}
+.lab-modulebar {
+  max-width: 1420px;
+  margin: auto;
+  padding: 0 22px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.lab-tab {
+  white-space: nowrap;
+  color: #eaf5ff;
+  text-decoration: none;
+  background: #0a1727;
+  border: 1px solid #405d79;
+  border-radius: 10px;
+  padding: 8px 11px;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+.lab-tab:hover {
+  border-color: var(--brand-blue);
+  background: #112a42;
+}
+.lab-tab.active {
+  background: linear-gradient(135deg, rgba(65, 199, 255, 0.22), rgba(85, 230, 193, 0.15));
+  border-color: var(--brand-blue);
+  color: #fff;
+}
+.lab-content-nav {
+  max-width: 1420px;
+  margin: auto;
+  padding: 0 22px 11px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  overflow-x: auto;
+}
+.lab-content-nav a {
+  white-space: nowrap;
+  color: #dceafb;
+  text-decoration: none;
+  background: #0b1b2e;
+  border: 1px solid #38526d;
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+.lab-content-nav a:hover {
+  border-color: var(--brand-teal);
+}
+.lab-export-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1200;
+  max-width: 360px;
+  background: #0a1727;
+  color: #fff;
+  border: 1px solid var(--brand-blue);
+  border-radius: 12px;
+  padding: 13px 15px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: 0.22s;
+}
+.lab-export-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+footer {
+  background: #06101c !important;
+  border-top: 1px solid var(--brand-border) !important;
+  padding: 27px 22px !important;
+}
+.lab-footer-brand {
+  display: block;
+  color: #fff;
+  font-weight: 900;
+  margin-top: 6px;
+}
+.lab-footer-suite {
+  display: block;
+  color: var(--brand-blue);
+  font-weight: 850;
+  margin-top: 4px;
+}
+@media (max-width: 900px) {
+  .lab-topbar {
+    grid-template-columns: auto 1fr;
+  }
+  .lab-actions {
+    grid-column: 1/-1;
+    justify-content: flex-start;
+  }
+  .lab-content-nav {
+    padding-bottom: 10px;
+  }
+}
+@media print {
+  .lab-header,
+  .lab-export-toast {
+    display: none !important;
+  }
+}

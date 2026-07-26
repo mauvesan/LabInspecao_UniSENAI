@@ -1,0 +1,114 @@
+﻿/* ===== Avaliação modular e visualização persistente ===== */
+.li-quiz {
+  max-width: 1320px;
+  margin: 34px auto;
+  padding: 0 22px;
+}
+.li-quiz-wrap {
+  background: linear-gradient(180deg, rgba(18, 36, 58, 0.98), rgba(9, 22, 37, 0.98));
+  border: 1px solid var(--li-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+}
+.li-quiz-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.li-quiz-head h2 {
+  margin: 0 0 7px;
+}
+.li-quiz-head p {
+  margin: 0;
+  color: var(--li-muted);
+}
+.li-quiz-score {
+  background: #07111f;
+  border: 1px solid var(--li-border);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-weight: 900;
+}
+.li-question {
+  margin: 20px 0;
+  padding: 18px;
+  background: #081522;
+  border: 1px solid #35516d;
+  border-radius: 14px;
+}
+.li-question h3 {
+  font-size: 1.05rem;
+  margin: 0 0 13px;
+}
+.li-options {
+  display: grid;
+  gap: 9px;
+}
+.li-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: #0b1b2e;
+  border: 1px solid #38526d;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.li-option:hover {
+  border-color: var(--li-blue);
+}
+.li-option input {
+  margin-top: 4px;
+  transform: scale(1.15);
+}
+.li-quiz-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.li-quiz-result {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--li-border);
+  font-weight: 850;
+}
+.li-pass {
+  background: rgba(85, 230, 193, 0.12);
+  border-color: var(--li-teal);
+  color: #b8ffe0;
+}
+.li-fail {
+  background: rgba(255, 209, 102, 0.1);
+  border-color: #ffd166;
+  color: #ffeab1;
+}
+.li-answer-feedback {
+  display: none;
+  margin-top: 8px;
+  font-size: 0.88rem;
+}
+.li-question.review-correct {
+  border-color: var(--li-teal);
+}
+.li-question.review-wrong {
+  border-color: #ff7b8b;
+}
+.li-question.review-wrong .li-answer-feedback,
+.li-question.review-correct .li-answer-feedback {
+  display: block;
+}
+@media (min-width: 1000px) {
+  .li-sticky-visual {
+    position: sticky;
+    top: 188px;
+    align-self: start;
+    max-height: calc(100vh - 205px);
+    overflow: auto;
+  }
+}

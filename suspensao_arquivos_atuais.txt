@@ -1,0 +1,823 @@
+﻿===== INDEX.JS =====
+import moduleData from './module.json';
+import quiz from './quiz.json';
+import { suspensaoContent } from './content.js';
+import { initializeSuspensaoSimulation } from './simulation.js';
+import { createQuiz } from '../../components/quiz.js';
+import { initializeSectionNavigation } from '../../app/navigation/section-navigation.js';
+
+const suspensaoModule = {
+  ...moduleData,
+  content: suspensaoContent,
+  quiz,
+
+  mount(root) {
+    initializeSectionNavigation(root);
+    initializeSuspensaoSimulation(suspensaoModule, root);
+
+    const quizContainer = root.querySelector('#module-quiz');
+
+    if (!quizContainer) {
+      throw new Error('ContÃªiner do quiz nÃ£o encontrado.');
+    }
+
+    createQuiz({
+      container: quizContainer,
+      moduleCode: suspensaoModule.code,
+      quiz: suspensaoModule.quiz,
+    });
+
+    return () => {
+      // RemoÃ§Ã£o futura de listeners, grÃ¡ficos e observadores.
+    };
+  },
+};
+
+export default suspensaoModule;
+
+===== SIMULATION.JS =====
+import { formatNumber } from '../../utils/format.js';
+
+const cases = {
+  normal: {
+    fl: 72,
+    fr: 69,
+    rl: 65,
+    rr: 63,
+  },
+
+  desequilibrio: {
+    fl: 74,
+    fr: 52,
+    rl: 66,
+    rr: 61,
+  },
+
+  baixa: {
+    fl: 48,
+    fr: 46,
+    rl: 42,
+    rr: 40,
+  },
+
+  traseiro: {
+    fl: 71,
+    fr: 68,
+    rl: 38,
+    rr: 31,
+  },
+};
+
+const controlIds = ['fl', 'fr', 'rl', 'rr'];
+
+export function initializeSuspensaoSimulation(module, root) {
+  const controls = Object.fromEntries(controlIds.map((id) => [id, root.querySelector(`#${id}`)]));
+
+  const outputs = Object.fromEntries(
+    controlIds.map((id) => [id, root.querySelector(`#${id}-output`)]),
+  );
+
+  const averageMetric = root.querySelector('#metric-eff');
+  const frontDifferenceMetric = root.querySelector('#metric-df');
+  const rearDifferenceMetric = root.querySelector('#metric-dr');
+  const statusPanel = root.querySelector('#simulation-status');
+  const chart = root.querySelector('#brake-chart');
+
+  const requiredElements = [
+    ...Object.values(controls),
+    ...Object.values(outputs),
+    averageMetric,
+    frontDifferenceMetric,
+    rearDifferenceMetric,
+    statusPanel,
+    chart,
+  ];
+
+  if (requiredElements.some((element) => !element)) {
+    console.warn(
+      'O simulador de suspensÃ£o nÃ£o foi inicializado porque existem elementos obrigatÃ³rios ausentes.',
+    );
+
+    return undefined;
+  }
+
+  let animationFrameId = null;
+
+  const update = () => {
+    animationFrameId = null;
+
+    const values = readValues(controls);
+    const metrics = calculateSuspensionMetrics(values);
+
+    updateControlOutputs(outputs, values);
+    updateMetrics({
+      averageMetric,
+      frontDifferenceMetric,
+      rearDifferenceMetric,
+      metrics,
+    });
+
+    updateStatus(statusPanel, metrics);
+    drawSuspensionChart(chart, values);
+  };
+
+  const scheduleUpdate = () => {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    animationFrameId = requestAnimationFrame(update);
+  };
+
+  const controlListeners = controlIds.map((id) => {
+    const listener = () => scheduleUpdate();
+
+    controls[id].addEventListener('input', listener);
+
+    return {
+      element: controls[id],
+      listener,
+    };
+  });
+
+  const caseListeners = Array.from(root.querySelectorAll('[data-case]')).map((button) => {
+    const listener = () => {
+      const selectedCase = cases[button.dataset.case];
+
+      if (!selectedCase) {
+        return;
+      }
+
+      Object.entries(selectedCase).forEach(([id, value]) => {
+        controls[id].value = String(value);
+      });
+
+      update();
+    };
+
+    button.addEventListener('click', listener);
+
+    return {
+      element: button,
+      listener,
+    };
+  });
+
+  update();
+
+  return () => {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    controlListeners.forEach(({ element, listener }) => {
+      element.removeEventListener('input', listener);
+    });
+
+    caseListeners.forEach(({ element, listener }) => {
+      element.removeEventListener('click', listener);
+    });
+  };
+}
+
+function readValues(controls) {
+  return Object.fromEntries(controlIds.map((id) => [id, Number(controls[id].value)]));
+}
+
+function calculateSuspensionMetrics(values) {
+  const adhesionValues = [values.fl, values.fr, values.rl, values.rr];
+
+  const average = adhesionValues.reduce((total, value) => total + value, 0) / adhesionValues.length;
+
+  const frontDifference = Math.abs(values.fl - values.fr);
+  const rearDifference = Math.abs(values.rl - values.rr);
+  const minimumAdhesion = Math.min(...adhesionValues);
+
+  return {
+    average,
+    frontDifference,
+    rearDifference,
+    minimumAdhesion,
+  };
+}
+
+function updateControlOutputs(outputs, values) {
+  controlIds.forEach((id) => {
+    outputs[id].value = `${formatNumber(values[id], 0)} %`;
+  });
+}
+
+function updateMetrics({ averageMetric, frontDifferenceMetric, rearDifferenceMetric, metrics }) {
+  averageMetric.textContent = `${formatNumber(metrics.average, 1)}%`;
+
+  frontDifferenceMetric.textContent = `${formatNumber(metrics.frontDifference, 0)} p.p.`;
+
+  rearDifferenceMetric.textContent = `${formatNumber(metrics.rearDifference, 0)} p.p.`;
+}
+
+function updateStatus(statusPanel, metrics) {
+  const classification = classifySuspension(metrics);
+
+  statusPanel.className = `status-panel ${classification.className}`;
+  statusPanel.innerHTML = `
+    <strong>${classification.title}</strong>
+    <p>${classification.description}</p>
+  `;
+}
+
+function classifySuspension(metrics) {
+  const maximumDifference = Math.max(metrics.frontDifference, metrics.rearDifference);
+
+  if (metrics.minimumAdhesion < 40 || maximumDifference > 20) {
+    return {
+      className: 'critical',
+      title: 'CondiÃ§Ã£o didÃ¡tica crÃ­tica',
+      description:
+        'HÃ¡ Ã­ndice de aderÃªncia muito reduzido ou diferenÃ§a lateral elevada. O veÃ­culo requer investigaÃ§Ã£o tÃ©cnica complementar.',
+    };
+  }
+
+  if (metrics.minimumAdhesion < 60 || maximumDifference > 10) {
+    return {
+      className: 'warning',
+      title: 'CondiÃ§Ã£o didÃ¡tica de atenÃ§Ã£o',
+      description:
+        'Os resultados sugerem desempenho reduzido ou assimetria entre as rodas do mesmo eixo.',
+    };
+  }
+
+  return {
+    className: 'normal',
+    title: 'CondiÃ§Ã£o didÃ¡tica compatÃ­vel',
+    description:
+      'Os Ã­ndices de aderÃªncia e as diferenÃ§as laterais encontram-se em uma faixa didÃ¡tica satisfatÃ³ria.',
+  };
+}
+
+function drawSuspensionChart(svg, values) {
+  const chartValues = [values.fl, values.fr, values.rl, values.rr];
+
+  const labels = ['Dianteira E', 'Dianteira D', 'Traseira E', 'Traseira D'];
+
+  const grid = Array.from({ length: 6 }, (_, index) => {
+    const value = index * 20;
+    const y = 340 - (value / 100) * 275;
+
+    return `
+      <line
+        x1="70"
+        y1="${y}"
+        x2="680"
+        y2="${y}"
+        class="svg-grid"
+      />
+
+      <text
+        x="28"
+        y="${y + 5}"
+        class="svg-text"
+      >
+        ${value}%
+      </text>
+    `;
+  }).join('');
+
+  const bars = chartValues
+    .map((value, index) => {
+      const x = 95 + index * 145;
+      const height = (value / 100) * 275;
+      const y = 340 - height;
+
+      return `
+        <rect
+          x="${x}"
+          y="${y}"
+          width="82"
+          height="${height}"
+          rx="9"
+          class="suspension-bar"
+        />
+
+        <text
+          x="${x + 25}"
+          y="${Math.max(y - 10, 55)}"
+          class="svg-text"
+        >
+          ${formatNumber(value, 0)}%
+        </text>
+
+        <text
+          x="${x - 4}"
+          y="380"
+          class="svg-text"
+        >
+          ${labels[index]}
+        </text>
+      `;
+    })
+    .join('');
+
+  svg.innerHTML = `
+    ${grid}
+
+    <line
+      x1="70"
+      y1="65"
+      x2="70"
+      y2="340"
+      class="svg-axis"
+    />
+
+    <line
+      x1="70"
+      y1="340"
+      x2="680"
+      y2="340"
+      class="svg-axis"
+    />
+
+    ${bars}
+  `;
+}
+
+===== DYNAMICS.JS =====
+import { formatNumber } from '../../utils/format.js';
+
+const dynamicControlIds = [
+  'dynamic-mass',
+  'dynamic-stiffness',
+  'dynamic-damping',
+  'dynamic-excitation-frequency',
+  'dynamic-road-amplitude',
+];
+
+const dynamicCases = {
+  equilibrada: {
+    'dynamic-mass': 320,
+    'dynamic-stiffness': 24000,
+    'dynamic-damping': 1800,
+    'dynamic-excitation-frequency': 1.5,
+    'dynamic-road-amplitude': 8,
+  },
+
+  desgastado: {
+    'dynamic-mass': 320,
+    'dynamic-stiffness': 24000,
+    'dynamic-damping': 550,
+    'dynamic-excitation-frequency': 1.5,
+    'dynamic-road-amplitude': 12,
+  },
+
+  rigida: {
+    'dynamic-mass': 300,
+    'dynamic-stiffness': 52000,
+    'dynamic-damping': 2200,
+    'dynamic-excitation-frequency': 2.2,
+    'dynamic-road-amplitude': 10,
+  },
+
+  sobrecarga: {
+    'dynamic-mass': 470,
+    'dynamic-stiffness': 24000,
+    'dynamic-damping': 1800,
+    'dynamic-excitation-frequency': 1.4,
+    'dynamic-road-amplitude': 10,
+  },
+
+  ressonancia: {
+    'dynamic-mass': 320,
+    'dynamic-stiffness': 24000,
+    'dynamic-damping': 700,
+    'dynamic-excitation-frequency': 1.38,
+    'dynamic-road-amplitude': 14,
+  },
+};
+
+export function initializeDynamicSimulation(root) {
+  const controls = Object.fromEntries(
+    dynamicControlIds.map((id) => [id, root.querySelector(`#${id}`)]),
+  );
+
+  const outputs = Object.fromEntries(
+    dynamicControlIds.map((id) => [id, root.querySelector(`#${id}-output`)]),
+  );
+
+  const elements = {
+    naturalFrequency: root.querySelector('#dynamic-natural-frequency'),
+    dampedFrequency: root.querySelector('#dynamic-damped-frequency'),
+    dampingRatio: root.querySelector('#dynamic-damping-ratio'),
+    transmissibility: root.querySelector('#dynamic-transmissibility'),
+    adhesion: root.querySelector('#dynamic-adhesion'),
+    comfort: root.querySelector('#dynamic-comfort'),
+    stability: root.querySelector('#dynamic-stability'),
+    regime: root.querySelector('#dynamic-regime'),
+    explanation: root.querySelector('#dynamic-explanation'),
+  };
+
+  const requiredElements = [
+    ...Object.values(controls),
+    ...Object.values(outputs),
+    ...Object.values(elements),
+  ];
+
+  if (requiredElements.some((element) => !element)) {
+    console.warn(
+      'O simulador de dinÃ¢mica nÃ£o foi inicializado porque existem elementos obrigatÃ³rios ausentes.',
+    );
+
+    return undefined;
+  }
+
+  let animationFrameId = null;
+
+  const update = () => {
+    animationFrameId = null;
+
+    const values = readDynamicValues(controls);
+    const metrics = calculateDynamicMetrics(values);
+    const evaluation = evaluateDynamicCondition(metrics);
+
+    updateDynamicOutputs(outputs, values);
+    updateDynamicMetrics(elements, metrics, evaluation);
+    updateDynamicExplanation(elements.explanation, metrics, evaluation);
+  };
+
+  const scheduleUpdate = () => {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    animationFrameId = requestAnimationFrame(update);
+  };
+
+  const controlListeners = dynamicControlIds.map((id) => {
+    const listener = () => scheduleUpdate();
+
+    controls[id].addEventListener('input', listener);
+
+    return {
+      element: controls[id],
+      listener,
+    };
+  });
+
+  const caseListeners = Array.from(root.querySelectorAll('[data-dynamic-case]')).map((button) => {
+    const listener = () => {
+      const selectedCase = dynamicCases[button.dataset.dynamicCase];
+
+      if (!selectedCase) {
+        return;
+      }
+
+      Object.entries(selectedCase).forEach(([id, value]) => {
+        controls[id].value = String(value);
+      });
+
+      update();
+    };
+
+    button.addEventListener('click', listener);
+
+    return {
+      element: button,
+      listener,
+    };
+  });
+
+  update();
+
+  return () => {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    controlListeners.forEach(({ element, listener }) => {
+      element.removeEventListener('input', listener);
+    });
+
+    caseListeners.forEach(({ element, listener }) => {
+      element.removeEventListener('click', listener);
+    });
+  };
+}
+
+function readDynamicValues(controls) {
+  return {
+    mass: Number(controls['dynamic-mass'].value),
+    stiffness: Number(controls['dynamic-stiffness'].value),
+    damping: Number(controls['dynamic-damping'].value),
+    excitationFrequency: Number(controls['dynamic-excitation-frequency'].value),
+    roadAmplitude: Number(controls['dynamic-road-amplitude'].value),
+  };
+}
+
+function calculateDynamicMetrics(values) {
+  const { mass, stiffness, damping, excitationFrequency, roadAmplitude } = values;
+
+  const naturalAngularFrequency = Math.sqrt(stiffness / mass);
+
+  const naturalFrequency = naturalAngularFrequency / (2 * Math.PI);
+
+  const criticalDamping = 2 * Math.sqrt(stiffness * mass);
+
+  const dampingRatio = damping / criticalDamping;
+
+  const dampedFrequency =
+    dampingRatio < 1 ? naturalFrequency * Math.sqrt(1 - dampingRatio ** 2) : 0;
+
+  const frequencyRatio = naturalFrequency > 0 ? excitationFrequency / naturalFrequency : 0;
+
+  const denominatorSquared =
+    (1 - frequencyRatio ** 2) ** 2 + (2 * dampingRatio * frequencyRatio) ** 2;
+
+  const transmissibility =
+    denominatorSquared > 0
+      ? Math.sqrt((1 + (2 * dampingRatio * frequencyRatio) ** 2) / denominatorSquared)
+      : 0;
+
+  const adhesion = estimateAdhesion({
+    dampingRatio,
+    frequencyRatio,
+    transmissibility,
+    roadAmplitude,
+  });
+
+  return {
+    ...values,
+    naturalAngularFrequency,
+    naturalFrequency,
+    criticalDamping,
+    dampingRatio,
+    dampedFrequency,
+    frequencyRatio,
+    transmissibility,
+    adhesion,
+  };
+}
+
+function estimateAdhesion({ dampingRatio, frequencyRatio, transmissibility, roadAmplitude }) {
+  const resonancePenalty = 28 * Math.exp(-Math.pow((frequencyRatio - 1) / 0.3, 2));
+
+  const lowDampingPenalty = dampingRatio < 0.2 ? (0.2 - dampingRatio) * 120 : 0;
+
+  const highDampingPenalty = dampingRatio > 0.65 ? (dampingRatio - 0.65) * 25 : 0;
+
+  const transmissibilityPenalty = Math.max(0, transmissibility - 1) * 8;
+
+  const roadPenalty = roadAmplitude * 0.45;
+
+  const adhesion =
+    94 -
+    resonancePenalty -
+    lowDampingPenalty -
+    highDampingPenalty -
+    transmissibilityPenalty -
+    roadPenalty;
+
+  return clamp(adhesion, 20, 95);
+}
+
+function evaluateDynamicCondition(metrics) {
+  const comfort = evaluateComfort(metrics);
+  const stability = evaluateStability(metrics);
+  const regime = classifyDynamicRegime(metrics.dampingRatio);
+
+  return {
+    comfort,
+    stability,
+    regime,
+  };
+}
+
+function evaluateComfort(metrics) {
+  if (
+    metrics.transmissibility > 1.6 ||
+    (metrics.frequencyRatio > 0.85 && metrics.frequencyRatio < 1.15)
+  ) {
+    return {
+      className: 'critical',
+      label: 'Baixo',
+      description: 'A excitaÃ§Ã£o tende a ser amplificada e transmitida Ã  carroceria.',
+    };
+  }
+
+  if (metrics.transmissibility > 1.05) {
+    return {
+      className: 'warning',
+      label: 'Moderado',
+      description: 'Uma parcela significativa da vibraÃ§Ã£o Ã© transmitida Ã  carroceria.',
+    };
+  }
+
+  return {
+    className: 'normal',
+    label: 'Bom',
+    description: 'A suspensÃ£o reduz satisfatoriamente a transmissÃ£o da irregularidade.',
+  };
+}
+
+function evaluateStability(metrics) {
+  if (metrics.adhesion < 40) {
+    return {
+      className: 'critical',
+      label: 'CrÃ­tica',
+      description:
+        'A variaÃ§Ã£o estimada da forÃ§a vertical pode comprometer o contato pneuâ€“pavimento.',
+    };
+  }
+
+  if (metrics.adhesion < 60) {
+    return {
+      className: 'warning',
+      label: 'AtenÃ§Ã£o',
+      description: 'A manutenÃ§Ã£o do contato pneuâ€“pavimento encontra-se reduzida.',
+    };
+  }
+
+  return {
+    className: 'normal',
+    label: 'Adequada',
+    description: 'A roda mantÃ©m contato satisfatÃ³rio com o pavimento no cenÃ¡rio didÃ¡tico.',
+  };
+}
+
+function classifyDynamicRegime(dampingRatio) {
+  if (dampingRatio < 0.15) {
+    return {
+      className: 'critical',
+      label: 'Subamortecido crÃ­tico',
+      description: 'O amortecimento Ã© insuficiente e permite oscilaÃ§Ãµes prolongadas.',
+    };
+  }
+
+  if (dampingRatio <= 0.35) {
+    return {
+      className: 'normal',
+      label: 'Subamortecido controlado',
+      description: 'O sistema apresenta compromisso favorÃ¡vel entre controle e conforto.',
+    };
+  }
+
+  if (dampingRatio < 1) {
+    return {
+      className: 'warning',
+      label: 'Subamortecido elevado',
+      description:
+        'As oscilaÃ§Ãµes sÃ£o controladas rapidamente, mas a resposta pode se tornar mais rÃ­gida.',
+    };
+  }
+
+  if (Math.abs(dampingRatio - 1) < 0.02) {
+    return {
+      className: 'warning',
+      label: 'Criticamente amortecido',
+      description: 'O sistema retorna ao equilÃ­brio sem oscilar e no menor tempo teÃ³rico.',
+    };
+  }
+
+  return {
+    className: 'critical',
+    label: 'Superamortecido',
+    description: 'O sistema retorna lentamente Ã  posiÃ§Ã£o de equilÃ­brio.',
+  };
+}
+
+function updateDynamicOutputs(outputs, values) {
+  outputs['dynamic-mass'].value = `${formatNumber(values.mass, 0)} kg`;
+
+  outputs['dynamic-stiffness'].value = `${formatNumber(values.stiffness, 0)} N/m`;
+
+  outputs['dynamic-damping'].value = `${formatNumber(values.damping, 0)} NÂ·s/m`;
+
+  outputs['dynamic-excitation-frequency'].value =
+    `${formatNumber(values.excitationFrequency, 1)} Hz`;
+
+  outputs['dynamic-road-amplitude'].value = `${formatNumber(values.roadAmplitude, 0)} mm`;
+}
+
+function updateDynamicMetrics(elements, metrics, evaluation) {
+  elements.naturalFrequency.textContent = `${formatNumber(metrics.naturalFrequency, 2)} Hz`;
+
+  elements.dampedFrequency.textContent =
+    metrics.dampedFrequency > 0
+      ? `${formatNumber(metrics.dampedFrequency, 2)} Hz`
+      : 'NÃ£o oscilatÃ³rio';
+
+  elements.dampingRatio.textContent = formatNumber(metrics.dampingRatio, 3);
+
+  elements.transmissibility.textContent = formatNumber(metrics.transmissibility, 2);
+
+  elements.adhesion.textContent = `${formatNumber(metrics.adhesion, 0)}%`;
+
+  elements.comfort.textContent = evaluation.comfort.label;
+
+  elements.stability.textContent = evaluation.stability.label;
+
+  elements.regime.textContent = evaluation.regime.label;
+}
+
+function updateDynamicExplanation(panel, metrics, evaluation) {
+  const resonance = classifyResonance(metrics.frequencyRatio);
+
+  const overallClass = selectOverallClass([
+    evaluation.comfort.className,
+    evaluation.stability.className,
+    evaluation.regime.className,
+    resonance.className,
+  ]);
+
+  panel.className = `status-panel ${overallClass}`;
+
+  panel.innerHTML = `
+    <strong>InterpretaÃ§Ã£o dinÃ¢mica em tempo real</strong>
+
+    <p>
+      A frequÃªncia natural calculada Ã©
+      <strong>${formatNumber(metrics.naturalFrequency, 2)} Hz</strong>
+      e a frequÃªncia de excitaÃ§Ã£o corresponde a
+      <strong>${formatNumber(metrics.excitationFrequency, 2)} Hz</strong>.
+      ${resonance.description}
+    </p>
+
+    <p>
+      A razÃ£o de amortecimento Ã©
+      <strong>${formatNumber(metrics.dampingRatio, 3)}</strong>.
+      ${evaluation.regime.description}
+    </p>
+
+    <p>
+      A transmissibilidade Ã©
+      <strong>${formatNumber(metrics.transmissibility, 2)}</strong>.
+      O conforto foi classificado como
+      <strong>${evaluation.comfort.label}</strong>.
+      ${evaluation.comfort.description}
+    </p>
+
+    <p>
+      A aderÃªncia estimada Ã©
+      <strong>${formatNumber(metrics.adhesion, 0)}%</strong>,
+      com estabilidade
+      <strong>${evaluation.stability.label}</strong>.
+      ${evaluation.stability.description}
+    </p>
+
+    <p>
+      <small>
+        Os resultados desta seÃ§Ã£o sÃ£o estimativas didÃ¡ticas e nÃ£o
+        substituem mediÃ§Ãµes realizadas em equipamentos de inspeÃ§Ã£o.
+      </small>
+    </p>
+  `;
+}
+
+function classifyResonance(frequencyRatio) {
+  if (frequencyRatio >= 0.9 && frequencyRatio <= 1.1) {
+    return {
+      className: 'critical',
+      description:
+        'A excitaÃ§Ã£o estÃ¡ muito prÃ³xima da frequÃªncia natural, caracterizando uma zona crÃ­tica de ressonÃ¢ncia.',
+    };
+  }
+
+  if (frequencyRatio >= 0.75 && frequencyRatio < 0.9) {
+    return {
+      className: 'warning',
+      description: 'A excitaÃ§Ã£o estÃ¡ se aproximando da frequÃªncia natural.',
+    };
+  }
+
+  if (frequencyRatio > 1.1 && frequencyRatio <= 1.3) {
+    return {
+      className: 'warning',
+      description: 'A excitaÃ§Ã£o encontra-se pouco acima da regiÃ£o de ressonÃ¢ncia.',
+    };
+  }
+
+  if (frequencyRatio < 0.75) {
+    return {
+      className: 'normal',
+      description: 'A excitaÃ§Ã£o ocorre abaixo da regiÃ£o principal de ressonÃ¢ncia.',
+    };
+  }
+
+  return {
+    className: 'normal',
+    description: 'A excitaÃ§Ã£o ocorre acima da regiÃ£o principal de ressonÃ¢ncia.',
+  };
+}
+
+function selectOverallClass(classNames) {
+  if (classNames.includes('critical')) {
+    return 'critical';
+  }
+
+  if (classNames.includes('warning')) {
+    return 'warning';
+  }
+
+  return 'normal';
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(maximum, Math.max(minimum, value));
+}

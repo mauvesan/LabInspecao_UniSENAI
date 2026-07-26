@@ -1,0 +1,32 @@
+{
+  "code": "O",
+  "slug": "gases",
+  "title": "Analisador de Gases — Ciclo Otto",
+  "subtitle": "Da composição dos gases de escapamento ao diagnóstico da combustão.",
+  "sections": [
+    {
+      "id": "conceitos",
+      "title": "Conceitos"
+    },
+    {
+      "id": "equipamento",
+      "title": "Analisador de Gases"
+    },
+    {
+      "id": "exemplo",
+      "title": "Exemplo"
+    },
+    {
+      "id": "simulador",
+      "title": "Simulador"
+    },
+    {
+      "id": "avaliacao",
+      "title": "Avaliação"
+    }
+  ],
+  "completion": {
+    "minimumCorrect": 4,
+    "total": 5
+  }
+}

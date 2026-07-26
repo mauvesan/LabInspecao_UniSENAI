@@ -1,0 +1,32 @@
+{
+  "code": "K",
+  "slug": "opacidade",
+  "title": "Opacidade em Motores do Ciclo Diesel",
+  "subtitle": "Da atenuação luminosa à interpretação do coeficiente de absorção.",
+  "sections": [
+    {
+      "id": "conceitos",
+      "title": "Fundamentos"
+    },
+    {
+      "id": "equipamento",
+      "title": "Opacímetro"
+    },
+    {
+      "id": "exemplo",
+      "title": "Exemplo"
+    },
+    {
+      "id": "simulador",
+      "title": "Simulador"
+    },
+    {
+      "id": "avaliacao",
+      "title": "Avaliação"
+    }
+  ],
+  "completion": {
+    "minimumCorrect": 4,
+    "total": 5
+  }
+}

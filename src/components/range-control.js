@@ -1,1 +1,3 @@
-export function rangeControl({id,label,min,max,step,value,unit}){return `<label class="control-block" for="${id}"><span>${label}</span><div class="range-row"><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"><output id="${id}-output">${value} ${unit}</output></div></label>`}
+export function rangeControl({ id, label, min, max, step, value, unit }) {
+  return `<label class="control-block" for="${id}"><span>${label}</span><div class="range-row"><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"><output id="${id}-output">${value} ${unit}</output></div></label>`;
+}

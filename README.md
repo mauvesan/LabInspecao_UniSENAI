@@ -28,11 +28,13 @@ Copie `.env.example` para `.env.local` e preencha os valores. Não publique `.en
 3. Em **Settings → Secrets and variables → Actions**, configure:
 
 Variáveis:
+
 - `VITE_ONLINE_ENABLED`
 - `VITE_APPS_SCRIPT_URL`
 - `VITE_CLASS_GROUP`
 
 Segredo:
+
 - `VITE_ACCESS_TOKEN`
 
 O workflow gera `dist` e publica pelo GitHub Pages.

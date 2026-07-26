@@ -2,7 +2,7 @@
   "code": "F",
   "slug": "frenagem",
   "title": "Eficiência e Desequilíbrio de Frenagem",
-  "subtitle": "Da força por roda ao diagnóstico do sistema de freios.",
+  "subtitle": "Da medição das forças de frenagem ao diagnóstico do sistema de freios.",
   "sections": [
     {
       "id": "conceitos",
@@ -10,11 +10,11 @@
     },
     {
       "id": "equipamento",
-      "title": "Frenômetro"
+      "title": "Ensaio no Frenômetro"
     },
     {
       "id": "exemplo",
-      "title": "Exemplo"
+      "title": "Estudo de Caso"
     },
     {
       "id": "simulador",

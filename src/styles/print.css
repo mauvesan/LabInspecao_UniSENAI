@@ -1,1 +1,28 @@
-@media print{.app-header,.section-nav,.button,.toast{display:none!important}body{background:white;color:black}.route-view{max-width:none;padding:0}.content-card,.chart-panel,.simulation-controls{box-shadow:none;break-inside:avoid}}
+@media print {
+  body {
+    color: #000;
+    background: #fff;
+  }
+
+  button,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    width: 100%;
+    max-width: none;
+  }
+
+  section,
+  article,
+  .card {
+    break-inside: avoid;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

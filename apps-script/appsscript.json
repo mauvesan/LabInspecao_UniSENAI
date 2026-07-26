@@ -1,1 +1,6 @@
-{"timeZone":"America/Sao_Paulo","dependencies":{},"exceptionLogging":"STACKDRIVER","runtimeVersion":"V8"}
+{
+  "timeZone": "America/Sao_Paulo",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}

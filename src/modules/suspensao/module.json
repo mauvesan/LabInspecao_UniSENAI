@@ -1,0 +1,44 @@
+{
+  "code": "S",
+  "slug": "suspensao",
+  "title": "Suspensão",
+  "subtitle": "Avaliação da aderência dinâmica e do equilíbrio entre as rodas.",
+  "sections": [
+    {
+      "id": "suspensao-visao-geral",
+      "title": "Visão geral"
+    },
+    {
+      "id": "suspensao-fundamentos",
+      "title": "Fundamentos"
+    },
+    {
+      "id": "suspensao-banco",
+      "title": "Banco de suspensão"
+    },
+    {
+      "id": "suspensao-exemplo",
+      "title": "Exemplo"
+    },
+    {
+      "id": "suspensao-inspecao",
+      "title": "Simulador"
+    },
+    {
+      "id": "suspensao-dinamica",
+      "title": "Dinâmica"
+    },
+    {
+      "id": "suspensao-sintese",
+      "title": "Síntese"
+    },
+    {
+      "id": "avaliacao",
+      "title": "Avaliação"
+    }
+  ],
+  "completion": {
+    "minimumCorrect": 4,
+    "total": 5
+  }
+}
