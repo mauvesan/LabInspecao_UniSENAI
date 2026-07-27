@@ -416,11 +416,17 @@ function renderOscillationChart(serviceBrake, unit) {
         <span class="brake-result__oscillation-limit">Limite didático: ${OSCILLATION_LIMIT}%</span>
       </div>
       <div class="brake-result__wave-grid">
-        ${wheels.map(([key, label, force]) => {
-          const variation = currentOscillation[key];
-          const wave = createOscillationWavePath(force, variation);
-          const stateClass = variation > OSCILLATION_LIMIT ? 'is-failed' : variation > 15 ? 'is-attention' : 'is-approved';
-          return `
+        ${wheels
+          .map(([key, label, force]) => {
+            const variation = currentOscillation[key];
+            const wave = createOscillationWavePath(force, variation);
+            const stateClass =
+              variation > OSCILLATION_LIMIT
+                ? 'is-failed'
+                : variation > 15
+                  ? 'is-attention'
+                  : 'is-approved';
+            return `
             <article class="brake-result__wave-card ${stateClass}">
               <div class="brake-result__wave-card-header">
                 <strong>${escapeHtml(label)}</strong>
@@ -435,7 +441,8 @@ function renderOscillationChart(serviceBrake, unit) {
                 <span>Mín. ${formatNumber(wave.minimum)} ${escapeHtml(unit)}</span>
               </div>
             </article>`;
-        }).join('')}
+          })
+          .join('')}
       </div>
       <p class="brake-result__wave-note"><strong>Interpretação:</strong> o desenho mostra a modulação cíclica da força, compatível com hipóteses como empenamento do disco, variação de espessura ou excentricidade. Não representa um diagnóstico isolado.</p>
     </section>`;
