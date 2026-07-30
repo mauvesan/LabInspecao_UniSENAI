@@ -1,3 +1,5 @@
+import { calculatePhaseLag, calculateTransmissibility } from './math/suspension-dynamics.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const WIDTH = 900;
 const HEIGHT = 360;
@@ -40,12 +42,13 @@ function configureSvg(svg, label) {
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', label);
   svg.classList.add('dynamic-chart-svg');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 }
 
 function drawTemporal(svg, metrics) {
   const frequency = Math.max(0.1, metrics.excitationFrequency);
   const duration = clamp(5 / frequency, 2.5, 8);
-  const phase = phaseLag(metrics.frequencyRatio, metrics.dampingRatio);
+  const phase = calculatePhaseLag(metrics.frequencyRatio, metrics.dampingRatio);
   const bodyAmplitude = metrics.roadAmplitude * metrics.transmissibility;
   const limit = Math.max(2, metrics.roadAmplitude, bodyAmplitude) * 1.28;
   const samples = Array.from({ length: 241 }, (_, i) => {
@@ -239,15 +242,6 @@ function shadeResonance(svg, start, end, xMin, xMax) {
 
 function subtitle(svg, text) {
   appendText(svg, M.left, HEIGHT - 40, text, 'dynamic-chart-subtitle');
-}
-
-function calculateTransmissibility(r, zeta) {
-  const denominator = (1 - r ** 2) ** 2 + (2 * zeta * r) ** 2;
-  return denominator > 1e-12 ? Math.sqrt((1 + (2 * zeta * r) ** 2) / denominator) : 0;
-}
-
-function phaseLag(r, zeta) {
-  return Math.atan2(2 * zeta * r, 1 - r ** 2) - Math.atan2(2 * zeta * r, 1);
 }
 
 function mapX(value, min, max) {

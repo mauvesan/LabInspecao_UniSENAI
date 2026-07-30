@@ -20,8 +20,6 @@ const suspensaoModule = {
     }
 
     const cleanupFunctions = [];
-    const previousModuleMarker = root.getAttribute('data-module');
-    root.setAttribute('data-module', 'suspensao');
 
     const registerCleanup = (cleanup) => {
       if (typeof cleanup === 'function') {
@@ -52,12 +50,6 @@ const suspensaoModule = {
     );
 
     return () => {
-      if (previousModuleMarker === null) {
-        root.removeAttribute('data-module');
-      } else {
-        root.setAttribute('data-module', previousModuleMarker);
-      }
-
       [...cleanupFunctions].reverse().forEach((cleanup) => {
         try {
           cleanup();

@@ -1,3 +1,5 @@
+import { calculatePhaseLag } from './math/suspension-dynamics.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function initializeSuspensionAnimation(root) {
@@ -11,6 +13,7 @@ export function initializeSuspensionAnimation(root) {
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', 'Animação sincronizada do sistema massa, mola e amortecedor');
   svg.classList.add('dynamic-animation-svg');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
   let metrics = null;
   let frameId = null;
@@ -141,10 +144,6 @@ function createSpringPath(x, topY, bottomY) {
     d += ` L ${x + offset} ${y}`;
   }
   return d;
-}
-
-function calculatePhaseLag(r, zeta) {
-  return Math.atan2(2 * zeta * r, 1 - r ** 2) - Math.atan2(2 * zeta * r, 1);
 }
 
 function append(svg, tag, attributes) {

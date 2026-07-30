@@ -1,6 +1,11 @@
 import { formatNumber } from '../../utils/format.js';
 import { initializeDynamicCharts } from './charts.js';
 import { initializeSuspensionAnimation } from './animation.js';
+import {
+  calculateDynamicMetrics,
+  evaluateDynamicCondition,
+  classifyResonance,
+} from './math/suspension-dynamics.js';
 
 const dynamicControlIds = [
   'dynamic-mass',
@@ -181,177 +186,6 @@ function readDynamicValues(controls) {
   };
 }
 
-function calculateDynamicMetrics(values) {
-  const { mass, stiffness, damping, excitationFrequency, roadAmplitude } = values;
-
-  const naturalAngularFrequency = Math.sqrt(stiffness / mass);
-
-  const naturalFrequency = naturalAngularFrequency / (2 * Math.PI);
-
-  const criticalDamping = 2 * Math.sqrt(stiffness * mass);
-
-  const dampingRatio = damping / criticalDamping;
-
-  const dampedFrequency =
-    dampingRatio < 1 ? naturalFrequency * Math.sqrt(1 - dampingRatio ** 2) : 0;
-
-  const frequencyRatio = naturalFrequency > 0 ? excitationFrequency / naturalFrequency : 0;
-
-  const denominatorSquared =
-    (1 - frequencyRatio ** 2) ** 2 + (2 * dampingRatio * frequencyRatio) ** 2;
-
-  const transmissibility =
-    denominatorSquared > 0
-      ? Math.sqrt((1 + (2 * dampingRatio * frequencyRatio) ** 2) / denominatorSquared)
-      : 0;
-
-  const adhesion = estimateAdhesion({
-    dampingRatio,
-    frequencyRatio,
-    transmissibility,
-    roadAmplitude,
-  });
-
-  return {
-    ...values,
-    naturalAngularFrequency,
-    naturalFrequency,
-    criticalDamping,
-    dampingRatio,
-    dampedFrequency,
-    frequencyRatio,
-    transmissibility,
-    adhesion,
-  };
-}
-
-function estimateAdhesion({ dampingRatio, frequencyRatio, transmissibility, roadAmplitude }) {
-  const resonancePenalty = 28 * Math.exp(-Math.pow((frequencyRatio - 1) / 0.3, 2));
-
-  const lowDampingPenalty = dampingRatio < 0.2 ? (0.2 - dampingRatio) * 120 : 0;
-
-  const highDampingPenalty = dampingRatio > 0.65 ? (dampingRatio - 0.65) * 25 : 0;
-
-  const transmissibilityPenalty = Math.max(0, transmissibility - 1) * 8;
-
-  const roadPenalty = roadAmplitude * 0.45;
-
-  const adhesion =
-    94 -
-    resonancePenalty -
-    lowDampingPenalty -
-    highDampingPenalty -
-    transmissibilityPenalty -
-    roadPenalty;
-
-  return clamp(adhesion, 20, 95);
-}
-
-function evaluateDynamicCondition(metrics) {
-  const comfort = evaluateComfort(metrics);
-  const stability = evaluateStability(metrics);
-  const regime = classifyDynamicRegime(metrics.dampingRatio);
-
-  return {
-    comfort,
-    stability,
-    regime,
-  };
-}
-
-function evaluateComfort(metrics) {
-  if (
-    metrics.transmissibility > 1.6 ||
-    (metrics.frequencyRatio > 0.85 && metrics.frequencyRatio < 1.15)
-  ) {
-    return {
-      className: 'critical',
-      label: 'Baixo',
-      description: 'A excitação tende a ser amplificada e transmitida à carroceria.',
-    };
-  }
-
-  if (metrics.transmissibility > 1.05) {
-    return {
-      className: 'warning',
-      label: 'Moderado',
-      description: 'Uma parcela significativa da vibração é transmitida à carroceria.',
-    };
-  }
-
-  return {
-    className: 'normal',
-    label: 'Bom',
-    description: 'A suspensão reduz satisfatoriamente a transmissão da irregularidade.',
-  };
-}
-
-function evaluateStability(metrics) {
-  if (metrics.adhesion < 40) {
-    return {
-      className: 'critical',
-      label: 'Crítica',
-      description:
-        'A variação estimada da força vertical pode comprometer o contato pneu–pavimento.',
-    };
-  }
-
-  if (metrics.adhesion < 60) {
-    return {
-      className: 'warning',
-      label: 'Atenção',
-      description: 'A manutenção do contato pneu–pavimento encontra-se reduzida.',
-    };
-  }
-
-  return {
-    className: 'normal',
-    label: 'Adequada',
-    description: 'A roda mantém contato satisfatório com o pavimento no cenário didático.',
-  };
-}
-
-function classifyDynamicRegime(dampingRatio) {
-  if (dampingRatio < 0.15) {
-    return {
-      className: 'critical',
-      label: 'Subamortecido crítico',
-      description: 'O amortecimento é insuficiente e permite oscilações prolongadas.',
-    };
-  }
-
-  if (dampingRatio <= 0.35) {
-    return {
-      className: 'normal',
-      label: 'Subamortecido controlado',
-      description: 'O sistema apresenta compromisso favorável entre controle e conforto.',
-    };
-  }
-
-  if (dampingRatio < 1) {
-    return {
-      className: 'warning',
-      label: 'Subamortecido elevado',
-      description:
-        'As oscilações são controladas rapidamente, mas a resposta pode se tornar mais rígida.',
-    };
-  }
-
-  if (Math.abs(dampingRatio - 1) < 0.02) {
-    return {
-      className: 'warning',
-      label: 'Criticamente amortecido',
-      description: 'O sistema retorna ao equilíbrio sem oscilar e no menor tempo teórico.',
-    };
-  }
-
-  return {
-    className: 'critical',
-    label: 'Superamortecido',
-    description: 'O sistema retorna lentamente à posição de equilíbrio.',
-  };
-}
-
 function updateDynamicOutputs(outputs, values) {
   outputs['dynamic-mass'].value = `${formatNumber(values.mass, 0)} kg`;
 
@@ -440,42 +274,6 @@ function updateDynamicExplanation(panel, metrics, evaluation) {
   `;
 }
 
-function classifyResonance(frequencyRatio) {
-  if (frequencyRatio >= 0.9 && frequencyRatio <= 1.1) {
-    return {
-      className: 'critical',
-      description:
-        'A excitação está muito próxima da frequência natural, caracterizando uma zona crítica de ressonância.',
-    };
-  }
-
-  if (frequencyRatio >= 0.75 && frequencyRatio < 0.9) {
-    return {
-      className: 'warning',
-      description: 'A excitação está se aproximando da frequência natural.',
-    };
-  }
-
-  if (frequencyRatio > 1.1 && frequencyRatio <= 1.3) {
-    return {
-      className: 'warning',
-      description: 'A excitação encontra-se pouco acima da região de ressonância.',
-    };
-  }
-
-  if (frequencyRatio < 0.75) {
-    return {
-      className: 'normal',
-      description: 'A excitação ocorre abaixo da região principal de ressonância.',
-    };
-  }
-
-  return {
-    className: 'normal',
-    description: 'A excitação ocorre acima da região principal de ressonância.',
-  };
-}
-
 function selectOverallClass(classNames) {
   if (classNames.includes('critical')) {
     return 'critical';
@@ -486,8 +284,4 @@ function selectOverallClass(classNames) {
   }
 
   return 'normal';
-}
-
-function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
 }
