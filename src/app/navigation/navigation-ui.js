@@ -1,19 +1,30 @@
-﻿export const navigationItems = [
-  { href: '#/', label: 'Início' },
-  { href: '#/casos', label: 'Casos integradores' },
-  { href: '#/referencias', label: 'Referências normativas' },
-];
+import { canAccessNavigationItem, USER_ROLES } from '../access/access-policy.js';
+
+export const navigationItems = Object.freeze([
+  Object.freeze({ href: '#/', label: 'Início' }),
+  Object.freeze({ href: '#/casos', label: 'Casos integradores' }),
+  Object.freeze({ href: '#/referencias', label: 'Referências normativas' }),
+  Object.freeze({
+    href: '#/professor',
+    label: 'Área do professor',
+    roles: Object.freeze([USER_ROLES.TEACHER]),
+  }),
+]);
+
+export function getNavigationItems(role) {
+  return navigationItems.filter((item) => canAccessNavigationItem(item, role));
+}
 
 export function updateNavigation(path) {
-  document.querySelectorAll('[data-nav-path]').forEach((a) => {
-    const active = a.dataset.navPath === path;
+  document.querySelectorAll('[data-nav-path]').forEach((anchor) => {
+    const active = anchor.dataset.navPath === path;
 
-    a.classList.toggle('active', active);
+    anchor.classList.toggle('active', active);
 
     if (active) {
-      a.setAttribute('aria-current', 'page');
+      anchor.setAttribute('aria-current', 'page');
     } else {
-      a.removeAttribute('aria-current');
+      anchor.removeAttribute('aria-current');
     }
   });
 }
