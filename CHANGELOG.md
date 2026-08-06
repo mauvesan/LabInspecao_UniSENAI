@@ -1,50 +1,21 @@
-# Changelog
+# Changelog — v4.1.0
 
-## v4.1.0
+## Added
 
-Release estável do módulo Frenagem.
+- camada transversal `didactic-legibility.css`;
+- escala tipográfica e métricas de leitura compartilhadas;
+- suporte visual aprimorado para zoom e telas menores.
 
-### Adicionado
+## Changed
 
-- Padronização visual e de experiência do usuário do módulo Frenagem
-- Reestruturação da seção Fundamentos
-- Reestruturação da seção Frenômetro
-- Reestruturação do Estudo de Caso
-- Simulador com resultados em tempo real
-- Gráficos de forças de frenagem
-- Visualização das oscilações por roda
-- Avaliação com alternativas verticais e cartões clicáveis
-- Navegação interna entre seções
-- Melhorias de responsividade e acessibilidade
+- hierarquia de títulos, cartões, controles, alternativas e tabelas;
+- inclusão da nova camada no ponto final da cascata CSS;
+- consolidação da rota de Produtos Perigosos.
 
-### Corrigido
+## Preserved
 
-- Navegação entre Frenômetro e Estudo de Caso
-- Atualização dos cards e gráficos do simulador
-- Exibição do gráfico no painel fixo
-- Disposição textual das alternativas do Estudo de Caso
-- Compatibilidade dos imports no Vite
-- Ajustes de layout, espaçamento e contraste
-
-### Estado da versão
-
-- Módulo Frenagem considerado estável
-- Base visual e funcional definida para padronização dos demais módulos
-- Build e verificações do projeto aprovados
-
----
-
-## v4.0.0-alpha.1
-
-Primeira arquitetura.
-
-### Adicionado
-
-- Vite
-- Módulo Frenagem
-- Quiz
-- Dashboard
-
-### Estado da versão
-
-- Build aprovado
+- conteúdo pedagógico;
+- IDs e eventos;
+- cálculos e simulações;
+- SVG, canvas, gráficos e animações;
+- quizzes e persistência.

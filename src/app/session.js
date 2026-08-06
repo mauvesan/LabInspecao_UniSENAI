@@ -3,6 +3,7 @@ const KEY = 'labinspecao_v4_progress';
 export const session = {
   progress: null,
   profile: null,
+  identity: null,
   initialize() {
     try {
       this.progress = JSON.parse(localStorage.getItem(KEY)) || {
@@ -13,6 +14,24 @@ export const session = {
     } catch {
       this.progress = { xp: 0, modules: {}, pendingAttempts: [] };
     }
+  },
+  setIdentity(authenticationSession) {
+    this.identity = authenticationSession?.user || null;
+
+    this.profile = this.identity
+      ? {
+          userId: this.identity.id,
+          displayName: this.identity.displayName,
+          email: this.identity.email,
+          role: this.identity.role,
+          roleLabel: this.identity.roleLabel || this.identity.role,
+        }
+      : null;
+    dispatchEvent(
+      new CustomEvent('lab:identity-changed', {
+        detail: this.identity,
+      }),
+    );
   },
   recordAttempt(a) {
     const m = this.progress.modules[a.moduleCode] || {

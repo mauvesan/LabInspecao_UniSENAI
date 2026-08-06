@@ -6,3 +6,20 @@ node_modules
 *.min.js
 
 package-lock.json
+
+# Backups e versões arquivadas
+_backup*
+.release-backups
+_archive
+rollback
+diff
+files
+
+# Cópias antigas do projeto
+LabInspecao_v4.0.2_Opacidade_Suspensao
+
+# Artefatos auxiliares
+classes-v4.csv
+estrutura-visual-v4.txt
+suspensao_arquivos_atuais*
+SHA256SUMS.txt

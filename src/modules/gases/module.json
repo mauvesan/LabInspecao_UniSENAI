@@ -21,6 +21,14 @@
       "title": "Simulador"
     },
     {
+      "id": "interpretacao",
+      "title": "Interpretação"
+    },
+    {
+      "id": "tomada-de-decisao",
+      "title": "Tomada de Decisão"
+    },
+    {
       "id": "avaliacao",
       "title": "Avaliação"
     }

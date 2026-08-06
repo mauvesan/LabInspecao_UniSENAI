@@ -101,6 +101,23 @@ const THEME_CSS = `
   [data-module="suspensao"] #brake-chart .svg-axis { stroke:#475569 !important; stroke-width:2; }
   [data-module="suspensao"] #brake-chart .svg-text { fill:#334155 !important; opacity:1 !important; font-size:14px; }
 
+
+  [data-module="suspensao"] .dynamic-contact-controls { display:grid; gap:.65rem; padding:.85rem; border:1px solid var(--sus-line); border-radius:.85rem; background:#f8fafc; }
+  [data-module="suspensao"] .dynamic-contact-controls > label { font-weight:700; color:#172554; }
+  [data-module="suspensao"] .dynamic-contact-controls select { width:100%; min-height:42px; padding:.55rem .7rem; border:1px solid #94a3b8; border-radius:.65rem; background:#fff; color:#172033; }
+  [data-module="suspensao"] .dynamic-control-help { margin:0; color:#52606d; font-size:.86rem; line-height:1.45; }
+  [data-module="suspensao"] .dynamic-extreme-button { border-color:#b91c1c; color:#991b1b; }
+  [data-module="suspensao"] .dyn-road-baseline { stroke:#bfdbfe !important; stroke-width:1; stroke-dasharray:6 6; }
+  [data-module="suspensao"] .dyn-road-marker { stroke:#cbd5e1 !important; stroke-width:3; stroke-linecap:round; }
+  [data-module="suspensao"] .dyn-contact-normal { stroke:#0ea5e9 !important; stroke-width:1.5; stroke-dasharray:4 3; }
+  [data-module="suspensao"] .dyn-contact-point { fill:#f59e0b !important; stroke:#fff !important; stroke-width:1.5; }
+  [data-module="suspensao"] .dyn-wheel--contact-lost { fill:#450a0a !important; stroke:#dc2626 !important; stroke-width:4; }
+  [data-module="suspensao"] .dyn-contact-gap { stroke:#dc2626 !important; stroke-width:2.5; stroke-dasharray:4 3; }
+  [data-module="suspensao"] .dyn-contact-status { font-size:11px; font-weight:700; }
+  [data-module="suspensao"] .dyn-contact-ok { fill:#15803d !important; }
+  [data-module="suspensao"] .dyn-contact-lost { fill:#b91c1c !important; }
+  [data-module="suspensao"] #dynamic-contact-state[data-state="warning"] { color:#b91c1c; }
+
   @media (max-width:980px) {
     [data-module="suspensao"] .dynamic-lab__layout,
     [data-module="suspensao"] .dynamic-charts { grid-template-columns:1fr; }

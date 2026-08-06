@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 for (const f of [
   'index.html',
   'src/main.js',
+  'src/platform/index.js',
+  'docs/platform/access-foundation.md',
   'src/modules/frenagem/module.json',
   'src/modules/frenagem/quiz.json',
   '.github/workflows/deploy.yml',

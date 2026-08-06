@@ -1554,8 +1554,8 @@ function renderDynamicsSection() {
                 id: 'dynamic-damping',
                 output: 'dynamic-damping-output',
                 label: 'Coeficiente de amortecimento',
-                value: 1800,
-                min: 200,
+                value: 441,
+                min: 50,
                 max: 5000,
                 unit: 'N·s/m',
               })}
@@ -1564,7 +1564,7 @@ function renderDynamicsSection() {
                 id: 'dynamic-excitation-frequency',
                 output: 'dynamic-excitation-frequency-output',
                 label: 'Frequência da pista',
-                value: 1.5,
+                value: 4,
                 min: 0.5,
                 max: 5,
                 step: 0.1,
@@ -1575,11 +1575,35 @@ function renderDynamicsSection() {
                 id: 'dynamic-road-amplitude',
                 output: 'dynamic-road-amplitude-output',
                 label: 'Amplitude da irregularidade',
-                value: 8,
-                min: 1,
+                value: 2,
+                min: 0,
+                step: 0.5,
                 max: 30,
                 unit: 'mm',
               })}
+
+              <div class="dynamic-contact-controls">
+                <label for="dynamic-contact-mode">Modo de contato</label>
+                <select id="dynamic-contact-mode">
+                  <option value="continuous">Contato contínuo</option>
+                  <option value="extreme">Baixa aderência extrema</option>
+                </select>
+
+                ${renderDynamicSlider({
+                  id: 'dynamic-adhesion-index',
+                  output: 'dynamic-adhesion-index-output',
+                  label: 'Índice didático de aderência',
+                  value: 100,
+                  min: 0,
+                  max: 100,
+                  unit: '%',
+                })}
+
+                <p class="dynamic-control-help">
+                  O modo extremo permite visualizar pequenas separações
+                  temporárias entre o pneu e a pista.
+                </p>
+              </div>
 
             </div>
 
@@ -1618,6 +1642,13 @@ function renderDynamicsSection() {
                 data-dynamic-case="ressonancia"
                 type="button">
                 Ressonância
+              </button>
+
+              <button
+                class="button button--secondary dynamic-extreme-button"
+                data-dynamic-case="extremo"
+                type="button">
+                Baixa aderência extrema
               </button>
 
             </div>
@@ -1667,6 +1698,26 @@ function renderDynamicsSection() {
             id: 'dynamic-transmissibility',
             label: 'Transmissibilidade',
             value: '1.08',
+          })}
+
+          ${renderMetricCard({
+            id: 'dynamic-phase-lag',
+            label: 'Defasagem',
+            value: '0',
+            unit: '°',
+          })}
+
+          ${renderMetricCard({
+            id: 'dynamic-body-amplitude',
+            label: 'Amplitude da carroceria',
+            value: '0',
+            unit: 'mm',
+          })}
+
+          ${renderMetricCard({
+            id: 'dynamic-contact-state',
+            label: 'Contato pneu–pista',
+            value: 'Preservado',
           })}
 
           ${renderMetricCard({
@@ -2132,6 +2183,123 @@ function renderSummarySection() {
   `;
 }
 
+function renderDecisionSection() {
+  return `
+    <section
+      id="suspensao-tomada-decisao"
+      class="module-section"
+      data-section
+      data-suspensao-decision
+      aria-labelledby="suspensao-decision-title"
+    >
+      ${renderSectionHeader({
+        eyebrow: 'Tomada de decisão',
+        title: 'Qual encaminhamento é tecnicamente mais adequado?',
+        description:
+          'Analise os resultados do ensaio e selecione a conduta que melhor respeita as evidências disponíveis e os limites do diagnóstico.',
+      })}
+
+      <article class="content-card decision-case">
+        <h3>Caso técnico</h3>
+
+        <p>
+          Um veículo de passeio apresenta instabilidade em curvas e maior
+          dificuldade para manter a trajetória em piso irregular. Após a
+          conferência da pressão dos pneus e a repetição controlada do ensaio,
+          o banco de suspensão registrou assimetria persistente no eixo dianteiro.
+        </p>
+
+        <dl class="decision-case__evidence">
+          <div>
+            <dt>Dianteira esquerda</dt>
+            <dd>68% de aderência</dd>
+          </div>
+
+          <div>
+            <dt>Dianteira direita</dt>
+            <dd>42% de aderência</dd>
+          </div>
+
+          <div>
+            <dt>Desequilíbrio no eixo</dt>
+            <dd>38,2%</dd>
+          </div>
+        </dl>
+      </article>
+
+      <form class="decision-form" data-decision-form>
+        <fieldset>
+          <legend class="visually-hidden">
+            Selecione a decisão técnica para o caso apresentado
+          </legend>
+
+          <div class="decision-options">
+            <label class="decision-option">
+              <input type="radio" name="suspensao-decision" value="pneu" />
+              <span class="decision-option__text">
+                Substituir o pneu dianteiro direito e realizar novo ensaio para
+                verificar se o índice de aderência retorna aos valores esperados.
+              </span>
+            </label>
+
+            <label class="decision-option">
+              <input type="radio" name="suspensao-decision" value="alinhamento" />
+              <span class="decision-option__text">
+                Executar o alinhamento do eixo dianteiro e repetir o ensaio para
+                avaliar se o desequilíbrio entre os lados foi eliminado.
+              </span>
+            </label>
+
+            <label class="decision-option">
+              <input type="radio" name="suspensao-decision" value="inspecao" />
+              <span class="decision-option__text">
+                Inspecionar o amortecedor dianteiro direito e os componentes
+                associados, corrigindo as falhas confirmadas antes de novo ensaio.
+              </span>
+            </label>
+
+            <label class="decision-option">
+              <input type="radio" name="suspensao-decision" value="liberar" />
+              <span class="decision-option__text">
+                Liberar o veículo para circulação e registrar o resultado obtido,
+                recomendando apenas uma nova verificação em manutenção futura.
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="decision-actions">
+          <button
+            type="submit"
+            class="button button--primary"
+            data-action="confirm-suspensao-decision"
+            disabled
+          >
+            Confirmar resposta
+          </button>
+
+          <button
+            type="button"
+            class="button button--secondary"
+            data-action="continue-to-suspensao-quiz"
+            hidden
+          >
+            Prosseguir para a avaliação
+          </button>
+        </div>
+
+        <div
+          class="decision-feedback"
+          data-decision-feedback
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+      </form>
+    </section>
+  `;
+}
+
 export function suspensaoContent() {
   return `
     <div class="module-page module-page--suspensao">
@@ -2142,6 +2310,7 @@ export function suspensaoContent() {
       ${renderInspectionSection()}
       ${renderDynamicsSection()}
       ${renderSummarySection()}
+      ${renderDecisionSection()}
     </div>
   `;
 }

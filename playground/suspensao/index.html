@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="description"
+      content="Playground isolado para validação da animação de suspensão e contato pneu–pista do LabInspeção."
+    />
+
+    <title>Playground — Animação da Suspensão</title>
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">LabInspeção · Playground isolado</p>
+
+          <h1>Dinâmica veicular — contato pneu–pista</h1>
+
+          <p>
+            Ambiente independente para validar a animação antes de integrá-la ao módulo Suspensão.
+          </p>
+        </div>
+
+        <div
+          class="status"
+          id="contact-status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-state="initial"
+        >
+          Inicializando…
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Área de simulação">
+        <aside class="controls" aria-label="Parâmetros da simulação">
+          <h2>Parâmetros</h2>
+
+          <fieldset class="control-group">
+            <legend>Sistema suspenso</legend>
+
+            <label for="mass">
+              <span> Massa suspensa </span>
+
+              <output id="mass-output" for="mass"> 250 kg </output>
+            </label>
+
+            <input id="mass" type="range" min="150" max="500" step="10" value="250" />
+
+            <label for="stiffness">
+              <span> Rigidez da mola </span>
+
+              <output id="stiffness-output" for="stiffness"> 18000 N/m </output>
+            </label>
+
+            <input id="stiffness" type="range" min="8000" max="35000" step="500" value="18000" />
+
+            <label for="damping">
+              <span> Coeficiente de amortecimento </span>
+
+              <output id="damping-output" for="damping"> 441 N·s/m </output>
+            </label>
+
+            <input id="damping" type="range" min="50" max="1800" step="10" value="441" />
+          </fieldset>
+
+          <fieldset class="control-group">
+            <legend>Excitação da pista</legend>
+
+            <label for="frequency">
+              <span> Frequência da pista </span>
+
+              <output id="frequency-output" for="frequency"> 4,0 Hz </output>
+            </label>
+
+            <input id="frequency" type="range" min="0.5" max="8" step="0.1" value="4" />
+
+            <label for="amplitude">
+              <span> Amplitude da irregularidade </span>
+
+              <output id="amplitude-output" for="amplitude"> 2,0 mm </output>
+            </label>
+
+            <input id="amplitude" type="range" min="0" max="12" step="0.5" value="2" />
+
+            <label for="speed">
+              <span> Velocidade visual do perfil </span>
+
+              <output id="speed-output" for="speed"> 1,0× </output>
+            </label>
+
+            <input id="speed" type="range" min="0.2" max="2" step="0.1" value="1" />
+          </fieldset>
+
+          <fieldset class="control-group">
+            <legend>Condição de contato</legend>
+
+            <label for="contact-mode">
+              <span> Modo de contato </span>
+            </label>
+
+            <select id="contact-mode">
+              <option value="continuous">Contato contínuo</option>
+
+              <option value="extreme">Baixa aderência extrema</option>
+            </select>
+
+            <p class="control-help">
+              O modo contínuo mantém a roda geometricamente apoiada. O modo extremo permite simular
+              separações temporárias.
+            </p>
+
+            <label for="adhesion">
+              <span> Índice didático de aderência </span>
+
+              <output id="adhesion-output" for="adhesion"> 100% </output>
+            </label>
+
+            <input id="adhesion" type="range" min="0" max="100" step="1" value="100" disabled />
+
+            <p class="control-help">
+              Valores baixos reduzem a capacidade da roda de acompanhar rapidamente o perfil da
+              pista.
+            </p>
+          </fieldset>
+
+          <div class="button-row" aria-label="Comandos da simulação">
+            <button id="pause" type="button">Pausar</button>
+
+            <button id="reset" type="button" class="secondary">Restaurar</button>
+
+            <button id="extreme-scenario" type="button" class="danger">
+              Aplicar cenário extremo
+            </button>
+          </div>
+        </aside>
+
+        <section class="stage-card" aria-labelledby="stage-title">
+          <h2 id="stage-title" class="visually-hidden">Área gráfica da simulação</h2>
+
+          <svg
+            id="suspension-animation"
+            viewBox="0 0 760 520"
+            role="img"
+            aria-label="Sistema massa, mola, amortecedor e roda sobre pista ondulada"
+            preserveAspectRatio="xMidYMid meet"
+          ></svg>
+
+          <div class="metrics" aria-label="Métricas calculadas">
+            <article>
+              <span> Frequência natural </span>
+
+              <strong id="natural-frequency"> — </strong>
+            </article>
+
+            <article>
+              <span> Razão de frequência </span>
+
+              <strong id="frequency-ratio"> — </strong>
+            </article>
+
+            <article>
+              <span> Transmissibilidade </span>
+
+              <strong id="transmissibility"> — </strong>
+            </article>
+
+            <article>
+              <span> Contato geométrico </span>
+
+              <strong id="contact-gap"> — </strong>
+            </article>
+
+            <article>
+              <span> Razão de amortecimento </span>
+
+              <strong id="damping-ratio"> — </strong>
+            </article>
+
+            <article>
+              <span> Defasagem da carroceria </span>
+
+              <strong id="phase-lag"> — </strong>
+            </article>
+
+            <article>
+              <span> Amplitude da resposta </span>
+
+              <strong id="body-response-amplitude"> — </strong>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section class="notes">
+        <h2>Critérios de validação</h2>
+
+        <p>
+          No modo de contato contínuo, a linha média da pista deve permanecer fixa, o relevo deve
+          deslocar-se horizontalmente, a roda deve acompanhar verticalmente o perfil e a folga
+          geométrica deve permanecer próxima de zero.
+        </p>
+
+        <p>
+          No modo de baixa aderência extrema, a roda pode apresentar separações temporárias em
+          condições combinadas de grande amplitude, alta frequência, baixo amortecimento e baixo
+          índice de aderência.
+        </p>
+
+        <p class="technical-note">
+          O índice de aderência usado neste playground é uma variável didática para demonstrar o
+          fenômeno. Ele não representa diretamente o índice medido em um banco de suspensão.
+        </p>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js?v=4"></script>
+  </body>
+</html>

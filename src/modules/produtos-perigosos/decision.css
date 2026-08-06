@@ -1,0 +1,135 @@
+[data-dangerous-goods-decision] .decision-case {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+[data-dangerous-goods-decision] .decision-case__evidence {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+[data-dangerous-goods-decision] .decision-case__evidence div {
+  padding: 1rem;
+  border: 1px solid var(--color-border, #d9e2ec);
+  border-radius: 0.75rem;
+  background: var(--color-surface-subtle, #f7f9fc);
+}
+[data-dangerous-goods-decision] .decision-case__evidence dt {
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-dangerous-goods-decision] .decision-case__evidence dd {
+  margin: 0;
+  font-weight: 650;
+}
+[data-dangerous-goods-decision] .decision-form,
+[data-dangerous-goods-decision] .decision-options {
+  display: grid;
+  gap: 1rem;
+}
+[data-dangerous-goods-decision] .decision-options {
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+[data-dangerous-goods-decision] .decision-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: start;
+  min-height: 4.75rem;
+  padding: 1rem 1.1rem;
+  border: 2px solid var(--color-border, #d9e2ec);
+  border-radius: 0.85rem;
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+[data-dangerous-goods-decision] .decision-option:hover {
+  border-color: var(--color-primary, #1565c0);
+  transform: translateY(-1px);
+}
+[data-dangerous-goods-decision] .decision-option:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--color-primary, #1565c0) 30%, transparent);
+  outline-offset: 2px;
+}
+[data-dangerous-goods-decision] .decision-option--selected {
+  border-color: var(--color-primary, #1565c0);
+  box-shadow: 0 0 0 1px var(--color-primary, #1565c0);
+}
+[data-dangerous-goods-decision] .decision-option--correct {
+  border-color: #2e7d32;
+}
+[data-dangerous-goods-decision] .decision-option--incorrect {
+  border-color: #b3261e;
+}
+[data-dangerous-goods-decision] .decision-option input {
+  margin-top: 0.2rem;
+}
+[data-dangerous-goods-decision] .decision-option__text {
+  line-height: 1.55;
+}
+[data-dangerous-goods-decision] .decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+[data-dangerous-goods-decision] .decision-feedback {
+  padding: 1rem 1.1rem;
+  border-left: 4px solid currentColor;
+  border-radius: 0.5rem;
+}
+[data-dangerous-goods-decision] .decision-feedback p {
+  margin: 0.4rem 0 0;
+}
+[data-dangerous-goods-decision] .decision-feedback--correct {
+  color: #1b5e20;
+  background: #edf7ee;
+}
+[data-dangerous-goods-decision] .decision-feedback--incorrect {
+  color: #8c1d18;
+  background: #fbeeed;
+}
+.dangerous-goods-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.dangerous-goods-search-card input[type='search'] {
+  width: 100%;
+  margin: 0.65rem 0 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-border, #d9e2ec);
+  border-radius: 0.65rem;
+  font: inherit;
+}
+.dangerous-goods-game-card .decision-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.dangerous-goods-game-card .decision-option {
+  min-height: auto;
+  padding: 0.85rem 0.95rem;
+}
+@media (max-width: 900px) {
+  [data-dangerous-goods-decision] .decision-case__evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dangerous-goods-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  [data-dangerous-goods-decision] .decision-case__evidence {
+    grid-template-columns: 1fr;
+  }
+}

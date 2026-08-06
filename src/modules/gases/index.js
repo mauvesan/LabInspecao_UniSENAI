@@ -3,6 +3,8 @@ import quiz from './quiz.json';
 
 import { gasesOttoContent } from './content.js';
 import { initializeGasesOttoSimulation } from './simulation.js';
+import { initializeGasesDecision } from './decision.js';
+import './decision.css';
 
 import { createQuiz } from '../../components/quiz.js';
 import { initializeSectionNavigation } from '../../app/navigation/section-navigation.js';
@@ -13,8 +15,14 @@ export default {
   quiz,
 
   mount(root) {
-    initializeSectionNavigation(root);
-    initializeGasesOttoSimulation(this, root);
+    const cleanupFunctions = [];
+    const registerCleanup = (cleanup) => {
+      if (typeof cleanup === 'function') cleanupFunctions.push(cleanup);
+    };
+
+    registerCleanup(initializeSectionNavigation(root));
+    registerCleanup(initializeGasesOttoSimulation(this, root));
+    registerCleanup(initializeGasesDecision(root));
 
     const quizContainer = root.querySelector('#module-quiz');
 
@@ -22,14 +30,16 @@ export default {
       throw new Error('Contêiner do quiz não encontrado.');
     }
 
-    createQuiz({
-      container: quizContainer,
-      moduleCode: this.code,
-      quiz: this.quiz,
-    });
+    registerCleanup(
+      createQuiz({
+        container: quizContainer,
+        moduleCode: this.code,
+        quiz: this.quiz,
+      }),
+    );
 
     return () => {
-      // desmontagem futura
+      [...cleanupFunctions].reverse().forEach((cleanup) => cleanup());
     };
   },
 };

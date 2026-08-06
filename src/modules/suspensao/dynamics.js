@@ -5,6 +5,7 @@ import {
   calculateDynamicMetrics,
   evaluateDynamicCondition,
   classifyResonance,
+  calculatePhaseLag,
 } from './math/suspension-dynamics.js';
 
 const dynamicControlIds = [
@@ -13,6 +14,7 @@ const dynamicControlIds = [
   'dynamic-damping',
   'dynamic-excitation-frequency',
   'dynamic-road-amplitude',
+  'dynamic-adhesion-index',
 ];
 
 const dynamicCases = {
@@ -22,6 +24,7 @@ const dynamicCases = {
     'dynamic-damping': 1800,
     'dynamic-excitation-frequency': 1.5,
     'dynamic-road-amplitude': 8,
+    visualProfile: 'balanced',
   },
 
   desgastado: {
@@ -30,6 +33,7 @@ const dynamicCases = {
     'dynamic-damping': 550,
     'dynamic-excitation-frequency': 1.5,
     'dynamic-road-amplitude': 12,
+    visualProfile: 'worn',
   },
 
   rigida: {
@@ -38,6 +42,7 @@ const dynamicCases = {
     'dynamic-damping': 2200,
     'dynamic-excitation-frequency': 2.2,
     'dynamic-road-amplitude': 10,
+    visualProfile: 'rigid',
   },
 
   sobrecarga: {
@@ -46,6 +51,7 @@ const dynamicCases = {
     'dynamic-damping': 1800,
     'dynamic-excitation-frequency': 1.4,
     'dynamic-road-amplitude': 10,
+    visualProfile: 'loaded',
   },
 
   ressonancia: {
@@ -54,6 +60,17 @@ const dynamicCases = {
     'dynamic-damping': 700,
     'dynamic-excitation-frequency': 1.38,
     'dynamic-road-amplitude': 14,
+    visualProfile: 'resonance',
+  },
+  extremo: {
+    'dynamic-mass': 320,
+    'dynamic-stiffness': 24000,
+    'dynamic-damping': 80,
+    'dynamic-excitation-frequency': 4.8,
+    'dynamic-road-amplitude': 18,
+    'dynamic-adhesion-index': 10,
+    contactMode: 'extreme',
+    visualProfile: 'extreme',
   },
 };
 
@@ -75,6 +92,10 @@ export function initializeDynamicSimulation(root) {
     comfort: root.querySelector('#dynamic-comfort'),
     stability: root.querySelector('#dynamic-stability'),
     regime: root.querySelector('#dynamic-regime'),
+    phaseLag: root.querySelector('#dynamic-phase-lag'),
+    bodyAmplitude: root.querySelector('#dynamic-body-amplitude'),
+    contactState: root.querySelector('#dynamic-contact-state'),
+    contactMode: root.querySelector('#dynamic-contact-mode'),
     explanation: root.querySelector('#dynamic-explanation'),
   };
 
@@ -93,14 +114,23 @@ export function initializeDynamicSimulation(root) {
   }
 
   const chartController = initializeDynamicCharts(root);
-  const animationController = initializeSuspensionAnimation(root);
+  const animationController = initializeSuspensionAnimation(root, {
+    onContactStateChange(contactState) {
+      updateContactMetric(elements.contactState, contactState);
+    },
+  });
   let animationFrameId = null;
+  let activeVisualProfile = 'balanced';
 
   const update = () => {
     animationFrameId = null;
 
     const values = readDynamicValues(controls);
-    const metrics = calculateDynamicMetrics(values);
+    const metrics = {
+      ...calculateDynamicMetrics(values),
+      visualProfile: activeVisualProfile,
+    };
+
     const evaluation = evaluateDynamicCondition(metrics);
 
     updateDynamicOutputs(outputs, values);
@@ -120,7 +150,10 @@ export function initializeDynamicSimulation(root) {
   };
 
   const controlListeners = dynamicControlIds.map((id) => {
-    const listener = () => scheduleUpdate();
+    const listener = () => {
+      activeVisualProfile = 'custom';
+      scheduleUpdate();
+    };
 
     controls[id].addEventListener('input', listener);
 
@@ -138,14 +171,32 @@ export function initializeDynamicSimulation(root) {
         return;
       }
 
+      activeVisualProfile = selectedCase.visualProfile || 'balanced';
+
       Object.entries(selectedCase).forEach(([id, value]) => {
-        controls[id].value = String(value);
+        if (id === 'visualProfile') {
+          return;
+        }
+
+        if (id === 'contactMode') {
+          elements.contactMode.value = String(value);
+          return;
+        }
+
+        if (controls[id]) {
+          controls[id].value = String(value);
+        }
       });
+
+      if (!Object.hasOwn(selectedCase, 'contactMode')) {
+        elements.contactMode.value = 'continuous';
+      }
 
       root.querySelectorAll('[data-dynamic-case]').forEach((candidate) => {
         candidate.setAttribute('aria-pressed', String(candidate === button));
       });
 
+      contactModeListener();
       update();
     };
 
@@ -157,6 +208,20 @@ export function initializeDynamicSimulation(root) {
     };
   });
 
+  const contactModeListener = () => {
+    const isExtreme = elements.contactMode.value === 'extreme';
+    controls['dynamic-adhesion-index'].disabled = !isExtreme;
+
+    if (!isExtreme) {
+      controls['dynamic-adhesion-index'].value = '100';
+    }
+
+    animationController.restart();
+    scheduleUpdate();
+  };
+
+  elements.contactMode.addEventListener('change', contactModeListener);
+  contactModeListener();
   update();
 
   return () => {
@@ -171,6 +236,8 @@ export function initializeDynamicSimulation(root) {
     caseListeners.forEach(({ element, listener }) => {
       element.removeEventListener('click', listener);
     });
+
+    elements.contactMode.removeEventListener('change', contactModeListener);
     chartController.destroy();
     animationController.destroy();
   };
@@ -183,6 +250,8 @@ function readDynamicValues(controls) {
     damping: Number(controls['dynamic-damping'].value),
     excitationFrequency: Number(controls['dynamic-excitation-frequency'].value),
     roadAmplitude: Number(controls['dynamic-road-amplitude'].value),
+    adhesionIndex: Number(controls['dynamic-adhesion-index'].value),
+    contactMode: document.querySelector('#dynamic-contact-mode')?.value || 'continuous',
   };
 }
 
@@ -196,7 +265,9 @@ function updateDynamicOutputs(outputs, values) {
   outputs['dynamic-excitation-frequency'].value =
     `${formatNumber(values.excitationFrequency, 1)} Hz`;
 
-  outputs['dynamic-road-amplitude'].value = `${formatNumber(values.roadAmplitude, 0)} mm`;
+  outputs['dynamic-road-amplitude'].value = `${formatNumber(values.roadAmplitude, 1)} mm`;
+
+  outputs['dynamic-adhesion-index'].value = `${formatNumber(values.adhesionIndex, 0)}%`;
 }
 
 function updateDynamicMetrics(elements, metrics, evaluation) {
@@ -210,6 +281,15 @@ function updateDynamicMetrics(elements, metrics, evaluation) {
   elements.dampingRatio.textContent = formatNumber(metrics.dampingRatio, 3);
 
   elements.transmissibility.textContent = formatNumber(metrics.transmissibility, 2);
+
+  const phaseLag = calculatePhaseLag(metrics.frequencyRatio, metrics.dampingRatio);
+
+  elements.phaseLag.textContent = `${formatNumber((phaseLag * 180) / Math.PI, 1)}°`;
+
+  elements.bodyAmplitude.textContent = `${formatNumber(
+    metrics.roadAmplitude * metrics.transmissibility,
+    2,
+  )} mm`;
 
   elements.adhesion.textContent = `${formatNumber(metrics.adhesion, 0)}%`;
 
@@ -272,6 +352,16 @@ function updateDynamicExplanation(panel, metrics, evaluation) {
       </small>
     </p>
   `;
+}
+
+function updateContactMetric(element, contactState) {
+  if (!element || !contactState) return;
+
+  element.textContent = contactState.inContact
+    ? 'Preservado'
+    : `Separação ${formatNumber(contactState.gap, 1)} px`;
+
+  element.dataset.state = contactState.inContact ? 'ok' : 'warning';
 }
 
 function selectOverallClass(classNames) {

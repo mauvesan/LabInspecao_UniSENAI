@@ -10,22 +10,38 @@ function getCurrentPath() {
 
 export const router = {
   view: null,
+  hashChangeHandler: null,
 
   start(view) {
     if (!view) {
       throw new Error('O elemento de visualização do roteador não foi informado.');
     }
 
+    if (this.hashChangeHandler) {
+      window.removeEventListener('hashchange', this.hashChangeHandler);
+    }
+
     this.view = view;
 
-    window.addEventListener('hashchange', () => this.resolve());
+    this.hashChangeHandler = () => this.resolve();
 
-    this.resolve();
+    window.addEventListener('hashchange', this.hashChangeHandler);
+
+    void this.resolve();
+  },
+
+  stop() {
+    if (this.hashChangeHandler) {
+      window.removeEventListener('hashchange', this.hashChangeHandler);
+    }
+
+    this.hashChangeHandler = null;
+    this.view = null;
   },
 
   async resolve() {
     if (!this.view) {
-      throw new Error('O roteador foi iniciado sem um elemento de visualização.');
+      return;
     }
 
     const currentPath = getCurrentPath();

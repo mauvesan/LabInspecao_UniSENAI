@@ -2,9 +2,12 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/app-shell.css';
+import './styles/access.css';
 import './styles/pages.css';
 import './styles/components.css';
 import './styles/modules/gases-etapa3b.css';
+import './styles/modules/suspensao-decision.css';
+import './styles/didactic-legibility.css';
 import './styles/print.css';
 
 import { createApplication } from './app/index.ts';
@@ -21,10 +24,12 @@ import { toastHost } from './components/toast.js';
 
 import { config } from './config.js';
 
+import { createPlatformRuntime } from './platform/index.js';
+
 /**
  * Cria a composição visual temporária da aplicação.
  */
-function createApplicationComposition() {
+function createApplicationComposition(platform) {
   return new ApplicationComposition({
     documentRef: document,
     session,
@@ -32,6 +37,7 @@ function createApplicationComposition() {
     renderHeader: appHeader,
     renderToastHost: toastHost,
     config,
+    platform,
   });
 }
 
@@ -68,10 +74,12 @@ function renderStartupError() {
  */
 async function bootstrap() {
   const application = createApplication();
+  const platform = createPlatformRuntime();
 
-  const composition = createApplicationComposition();
+  const composition = createApplicationComposition(platform);
 
   try {
+    await platform.start();
     await application.start();
 
     composition.start();

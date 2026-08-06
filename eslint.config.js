@@ -6,12 +6,15 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
-      'coverage/**',
       'dist/**',
       'node_modules/**',
-      '*.config.js',
-      '*.config.mjs',
-      '*.config.cjs',
+      '_backup*/**',
+      '.release-backups/**',
+      '_archive/**',
+      'rollback/**',
+      'diff/**',
+      'files/**',
+      'LabInspecao_v4.0.2_Opacidade_Suspensao/**',
     ],
   },
 

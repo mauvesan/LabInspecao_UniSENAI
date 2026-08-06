@@ -418,9 +418,9 @@ export function gasesOttoContent() {
           aria-labelledby="otto-tab-measurement"
           data-otto-panel="measurement"
         >
-          <div class="simulation-layout otto-simulation-workspace">
+          <div class="simulation-layout">
             <section
-              class="simulation-controls otto-control-panel"
+              class="simulation-controls"
               aria-label="Controles da medição"
             >
               <div class="content-card">
@@ -542,17 +542,6 @@ export function gasesOttoContent() {
             </section>
 
             <section class="otto-measurement-results">
-              <header class="otto-results-header">
-                <div>
-                  <span class="otto-results-eyebrow">Leitura instantânea</span>
-                  <h3>Resultados do analisador</h3>
-                </div>
-
-                <p>
-                  Compare os gases medidos e interprete a condição de combustão.
-                </p>
-              </header>
-
               <div
                 class="metric-grid"
                 aria-label="Resultados da medição"
@@ -703,269 +692,218 @@ export function gasesOttoContent() {
           data-otto-panel="combustion"
           hidden
         >
-          <div class="otto-combustion-workspace">
-            <section
-              class="otto-combustion-controls"
-              aria-label="Seleção do combustível"
-            >
-              <article class="content-card otto-fuel-card">
-                <header class="otto-card-heading">
-                  <span class="otto-card-heading__step">1</span>
+          <div class="content-grid">
+            <article class="content-card">
+              <h3>Combustível</h3>
 
-                  <div>
-                    <span class="otto-card-heading__eyebrow">
-                      Combustível
-                    </span>
+              <fieldset class="fuel-selector">
+                <legend>
+                  Selecione o combustível utilizado
+                </legend>
 
-                    <h3>Selecione o combustível utilizado</h3>
-                  </div>
-                </header>
-
-                <fieldset class="fuel-selector">
-                  <legend class="sr-only">
-                    Selecione o combustível utilizado
-                  </legend>
-
-                  <label class="fuel-option">
-                    <input
-                      type="radio"
-                      name="otto-fuel-type"
-                      value="gasoline"
-                      checked
-                    >
-
-                    <span class="fuel-option__indicator" aria-hidden="true"></span>
-
-                    <span class="fuel-option__copy">
-                      <strong>Gasolina</strong>
-
-                      <small>
-                        Mistura de gasolina e etanol anidro
-                      </small>
-                    </span>
-                  </label>
-
-                  <label class="fuel-option">
-                    <input
-                      type="radio"
-                      name="otto-fuel-type"
-                      value="ethanol"
-                    >
-
-                    <span class="fuel-option__indicator" aria-hidden="true"></span>
-
-                    <span class="fuel-option__copy">
-                      <strong>Etanol hidratado</strong>
-
-                      <small>
-                        Combustível com teor regulamentado de água
-                      </small>
-                    </span>
-                  </label>
-                </fieldset>
-              </article>
-
-              <article
-                id="otto-gasoline-options"
-                class="content-card otto-blend-card"
-              >
-                <header class="otto-card-heading">
-                  <span class="otto-card-heading__step">2</span>
-
-                  <div>
-                    <span class="otto-card-heading__eyebrow">
-                      Composição
-                    </span>
-
-                    <h3>Teor de etanol anidro</h3>
-                  </div>
-                </header>
-
-                <p class="otto-card-introduction">
-                  Selecione o teor volumétrico de etanol anidro presente
-                  na gasolina.
-                </p>
-
-                <div class="ethanol-blend-options">
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="20"
-                    >
-                    <span>E20</span>
-                  </label>
-
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="22"
-                    >
-                    <span>E22</span>
-                  </label>
-
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="25"
-                    >
-                    <span>E25</span>
-                  </label>
-
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="27"
-                      checked
-                    >
-                    <span>
-                      E27
-                      <small>Padrão inicial</small>
-                    </span>
-                  </label>
-
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="30"
-                    >
-                    <span>E30</span>
-                  </label>
-
-                  <label class="blend-option">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="35"
-                    >
-                    <span>E35</span>
-                  </label>
-
-                  <label class="blend-option blend-option--custom">
-                    <input
-                      type="radio"
-                      name="otto-ethanol-blend"
-                      value="custom"
-                    >
-                    <span>Personalizado</span>
-                  </label>
-                </div>
-
-                <div
-                  id="otto-custom-blend-wrapper"
-                  class="custom-blend-control"
-                  hidden
-                >
-                  <label for="otto-custom-blend">
-                    Teor personalizado de etanol anidro
-                  </label>
-
-                  <div class="input-with-unit">
-                    <input
-                      id="otto-custom-blend"
-                      type="number"
-                      min="0"
-                      max="40"
-                      step="0.1"
-                      value="27"
-                      inputmode="decimal"
-                    >
-
-                    <span>% v/v</span>
-                  </div>
-
-                  <p class="help-text">
-                    Informe um valor entre 0% e 40%.
-                  </p>
-                </div>
-              </article>
-            </section>
-
-            <section
-              class="otto-combustion-results"
-              aria-label="Resultados dos parâmetros da combustão"
-            >
-              <article class="content-card otto-combustion-summary">
-                <header class="otto-combustion-summary__header">
-                  <div>
-                    <span class="otto-results-eyebrow">
-                      Resultado calculado
-                    </span>
-
-                    <h3 id="otto-selected-fuel">
-                      Gasolina E27
-                    </h3>
-                  </div>
-
-                  <span
-                    id="otto-mixture-state"
-                    class="otto-mixture-badge"
+                <label class="fuel-option">
+                  <input
+                    type="radio"
+                    name="otto-fuel-type"
+                    value="gasoline"
+                    checked
                   >
-                    —
+
+                  <span>
+                    <strong>Gasolina</strong>
+
+                    <small>
+                      Mistura de gasolina e etanol anidro
+                    </small>
                   </span>
-                </header>
+                </label>
 
-                <div class="otto-combustion-metrics">
-                  <article class="otto-combustion-metric">
-                    <span>Teor de etanol</span>
+                <label class="fuel-option">
+                  <input
+                    type="radio"
+                    name="otto-fuel-type"
+                    value="ethanol"
+                  >
 
-                    <strong id="otto-selected-blend">
-                      27%
-                    </strong>
+                  <span>
+                    <strong>Etanol hidratado</strong>
 
-                    <small>percentual volumétrico</small>
-                  </article>
+                    <small>
+                      Combustível com teor regulamentado de água
+                    </small>
+                  </span>
+                </label>
+              </fieldset>
+            </article>
 
-                  <article class="otto-combustion-metric otto-combustion-metric--primary">
-                    <span>AFR estequiométrica estimada</span>
+            <article
+              id="otto-gasoline-options"
+              class="content-card"
+            >
+              <h3>Teor de etanol anidro</h3>
 
-                    <strong id="otto-stoichiometric-afr">
-                      —
-                    </strong>
+              <p>
+                Selecione o teor volumétrico de etanol anidro presente
+                na gasolina.
+              </p>
 
-                    <small>kg de ar/kg de combustível</small>
-                  </article>
-                </div>
-              </article>
+              <div class="ethanol-blend-options">
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="20"
+                  >
+                  E20
+                </label>
 
-              <article class="content-card otto-fuel-influence">
-                <header class="otto-card-heading">
-                  <span class="otto-card-heading__step">3</span>
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="22"
+                  >
+                  E22
+                </label>
 
-                  <div>
-                    <span class="otto-card-heading__eyebrow">
-                      Interpretação
-                    </span>
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="25"
+                  >
+                  E25
+                </label>
 
-                    <h3>Influência do combustível</h3>
-                  </div>
-                </header>
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="27"
+                    checked
+                  >
+                  E27
+                  <small>Padrão inicial</small>
+                </label>
 
-                <p id="otto-fuel-explanation">
-                  O aumento do teor de etanol altera a quantidade de ar
-                  necessária para a combustão estequiométrica e modifica
-                  as características químicas do combustível.
-                </p>
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="30"
+                  >
+                  E30
+                </label>
 
-                <div class="otto-afr-formula" aria-label="Equação da AFR real">
-                  <span>AFR<sub>real</sub></span>
-                  <span>=</span>
-                  <span>λ</span>
-                  <span>×</span>
-                  <span>AFR<sub>estequiométrica</sub></span>
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="35"
+                  >
+                  E35
+                </label>
+
+                <label class="blend-option">
+                  <input
+                    type="radio"
+                    name="otto-ethanol-blend"
+                    value="custom"
+                  >
+                  Personalizado
+                </label>
+              </div>
+
+              <div
+                id="otto-custom-blend-wrapper"
+                class="custom-blend-control"
+                hidden
+              >
+                <label for="otto-custom-blend">
+                  Teor personalizado de etanol anidro
+                </label>
+
+                <div class="input-with-unit">
+                  <input
+                    id="otto-custom-blend"
+                    type="number"
+                    min="0"
+                    max="40"
+                    step="0.1"
+                    value="27"
+                    inputmode="decimal"
+                  >
+
+                  <span>% v/v</span>
                 </div>
 
                 <p class="help-text">
-                  O valor apresentado é uma estimativa didática. A
-                  composição real dos combustíveis e as condições do
-                  ensaio podem produzir variações.
+                  Informe um valor entre 0% e 40%.
                 </p>
-              </article>
-            </section>
+              </div>
+            </article>
+
+            <article class="content-card">
+              <h3>Parâmetros da combustão</h3>
+
+              <div class="metric-grid">
+                <article class="metric-card">
+                  <span>Combustível selecionado</span>
+
+                  <strong id="otto-selected-fuel">
+                    Gasolina E27
+                  </strong>
+                </article>
+
+                <article class="metric-card">
+                  <span>Teor de etanol</span>
+
+                  <strong id="otto-selected-blend">
+                    27%
+                  </strong>
+                </article>
+
+                <article class="metric-card">
+                  <span>AFR estequiométrica estimada</span>
+
+                  <strong id="otto-stoichiometric-afr">
+                    —
+                  </strong>
+
+                  <small>kg de ar/kg de combustível</small>
+                </article>
+
+                <article class="metric-card">
+                  <span>Condição da mistura</span>
+
+                  <strong id="otto-mixture-state">
+                    —
+                  </strong>
+                </article>
+              </div>
+            </article>
+
+            <article class="content-card">
+              <h3>Influência do combustível</h3>
+
+              <p id="otto-fuel-explanation">
+                O aumento do teor de etanol altera a quantidade de ar
+                necessária para a combustão estequiométrica e modifica
+                as características químicas do combustível.
+              </p>
+
+              <div class="formula">
+                AFR<sub>real</sub>
+                =
+                λ × AFR<sub>estequiométrica</sub>
+              </div>
+
+              <p class="help-text">
+                O valor apresentado é uma estimativa didática. A
+                composição real dos combustíveis e as condições do
+                ensaio podem produzir variações.
+              </p>
+            </article>
           </div>
         </section>
 
@@ -1195,10 +1133,89 @@ export function gasesOttoContent() {
     </section>
 
     <section
+      id="tomada-de-decisao"
+      class="module-section"
+      data-gases-decision
+      aria-labelledby="gases-decision-title"
+    >
+      <header class="section-header">
+        <span class="section-header__eyebrow">Tomada de decisão</span>
+        <h2 id="gases-decision-title">6. Qual encaminhamento é tecnicamente mais adequado?</h2>
+        <p>
+          Interprete o conjunto de medições e escolha a conduta que melhor respeita
+          as evidências disponíveis e a sequência lógica do diagnóstico.
+        </p>
+      </header>
+
+      <article class="content-card decision-case">
+        <h3>Caso técnico</h3>
+        <p>
+          Um veículo flex, abastecido com gasolina, foi ensaiado com o motor em
+          temperatura operacional. Após a estabilização das leituras, duas medições
+          consecutivas apresentaram resultados semelhantes. Não foram identificados
+          vazamentos na linha de amostragem nem falhas aparentes do analisador.
+        </p>
+        <dl class="decision-case__evidence">
+          <div><dt>CO</dt><dd>2,80%</dd></div>
+          <div><dt>CO₂</dt><dd>12,1%</dd></div>
+          <div><dt>HC</dt><dd>420 ppm</dd></div>
+          <div><dt>O₂</dt><dd>0,30%</dd></div>
+          <div><dt>Lambda</dt><dd>0,94</dd></div>
+        </dl>
+      </article>
+
+      <form class="decision-form" data-decision-form>
+        <fieldset>
+          <legend class="visually-hidden">Selecione a decisão técnica para o caso apresentado</legend>
+          <div class="decision-options">
+            <label class="decision-option">
+              <input type="radio" name="gases-decision" value="liberar" />
+              <span class="decision-option__text">
+                Liberar o veículo e registrar os valores encontrados, recomendando
+                somente uma nova análise durante a manutenção preventiva.
+              </span>
+            </label>
+            <label class="decision-option">
+              <input type="radio" name="gases-decision" value="catalisador" />
+              <span class="decision-option__text">
+                Substituir diretamente o catalisador e repetir o ensaio, sem verificar
+                antes o controle da mistura e a formação dos poluentes.
+              </span>
+            </label>
+            <label class="decision-option">
+              <input type="radio" name="gases-decision" value="diagnostico" />
+              <span class="decision-option__text">
+                Diagnosticar alimentação, sensores e controle da mistura, corrigindo
+                a causa confirmada antes de executar um novo ensaio.
+              </span>
+            </label>
+            <label class="decision-option">
+              <input type="radio" name="gases-decision" value="entradaAr" />
+              <span class="decision-option__text">
+                Procurar apenas uma entrada falsa de ar na admissão e repetir o ensaio,
+                sem avaliar os demais sistemas de gerenciamento.
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="decision-actions">
+          <button type="submit" class="button button--primary" data-action="confirm-gases-decision" disabled>
+            Confirmar resposta
+          </button>
+          <button type="button" class="button button--secondary" data-action="continue-to-gases-quiz" hidden>
+            Prosseguir para a avaliação
+          </button>
+        </div>
+        <div class="decision-feedback" data-decision-feedback role="status" aria-live="polite" hidden></div>
+      </form>
+    </section>
+
+    <section
       id="avaliacao"
       class="module-section"
     >
-      <h2>6. Avaliação</h2>
+      <h2>7. Avaliação</h2>
 
       <div id="module-quiz"></div>
     </section>
