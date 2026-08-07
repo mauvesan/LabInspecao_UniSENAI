@@ -1,5 +1,7 @@
 import { educationRepository } from '../../platform/education/education-repository.js';
 import { buildTeacherDashboard } from './teacher-dashboard-analytics.js';
+import { getSupabaseConfigurationStatus } from '../../platform/supabase/supabase-client.js';
+import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supabase-diagnostics.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -120,6 +122,8 @@ export function renderTeacherArea() {
       ),
   );
 
+  const supabaseConfiguration = getSupabaseConfigurationStatus();
+
   return `
     <section class="teacher-platform" aria-labelledby="teacher-area-title" data-teacher-platform>
       <header class="teacher-platform__header">
@@ -130,6 +134,8 @@ export function renderTeacherArea() {
         </div>
         <div class="teacher-platform__mode-group">
           <span class="teacher-platform__mode">Persistência local · portátil</span>
+          <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
+          <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
           <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
         </div>
@@ -478,7 +484,7 @@ document.addEventListener('change', async (event) => {
   }
 });
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   const sectionButton = event.target.closest?.('[data-teacher-section]');
   if (sectionButton) {
     document
@@ -491,6 +497,26 @@ document.addEventListener('click', (event) => {
   if (!button) return;
 
   try {
+    if (button.hasAttribute('data-test-supabase')) {
+      const statusElement = document.querySelector('[data-supabase-status]');
+      button.disabled = true;
+      if (statusElement) {
+        statusElement.textContent = 'Testando conexão...';
+        statusElement.classList.remove('is-ok', 'is-error');
+      }
+
+      const result = await runSupabaseConnectivityDiagnostic();
+
+      if (statusElement) {
+        statusElement.textContent = result.message;
+        statusElement.classList.toggle('is-ok', result.ok);
+        statusElement.classList.toggle('is-error', !result.ok);
+      }
+
+      button.disabled = false;
+      return;
+    }
+
     if (button.hasAttribute('data-export-education')) {
       const payload = educationRepository.exportData();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
