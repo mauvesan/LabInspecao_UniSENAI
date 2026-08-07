@@ -1,7 +1,7 @@
-﻿export const config = Object.freeze({
+export const config = Object.freeze({
   appName: import.meta.env.VITE_APP_NAME || 'LabInspeÃ§Ã£o_UniSENAI',
 
-  appVersion: import.meta.env.VITE_APP_VERSION || '4.3.0-D1',
+  appVersion: import.meta.env.VITE_APP_VERSION || '4.3.0-D3.4',
 
   classGroup: import.meta.env.VITE_CLASS_GROUP || '6SEM_2026',
 
@@ -11,6 +11,10 @@
     authenticationProvider: import.meta.env.VITE_AUTH_PROVIDER || 'local',
 
     persistenceProvider: import.meta.env.VITE_PLATFORM_PERSISTENCE || 'local',
+  },
+
+  education: {
+    persistenceProvider: import.meta.env.VITE_EDUCATION_PERSISTENCE || 'local',
   },
 
   online: {

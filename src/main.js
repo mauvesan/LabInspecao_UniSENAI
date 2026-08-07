@@ -1,8 +1,9 @@
-import './styles/tokens.css';
+﻿import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/app-shell.css';
 import './styles/access.css';
+import './styles/teacher-platform.css';
 import './styles/pages.css';
 import './styles/components.css';
 import './styles/modules/gases-etapa3b.css';
@@ -27,7 +28,7 @@ import { config } from './config.js';
 import { createPlatformRuntime } from './platform/index.js';
 
 /**
- * Cria a composição visual temporária da aplicação.
+ * Cria a composiÃ§Ã£o visual temporÃ¡ria da aplicaÃ§Ã£o.
  */
 function createApplicationComposition(platform) {
   return new ApplicationComposition({
@@ -42,8 +43,8 @@ function createApplicationComposition(platform) {
 }
 
 /**
- * Exibe uma mensagem de erro quando a inicialização
- * não pode ser concluída.
+ * Exibe uma mensagem de erro quando a inicializaÃ§Ã£o
+ * nÃ£o pode ser concluÃ­da.
  */
 function renderStartupError() {
   const applicationRoot = document.querySelector('#app');
@@ -58,19 +59,19 @@ function renderStartupError() {
       role="alert"
     >
       <h1>
-        Não foi possível iniciar a aplicação
+        NÃ£o foi possÃ­vel iniciar a aplicaÃ§Ã£o
       </h1>
 
       <p>
-        Recarregue a página. Se o problema persistir,
-        informe o responsável técnico.
+        Recarregue a pÃ¡gina. Se o problema persistir,
+        informe o responsÃ¡vel tÃ©cnico.
       </p>
     </main>
   `;
 }
 
 /**
- * Composition root executável da aplicação.
+ * Composition root executÃ¡vel da aplicaÃ§Ã£o.
  */
 async function bootstrap() {
   const application = createApplication();
