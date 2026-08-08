@@ -21,6 +21,7 @@ import {
   createTeacherAssessmentDraft,
   openTeacherAssessmentAuthoring,
 } from './teacher-assessment-authoring-panel.js';
+import { openTeacherAssessmentAudit } from './teacher-assessment-audit-panel.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -450,7 +451,9 @@ export function renderTeacherArea() {
               ? assessments
                   .map((item) => {
                     const archived = item.status === 'archived';
-                    const actions = [];
+                    const actions = [
+                      `<button type="button" data-assessment-audit="${item.id}">HistÃ³rico e resultados</button>`,
+                    ];
 
                     if (item.status === 'draft') {
                       actions.push(
@@ -865,6 +868,11 @@ document.addEventListener('click', async (event) => {
       URL.revokeObjectURL(url);
       return;
     }
+    if (button.dataset.assessmentAudit) {
+      await openTeacherAssessmentAudit(button.dataset.assessmentAudit);
+      return;
+    }
+
     if (button.dataset.authorAssessment) {
       await openTeacherAssessmentAuthoring(button.dataset.authorAssessment);
       return;
