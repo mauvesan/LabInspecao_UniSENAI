@@ -1,0 +1,123 @@
+.teacher-authoring-dialog {
+  width: min(1180px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--surface, #fff);
+}
+
+.teacher-authoring-dialog::backdrop {
+  background: rgb(0 0 0 / 0.56);
+}
+
+.teacher-authoring-shell {
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 24px;
+}
+
+.teacher-authoring-header,
+.teacher-authoring-item > header,
+.teacher-authoring-key-row,
+.teacher-authoring-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.teacher-authoring-header,
+.teacher-authoring-item > header {
+  justify-content: space-between;
+}
+
+.teacher-authoring-header {
+  margin-bottom: 24px;
+}
+
+.teacher-authoring-header p,
+.teacher-authoring-header h2 {
+  margin: 0;
+}
+
+.teacher-authoring-header > button {
+  font-size: 1.5rem;
+}
+
+.teacher-authoring-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.teacher-authoring-list,
+.teacher-authoring-sidebar,
+.teacher-authoring-item form,
+.teacher-authoring-sidebar form,
+.teacher-authoring-options {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-authoring-item,
+.teacher-authoring-sidebar > form,
+.teacher-authoring-publish,
+.teacher-authoring-empty {
+  padding: 18px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 14px;
+}
+
+.teacher-authoring-item textarea,
+.teacher-authoring-sidebar textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.teacher-authoring-option {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.teacher-authoring-key-row {
+  align-items: end;
+}
+
+.teacher-authoring-key-row > label {
+  flex: 1;
+}
+
+.teacher-authoring-sidebar {
+  position: sticky;
+  top: 0;
+}
+
+.teacher-authoring-publish p {
+  margin-block: 8px 16px;
+}
+
+.teacher-authoring-status {
+  min-height: 1.5em;
+  margin-top: 16px;
+}
+
+.teacher-authoring-readonly {
+  opacity: 0.7;
+}
+
+@media (max-width: 860px) {
+  .teacher-authoring-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-authoring-sidebar {
+    position: static;
+  }
+
+  .teacher-authoring-key-row {
+    display: grid;
+  }
+}

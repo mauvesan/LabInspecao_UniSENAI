@@ -17,6 +17,10 @@ import { migrateLocalEducationToSupabase } from '../../platform/education/educat
 import { runRemoteCrudDiagnostic } from '../../platform/education/remote-crud-diagnostic.js';
 import { runRlsDiagnostic } from '../../platform/education/rls-diagnostic.js';
 import { getTeacherProgressService } from '../../platform/progress/teacher-progress-service.js';
+import {
+  createTeacherAssessmentDraft,
+  openTeacherAssessmentAuthoring,
+} from './teacher-assessment-authoring-panel.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -255,7 +259,6 @@ export function renderTeacherArea() {
 
   const editingClass = state.classes.find((item) => item.id === uiState.editClassId);
   const editingStudent = state.students.find((item) => item.id === uiState.editStudentId);
-  const editingAssessment = state.assessments.find((item) => item.id === uiState.editAssessmentId);
 
   const classes = state.classes.filter(
     (item) =>
@@ -432,19 +435,14 @@ export function renderTeacherArea() {
           <label class="teacher-check"><input type="checkbox" data-show-archived="assessment"${uiState.showArchivedAssessments ? ' checked' : ''}> Mostrar arquivadas</label>
         </div>
         <form class="teacher-form teacher-form--wide" data-education-form="assessment">
-          <input type="hidden" name="id" value="${editingAssessment?.id || ''}">
-          <label>Título<input name="title" required value="${escapeHtml(editingAssessment?.title || '')}" placeholder="Ex.: Avaliação de Frenagem"></label>
-          <label>Módulo<select name="moduleCode">
-            ${['', 'frenagem', 'suspensao', 'opacidade', 'gases', 'produtos-perigosos']
-              .map(
-                (code) =>
-                  `<option value="${code}"${code === (editingAssessment?.moduleCode || '') ? ' selected' : ''}>${code || 'Geral'}</option>`,
-              )
+          <label>Título<input name="title" required placeholder="Ex.: Avaliação de Frenagem"></label>
+          <label>Módulo<select name="moduleCode" required>
+            ${['frenagem', 'suspensao', 'opacidade', 'gases', 'produtos-perigosos']
+              .map((code) => `<option value="${code}">${code}</option>`)
               .join('')}
           </select></label>
-          <label>Turma<select name="classId">${renderClassOptions(state.classes, editingAssessment?.classId || '')}</select></label>
-          <button type="submit">${editingAssessment ? 'Salvar alterações' : 'Criar rascunho'}</button>
-          ${editingAssessment ? '<button type="button" class="teacher-button--secondary" data-cancel-edit="assessment">Cancelar</button>' : ''}
+          <label>Turma<select name="classId" required>${renderClassOptions(state.classes)}</select></label>
+          <button type="submit">Criar avaliação em rascunho</button>
         </form>
         <div class="teacher-list">
           ${
@@ -452,23 +450,25 @@ export function renderTeacherArea() {
               ? assessments
                   .map((item) => {
                     const archived = item.status === 'archived';
-                    const actions = [
-                      `<button type="button" data-edit-assessment="${item.id}">Editar</button>`,
-                      `<button type="button" data-duplicate-assessment="${item.id}">Duplicar</button>`,
-                    ];
+                    const actions = [];
+
                     if (item.status === 'draft') {
                       actions.push(
-                        `<button type="button" class="teacher-button--publish" data-assessment-status="${item.id}" data-status="published">Publicar</button>`,
+                        `<button type="button" data-author-assessment="${item.id}">Editar conteúdo</button>`,
                       );
                     }
+
                     if (item.status === 'published') {
                       actions.push(
-                        `<button type="button" class="teacher-button--secondary" data-assessment-status="${item.id}" data-status="draft">Voltar a rascunho</button>`,
+                        `<button type="button" class="teacher-button--publish" data-author-clone-assessment="${item.id}">Criar nova versão</button>`,
                       );
                     }
-                    actions.push(
-                      `<button type="button" class="${archived ? 'teacher-button--restore' : 'teacher-button--danger'}" data-assessment-status="${item.id}" data-status="${archived ? 'draft' : 'archived'}">${archived ? 'Restaurar' : 'Arquivar'}</button>`,
-                    );
+
+                    if (archived) {
+                      actions.push(
+                        '<span class="teacher-authoring-readonly">Somente leitura</span>',
+                      );
+                    }
                     return `<article class="teacher-list__item${archived ? ' is-archived' : ''}">
                       <div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.moduleCode || 'Geral')} · ${escapeHtml(classNameById(state.classes, item.classId))} · ${assessmentStatusLabel(item.status)}</span></div>
                       ${actionButtons(actions)}
@@ -581,13 +581,18 @@ document.addEventListener('submit', async (event) => {
     }
 
     if (form.dataset.educationForm === 'assessment') {
-      await runEducationMutation((repository) =>
-        values.id
-          ? repository.updateAssessment(values.id, values)
-          : repository.addAssessment(values),
-      );
-      uiState.editAssessmentId = '';
-      rerenderTeacherArea('teacher-assessments');
+      if (!values.classId) {
+        throw new Error('Selecione uma turma para a avaliação formal.');
+      }
+
+      const created = await createTeacherAssessmentDraft({
+        title: values.title,
+        moduleCode: values.moduleCode,
+        classId: values.classId,
+      });
+
+      await refreshTeacherArea('teacher-assessments');
+      queueMicrotask(() => openTeacherAssessmentAuthoring(created.assessmentId));
     }
   } catch (error) {
     alert(error instanceof Error ? error.message : 'Não foi possível salvar.');
@@ -860,20 +865,31 @@ document.addEventListener('click', async (event) => {
       URL.revokeObjectURL(url);
       return;
     }
+    if (button.dataset.authorAssessment) {
+      await openTeacherAssessmentAuthoring(button.dataset.authorAssessment);
+      return;
+    }
+
+    if (button.dataset.authorCloneAssessment) {
+      const { getTeacherAssessmentAuthoringService } =
+        await import('../../platform/assessments/teacher-assessment-authoring-service.js');
+      await getTeacherAssessmentAuthoringService().clonePublishedToDraft(
+        button.dataset.authorCloneAssessment,
+      );
+      await openTeacherAssessmentAuthoring(button.dataset.authorCloneAssessment);
+      return;
+    }
+
     if (button.dataset.editClass) {
       uiState.editClassId = button.dataset.editClass;
       rerenderTeacherArea('teacher-classes');
     } else if (button.dataset.editStudent) {
       uiState.editStudentId = button.dataset.editStudent;
       rerenderTeacherArea('teacher-students');
-    } else if (button.dataset.editAssessment) {
-      uiState.editAssessmentId = button.dataset.editAssessment;
-      rerenderTeacherArea('teacher-assessments');
     } else if (button.dataset.cancelEdit) {
       const key = {
         class: 'editClassId',
         student: 'editStudentId',
-        assessment: 'editAssessmentId',
       }[button.dataset.cancelEdit];
       uiState[key] = '';
       rerenderTeacherArea();
