@@ -208,3 +208,44 @@
 .status-chip--identity .status-chip__label {
   color: #9fdcf2;
 }
+
+/* v4.3.0-D4.3.2 — integração controlada do Supabase Auth */
+.access-provider {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  width: fit-content;
+  margin: -0.35rem 0 1rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #b7cad8;
+  border-radius: 999px;
+  background: #f4f9fc;
+  color: #526779;
+  font-size: 0.78rem;
+}
+.access-provider strong {
+  color: #006da8;
+}
+.access-provider[data-auth-provider='supabase'] {
+  border-color: #9ddfd0;
+  background: #edfdf8;
+}
+.access-provider[data-auth-provider='supabase'] strong {
+  color: #087f5b;
+}
+.remote-auth-note {
+  margin-top: 1.35rem;
+  padding: 1rem;
+  border: 1px solid #a8ddd2;
+  border-radius: 0.8rem;
+  background: #eefcf8;
+  color: #315d54;
+}
+.remote-auth-note strong {
+  color: #0f6b55;
+}
+.remote-auth-note p {
+  margin: 0.55rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}

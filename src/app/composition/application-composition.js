@@ -1,4 +1,5 @@
 import { LOCAL_DEMO_USER, LOCAL_DEMO_USERS } from '../../platform/auth/local-auth-service.js';
+import { getAccessExperience } from '../access/access-experience.js';
 
 /**
  * Coordena o shell visual, a autenticação
@@ -84,6 +85,9 @@ export class ApplicationComposition {
     this.router.stop();
     this.session.setIdentity(null);
 
+    const accessExperience = getAccessExperience(this.config.access.authenticationProvider);
+    const initialEmail = accessExperience.isSupabase ? '' : LOCAL_DEMO_USER.email;
+
     this.applicationRoot.innerHTML = `
       <main class="access-page">
         <section
@@ -110,12 +114,16 @@ export class ApplicationComposition {
           </div>
 
           <p class="access-introduction">
-            Entre para acessar os módulos didáticos
-            e manter a sessão neste dispositivo.
+            ${accessExperience.introduction}
           </p>
 
+          <div class="access-provider" data-auth-provider="${accessExperience.provider}">
+            <span>Provedor</span>
+            <strong>${accessExperience.providerLabel}</strong>
+          </div>
+
           <form
-            id="local-login-form"
+            id="login-form"
             class="access-form"
             novalidate
           >
@@ -129,7 +137,7 @@ export class ApplicationComposition {
               type="email"
               autocomplete="username"
               required
-              value="${LOCAL_DEMO_USER.email}"
+              value="${initialEmail}"
             />
 
             <label for="login-password">
@@ -159,36 +167,48 @@ export class ApplicationComposition {
             </button>
           </form>
 
-          <aside class="demo-credentials">
-            <strong>
-              Perfis locais de demonstração
-            </strong>
+          ${
+            accessExperience.showLocalDemoCredentials
+              ? `
+                <aside class="demo-credentials">
+                  <strong>
+                    Perfis locais de demonstração
+                  </strong>
 
-            ${LOCAL_DEMO_USERS.map(
-              (user) => `
-                <section class="demo-profile">
-                  <h2>${user.roleLabel}</h2>
+                  ${LOCAL_DEMO_USERS.map(
+                    (user) => `
+                      <section class="demo-profile">
+                        <h2>${user.roleLabel}</h2>
 
-                  <dl>
-                    <div>
-                      <dt>E-mail</dt>
-                      <dd>${user.email}</dd>
-                    </div>
+                        <dl>
+                          <div>
+                            <dt>E-mail</dt>
+                            <dd>${user.email}</dd>
+                          </div>
 
-                    <div>
-                      <dt>Senha</dt>
-                      <dd>${user.password}</dd>
-                    </div>
-                  </dl>
-                </section>
-              `,
-            ).join('')}
+                          <div>
+                            <dt>Senha</dt>
+                            <dd>${user.password}</dd>
+                          </div>
+                        </dl>
+                      </section>
+                    `,
+                  ).join('')}
 
-            <p>
-              Esses perfis validam sessão e papel local.
-              Ainda não utilizam servidor nem Supabase.
-            </p>
-          </aside>
+                  <p>${accessExperience.providerDescription}</p>
+                </aside>
+              `
+              : `
+                <aside class="remote-auth-note">
+                  <strong>Autenticação remota ativa</strong>
+                  <p>${accessExperience.providerDescription}</p>
+                  <p>
+                    Use uma conta já cadastrada no Supabase Auth.
+                    As credenciais locais de demonstração ficam ocultas neste modo.
+                  </p>
+                </aside>
+              `
+          }
         </section>
       </main>
     `;
@@ -197,7 +217,7 @@ export class ApplicationComposition {
   }
 
   bindLoginForm() {
-    const form = this.requireElement('#local-login-form');
+    const form = this.requireElement('#login-form');
 
     const errorElement = this.requireElement('#login-error');
 
