@@ -616,3 +616,13 @@
 .teacher-data-button--remote:focus-visible {
   background: #6d28d9;
 }
+
+/* v4.3.0-D4.4.2 — migração controlada local -> Supabase */
+.teacher-data-button--migrate {
+  border-color: #fdba74;
+  background: #9a3412;
+}
+.teacher-data-button--migrate:hover,
+.teacher-data-button--migrate:focus-visible {
+  background: #c2410c;
+}

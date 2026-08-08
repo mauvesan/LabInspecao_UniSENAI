@@ -1,7 +1,7 @@
 export const config = Object.freeze({
   appName: import.meta.env.VITE_APP_NAME || 'LabInspeÃ§Ã£o_UniSENAI',
 
-  appVersion: import.meta.env.VITE_APP_VERSION || '4.3.0-D4.4.1',
+  appVersion: import.meta.env.VITE_APP_VERSION || '4.3.0-D4.4.2',
 
   classGroup: import.meta.env.VITE_CLASS_GROUP || '6SEM_2026',
 

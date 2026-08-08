@@ -3,6 +3,7 @@ import { buildTeacherDashboard } from './teacher-dashboard-analytics.js';
 import { getSupabaseConfigurationStatus } from '../../platform/supabase/supabase-client.js';
 import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supabase-diagnostics.js';
 import { runEducationRepositoryDiagnostic } from '../../platform/education/education-repository-diagnostics.js';
+import { migrateLocalEducationToSupabase } from '../../platform/education/education-migration-service.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -137,6 +138,7 @@ export function renderTeacherArea() {
           <span class="teacher-platform__mode">Persistência local · portátil</span>
           <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
+          <button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>
           <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
           <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
@@ -537,6 +539,59 @@ document.addEventListener('click', async (event) => {
         if (statusElement) {
           statusElement.textContent =
             error instanceof Error ? error.message : 'Falha ao comparar os repositórios.';
+          statusElement.classList.add('is-error');
+        }
+      } finally {
+        button.disabled = false;
+      }
+      return;
+    }
+
+    if (button.hasAttribute('data-migrate-education')) {
+      const localState = educationRepository.read();
+      const summary = {
+        classes: localState.classes.length,
+        students: localState.students.length,
+        assessments: localState.assessments.length,
+      };
+      const confirmed = window.confirm(
+        `Migrar ${summary.classes} turma(s), ${summary.students} aluno(s) e ${summary.assessments} avaliação(ões) para o Supabase?\n\n` +
+          'A operação só prosseguirá se as tabelas educacionais remotas estiverem vazias. Um backup JSON será baixado antes da escrita.',
+      );
+      if (!confirmed) return;
+
+      const backupPayload = educationRepository.exportData();
+      const backupBlob = new Blob([JSON.stringify(backupPayload, null, 2)], {
+        type: 'application/json',
+      });
+      const backupUrl = URL.createObjectURL(backupBlob);
+      const backupLink = document.createElement('a');
+      backupLink.href = backupUrl;
+      backupLink.download = `labinspecao-pre-migracao-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.append(backupLink);
+      backupLink.click();
+      backupLink.remove();
+      URL.revokeObjectURL(backupUrl);
+
+      const statusElement = document.querySelector('[data-supabase-status]');
+      button.disabled = true;
+      if (statusElement) {
+        statusElement.textContent = 'Migrando dados locais para o Supabase...';
+        statusElement.classList.remove('is-ok', 'is-error');
+      }
+
+      try {
+        const result = await migrateLocalEducationToSupabase(localState);
+        if (statusElement) {
+          statusElement.textContent =
+            `Migração concluída e validada. Local: ${result.local.classes}/${result.local.students}/${result.local.assessments}. ` +
+            `Supabase: ${result.remote.classes}/${result.remote.students}/${result.remote.assessments}.`;
+          statusElement.classList.add('is-ok');
+        }
+      } catch (error) {
+        if (statusElement) {
+          statusElement.textContent =
+            error instanceof Error ? error.message : 'Falha na migração educacional.';
           statusElement.classList.add('is-error');
         }
       } finally {
