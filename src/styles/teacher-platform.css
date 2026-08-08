@@ -636,3 +636,12 @@
 .teacher-data-button--crud:focus-visible {
   background: #2563eb;
 }
+
+.teacher-data-button--rls {
+  border-color: #f0abfc;
+  background: #86198f;
+}
+.teacher-data-button--rls:hover,
+.teacher-data-button--rls:focus-visible {
+  background: #a21caf;
+}

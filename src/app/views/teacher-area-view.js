@@ -5,6 +5,7 @@ import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supab
 import { runEducationRepositoryDiagnostic } from '../../platform/education/education-repository-diagnostics.js';
 import { migrateLocalEducationToSupabase } from '../../platform/education/education-migration-service.js';
 import { runRemoteCrudDiagnostic } from '../../platform/education/remote-crud-diagnostic.js';
+import { runRlsDiagnostic } from '../../platform/education/rls-diagnostic.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -141,6 +142,8 @@ export function renderTeacherArea() {
           <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--crud" data-test-remote-crud>Validar CRUD remoto</button>
+          <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="teacher">RLS Professor</button>
+          <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="anonymous">RLS Anônimo</button>
           <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
           <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
@@ -629,6 +632,32 @@ document.addEventListener('click', async (event) => {
         if (statusElement) {
           statusElement.textContent =
             error instanceof Error ? error.message : 'Falha ao validar o CRUD remoto.';
+          statusElement.classList.add('is-error');
+        }
+      } finally {
+        button.disabled = false;
+      }
+      return;
+    }
+
+    if (button.hasAttribute('data-test-rls')) {
+      const mode = button.dataset.testRls;
+      const statusElement = document.querySelector('[data-supabase-status]');
+      button.disabled = true;
+      if (statusElement) {
+        statusElement.textContent = `Validando RLS (${mode})...`;
+        statusElement.classList.remove('is-ok', 'is-error');
+      }
+      try {
+        const result = await runRlsDiagnostic(mode);
+        if (statusElement) {
+          statusElement.textContent = result.message;
+          statusElement.classList.add('is-ok');
+        }
+      } catch (error) {
+        if (statusElement) {
+          statusElement.textContent =
+            error instanceof Error ? error.message : 'Falha na validação de RLS.';
           statusElement.classList.add('is-error');
         }
       } finally {

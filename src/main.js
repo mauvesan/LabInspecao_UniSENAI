@@ -1,4 +1,6 @@
-﻿import './styles/tokens.css';
+import { exposeRlsDiagnosticHarness } from './app/access/rls-dev-harness.js';
+exposeRlsDiagnosticHarness();
+import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/app-shell.css';
