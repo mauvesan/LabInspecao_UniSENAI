@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { session } from '../app/session.js';
 import { storageService } from '../services/storage-service.js';
+import { getStudentAttemptService } from '../platform/progress/student-attempt-service.js';
 import { showToast } from './toast.js';
 
 /**
@@ -9,7 +10,7 @@ import { showToast } from './toast.js';
  * @param {{ container: HTMLElement, moduleCode: string, quiz: object }} parameters
  */
 export function createQuiz({ container, moduleCode, quiz }) {
-  if (!container) return;
+  if (!container) return undefined;
 
   container.innerHTML = `
     <form class="quiz-form">
@@ -74,67 +75,117 @@ export function createQuiz({ container, moduleCode, quiz }) {
   `;
 
   const form = container.querySelector('form');
+  const abortController = new AbortController();
+  const { signal } = abortController;
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  form.addEventListener(
+    'submit',
+    async (event) => {
+      event.preventDefault();
 
-    const answers = quiz.questions.map((question) => {
-      const selectedOption = form.querySelector(`input[name="${question.id}"]:checked`);
-      return selectedOption ? Number(selectedOption.value) : null;
-    });
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
 
-    if (answers.some((value) => value === null)) {
-      showToast('Responda às cinco questões.');
-      return;
-    }
+      try {
+        const answers = quiz.questions.map((question) => {
+          const selectedOption = form.querySelector(`input[name="${question.id}"]:checked`);
+          return selectedOption ? Number(selectedOption.value) : null;
+        });
 
-    let correct = 0;
+        if (answers.some((value) => value === null)) {
+          showToast('Responda às cinco questões.');
+          return;
+        }
 
-    quiz.questions.forEach((question, index) => {
-      const fieldset = form.querySelector(`[data-question="${question.id}"]`);
-      const feedback = fieldset.querySelector('.quiz-feedback');
-      const isCorrect = answers[index] === question.correctIndex;
+        let correct = 0;
 
-      if (isCorrect) correct += 1;
+        quiz.questions.forEach((question, index) => {
+          const fieldset = form.querySelector(`[data-question="${question.id}"]`);
+          const feedback = fieldset.querySelector('.quiz-feedback');
+          const isCorrect = answers[index] === question.correctIndex;
 
-      fieldset.dataset.result = isCorrect ? 'correct' : 'wrong';
-      feedback.hidden = false;
-      feedback.textContent = `${isCorrect ? 'Correto.' : 'Incorreto.'} ${question.feedback}`;
-    });
+          if (isCorrect) correct += 1;
 
-    const attempt = {
-      attemptId: crypto.randomUUID(),
-      moduleCode,
-      quizVersion: quiz.version,
-      answers,
-      correct,
-      total: quiz.questions.length,
-      percentage: Math.round((correct / quiz.questions.length) * 100),
-      passed: correct >= config.completion.minimumCorrect,
-      submittedAt: new Date().toISOString(),
-    };
+          fieldset.dataset.result = isCorrect ? 'correct' : 'wrong';
+          feedback.hidden = false;
+          feedback.textContent = `${isCorrect ? 'Correto.' : 'Incorreto.'} ${question.feedback}`;
+        });
 
-    session.recordAttempt(attempt);
-    await storageService.saveAttempt(attempt);
+        const attempt = {
+          attemptId: crypto.randomUUID(),
+          moduleCode,
+          quizVersion: quiz.version,
+          answers,
+          correct,
+          total: quiz.questions.length,
+          percentage: Math.round((correct / quiz.questions.length) * 100),
+          passed: correct >= config.completion.minimumCorrect,
+          submittedAt: new Date().toISOString(),
+        };
 
-    const result = form.querySelector('.quiz-result');
-    result.className = `quiz-result ${attempt.passed ? 'pass' : 'fail'}`;
-    result.textContent = attempt.passed
-      ? `Aprovado: ${correct}/5. Módulo concluído.`
-      : `Resultado: ${correct}/5. Revise e tente novamente.`;
-  });
+        session.recordAttempt(attempt);
+        await storageService.saveAttempt(attempt);
 
-  form.addEventListener('reset', () => {
-    form.querySelectorAll('.quiz-question').forEach((fieldset) => {
-      delete fieldset.dataset.result;
+        let remoteAttempt = null;
+        let remoteError = null;
 
-      const feedback = fieldset.querySelector('.quiz-feedback');
-      feedback.hidden = true;
-      feedback.textContent = '';
-    });
+        if (config.access.authenticationProvider === 'supabase') {
+          try {
+            remoteAttempt = await getStudentAttemptService().submit({
+              moduleCode,
+              score: correct,
+              total: quiz.questions.length,
+              answers,
+              questions: quiz.questions,
+            });
+          } catch (error) {
+            remoteError = error;
+            console.warn('Tentativa não sincronizada com o Supabase.', error);
+          }
+        }
 
-    const result = form.querySelector('.quiz-result');
-    result.className = 'quiz-result';
-    result.textContent = '';
-  });
+        const result = form.querySelector('.quiz-result');
+        result.className = `quiz-result ${attempt.passed ? 'pass' : 'fail'}`;
+
+        const baseMessage = attempt.passed
+          ? `Aprovado: ${correct}/${quiz.questions.length}. Módulo concluído.`
+          : `Resultado: ${correct}/${quiz.questions.length}. Revise e tente novamente.`;
+
+        if (remoteAttempt) {
+          result.textContent = `${baseMessage} Resultado registrado no Supabase.`;
+        } else if (remoteError) {
+          result.textContent = `${baseMessage} Resultado salvo localmente; sincronização remota não concluída.`;
+          showToast('Resultado salvo localmente. Não foi possível sincronizar com o Supabase.');
+        } else {
+          result.textContent = baseMessage;
+        }
+      } finally {
+        submitButton.disabled = false;
+      }
+    },
+    { signal },
+  );
+
+  form.addEventListener(
+    'reset',
+    () => {
+      form.querySelectorAll('.quiz-question').forEach((fieldset) => {
+        delete fieldset.dataset.result;
+
+        const feedback = fieldset.querySelector('.quiz-feedback');
+        feedback.hidden = true;
+        feedback.textContent = '';
+      });
+
+      const result = form.querySelector('.quiz-result');
+      result.className = 'quiz-result';
+      result.textContent = '';
+    },
+    { signal },
+  );
+
+  return () => {
+    abortController.abort();
+    form.replaceChildren();
+  };
 }
