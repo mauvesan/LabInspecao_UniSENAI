@@ -1,6 +1,8 @@
 import { moduleCard } from '../../components/module-card.js';
 import { session } from '../session.js';
 import { storageService } from '../../services/storage-service.js';
+import { config } from '../../config.js';
+import { getStudentProgressService } from '../../platform/progress/student-progress-service.js';
 
 const MODULES = [
   {
@@ -86,7 +88,36 @@ function moduleProgress(state = {}) {
 
 export async function renderHome() {
   const progress = session.progress ?? {};
-  const moduleStates = progress.modules ?? {};
+  const localModuleStates = progress.modules ?? {};
+  let moduleStates = localModuleStates;
+  let progressSource = storageService.onlineEnabled ? 'Online' : 'Local';
+
+  const shouldReadRemoteProgress =
+    config.access.authenticationProvider === 'supabase' && session.profile?.role === 'student';
+
+  if (shouldReadRemoteProgress) {
+    try {
+      const remoteProgress = await getStudentProgressService().readOwnProgress();
+
+      moduleStates = Object.fromEntries(
+        Object.entries(remoteProgress).map(([moduleCode, state]) => [
+          moduleCode,
+          {
+            completed: state.completed,
+            bestScore: state.bestPercentage,
+            attemptCount: state.attemptCount,
+            lastAttemptAt: state.lastAttemptAt,
+          },
+        ]),
+      );
+
+      progressSource = 'Supabase';
+    } catch (error) {
+      console.warn('Não foi possível carregar student_progress; usando progresso local.', error);
+      moduleStates = localModuleStates;
+      progressSource = 'Local';
+    }
+  }
 
   const cards = MODULES.map((module) => {
     const state = moduleStates[module.key] ?? {};
@@ -154,7 +185,7 @@ export async function renderHome() {
 
         <article class="metric-card">
           <span>Sincronização</span>
-          <strong>${storageService.onlineEnabled ? 'Online' : 'Local'}</strong>
+          <strong>${progressSource}</strong>
         </article>
       </section>
     </main>

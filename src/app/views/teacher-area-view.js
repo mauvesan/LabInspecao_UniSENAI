@@ -16,6 +16,7 @@ import { runEducationRepositoryDiagnostic } from '../../platform/education/educa
 import { migrateLocalEducationToSupabase } from '../../platform/education/education-migration-service.js';
 import { runRemoteCrudDiagnostic } from '../../platform/education/remote-crud-diagnostic.js';
 import { runRlsDiagnostic } from '../../platform/education/rls-diagnostic.js';
+import { getTeacherProgressService } from '../../platform/progress/teacher-progress-service.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -91,6 +92,99 @@ function renderDistribution(items, emptyLabel) {
   if (!items.length) return `<p class="teacher-empty">${emptyLabel}</p>`;
   const maximum = Math.max(...items.map((item) => item.count), 1);
   return `<div class="teacher-distribution">${items.map((item) => `<div class="teacher-distribution__row"><span>${escapeHtml(item.name)}</span><div class="teacher-distribution__track"><i style="width:${Math.max((item.count / maximum) * 100, item.count ? 8 : 0)}%"></i></div><strong>${item.count}</strong></div>`).join('')}</div>`;
+}
+
+function renderTeacherProgressTable(summary) {
+  if (!summary.rows.length) {
+    return '<p class="teacher-empty">Ainda não há progresso remoto no filtro atual.</p>';
+  }
+
+  return `
+    <div class="teacher-progress-table-wrap">
+      <table class="teacher-progress-table">
+        <thead>
+          <tr>
+            <th>Aluno</th>
+            <th>Turma</th>
+            <th>Módulo</th>
+            <th>Melhor nota</th>
+            <th>Tentativas</th>
+            <th>Status</th>
+            <th>Última tentativa</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summary.rows
+            .map(
+              (row) => `
+                <tr>
+                  <td>
+                    <strong>${escapeHtml(row.studentName)}</strong>
+                    <small>${escapeHtml(row.enrollment || 'Sem matrícula')}</small>
+                  </td>
+                  <td>${escapeHtml(row.className)}</td>
+                  <td>${escapeHtml(row.moduleCode)}</td>
+                  <td>${row.bestPercentage.toFixed(1)}%</td>
+                  <td>${row.attemptCount}</td>
+                  <td>
+                    <span class="teacher-progress-status ${row.completed ? 'is-complete' : 'is-pending'}">
+                      ${row.completed ? 'Concluído' : 'Em andamento'}
+                    </span>
+                  </td>
+                  <td>${escapeHtml(formatRecentDate(row.lastAttemptAt))}</td>
+                </tr>
+              `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function hydrateTeacherProgressDashboard() {
+  const container = document.querySelector('[data-teacher-progress]');
+  if (!container) return;
+
+  container.innerHTML =
+    '<p class="teacher-progress-loading" role="status">Carregando progresso remoto...</p>';
+
+  try {
+    const summary = await getTeacherProgressService().readSummary({
+      classId: uiState.dashboardClassId,
+      term: uiState.dashboardTerm,
+    });
+
+    container.innerHTML = `
+      <div class="teacher-progress-metrics">
+        <article>
+          <strong>${summary.metrics.studentsWithProgress}</strong>
+          <span>Alunos com progresso</span>
+        </article>
+        <article>
+          <strong>${summary.metrics.completedModules}</strong>
+          <span>Módulos concluídos</span>
+        </article>
+        <article>
+          <strong>${summary.metrics.averageBestPercentage.toFixed(1)}%</strong>
+          <span>Média das melhores notas</span>
+        </article>
+        <article>
+          <strong>${summary.metrics.attempts}</strong>
+          <span>Tentativas registradas</span>
+        </article>
+      </div>
+      ${renderTeacherProgressTable(summary)}
+    `;
+  } catch (error) {
+    container.innerHTML = `
+      <p class="teacher-progress-error" role="alert">
+        ${escapeHtml(
+          error instanceof Error ? error.message : 'Não foi possível carregar o progresso remoto.',
+        )}
+      </p>
+    `;
+  }
 }
 
 function renderEducationLoading() {
@@ -249,6 +343,18 @@ export function renderTeacherArea() {
           <article class="teacher-dashboard__card"><h3>Avaliações por módulo</h3>${renderDistribution(dashboard.assessmentsByModule, 'Nenhuma avaliação no filtro atual.')}</article>
         </div>
         <article class="teacher-dashboard__card"><h3>Atividade recente</h3>${dashboard.recent.length ? `<div class="teacher-recent">${dashboard.recent.map((item) => `<div><span><strong>${escapeHtml(item.type)}</strong> · ${escapeHtml(item.label)}</span><time>${escapeHtml(formatRecentDate(item.at))}</time></div>`).join('')}</div>` : '<p class="teacher-empty">Ainda não há atividade registrada.</p>'}</article>
+
+        <article class="teacher-dashboard__card teacher-dashboard__card--progress">
+          <div class="teacher-panel__heading">
+            <div>
+              <p class="teacher-panel__kicker">Resultados Supabase</p>
+              <h3>Progresso dos alunos</h3>
+            </div>
+          </div>
+          <div data-teacher-progress>
+            <p class="teacher-progress-loading" role="status">Carregando progresso remoto...</p>
+          </div>
+        </article>
       </section>
 
       <section id="teacher-classes" class="teacher-panel">
@@ -430,6 +536,7 @@ function rerenderTeacherArea(sectionId = '') {
   if (!container) return;
   container.outerHTML = renderTeacherArea();
   initializeTeacherNavigation();
+  void hydrateTeacherProgressDashboard();
   if (sectionId) {
     queueMicrotask(() =>
       document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
@@ -437,7 +544,10 @@ function rerenderTeacherArea(sectionId = '') {
   }
 }
 
-queueMicrotask(initializeTeacherNavigation);
+queueMicrotask(() => {
+  initializeTeacherNavigation();
+  void hydrateTeacherProgressDashboard();
+});
 
 function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());

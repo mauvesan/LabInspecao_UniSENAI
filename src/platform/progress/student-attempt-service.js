@@ -1,12 +1,7 @@
 import { config } from '../../config.js';
 import { getSupabaseAuthClient } from '../supabase/supabase-client.js';
 
-const FORBIDDEN_ATTEMPT_FIELDS = Object.freeze([
-  'student_id',
-  'studentId',
-  'percentage',
-  'passed',
-]);
+const FORBIDDEN_ATTEMPT_FIELDS = Object.freeze(['student_id', 'studentId', 'percentage', 'passed']);
 
 function normalizeInteger(value, label) {
   const number = Number(value);
