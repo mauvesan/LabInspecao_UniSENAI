@@ -62,6 +62,7 @@ export class SupabaseEducationRepository {
 
     const userResult = await this.client.auth.getUser();
     const authUser = userResult.data?.user;
+
     if (userResult.error || !authUser) {
       throw new Error('Sessão Supabase inválida. Entre novamente como professor.');
     }
@@ -73,6 +74,7 @@ export class SupabaseEducationRepository {
       .maybeSingle();
 
     const profile = dataOrThrow(profileResult, 'Não foi possível resolver o perfil do professor.');
+
     if (!profile || profile.role !== 'teacher' || profile.status !== 'active') {
       throw new Error('A operação exige um perfil Professor ativo.');
     }
@@ -105,6 +107,7 @@ export class SupabaseEducationRepository {
       dataOrThrow(assessmentsResult, 'Não foi possível ler as avaliações remotas.') || [];
 
     const membershipsByStudent = new Map();
+
     for (const membership of memberships) {
       if (membership.status === 'active' && !membershipsByStudent.has(membership.student_id)) {
         membershipsByStudent.set(membership.student_id, membership.class_id);
@@ -198,18 +201,14 @@ export class SupabaseEducationRepository {
       if (membership.class_id !== classId) {
         const archiveResult = await this.client
           .from('class_memberships')
-          .update({
-            status: 'archived',
-          })
+          .update({ status: 'archived' })
           .eq('id', membership.id);
 
         dataOrThrow(archiveResult, 'Não foi possível arquivar o vínculo anterior do aluno.');
       }
     }
 
-    if (!classId) {
-      return;
-    }
+    if (!classId) return;
 
     const existingResult = await this.client
       .from('class_memberships')
@@ -227,14 +226,11 @@ export class SupabaseEducationRepository {
       if (existingMembership.status !== 'active') {
         const reactivateResult = await this.client
           .from('class_memberships')
-          .update({
-            status: 'active',
-          })
+          .update({ status: 'active' })
           .eq('id', existingMembership.id);
 
         dataOrThrow(reactivateResult, 'Não foi possível reativar o vínculo do aluno com a turma.');
       }
-
       return;
     }
 

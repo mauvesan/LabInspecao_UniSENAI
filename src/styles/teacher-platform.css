@@ -645,3 +645,28 @@
 .teacher-data-button--rls:focus-visible {
   background: #a21caf;
 }
+
+/* v4.3.0-D4.4.5 — provider educacional assíncrono */
+.teacher-runtime-state {
+  display: grid;
+  gap: 0.6rem;
+  place-items: start;
+  min-height: 12rem;
+  padding: 2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #334155;
+}
+.teacher-runtime-state strong {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+.teacher-runtime-state--error {
+  border-color: #fca5a5;
+  background: #fff1f2;
+  color: #991b1b;
+}
+.teacher-platform__mode {
+  white-space: nowrap;
+}

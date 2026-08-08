@@ -1,4 +1,14 @@
-import { educationRepository } from '../../platform/education/education-repository.js';
+import {
+  educationProviderLabel,
+  exportEducationData,
+  getCachedEducationState,
+  getEducationRuntimeStatus,
+  importEducationData,
+  isRemoteEducationProvider,
+  loadEducationState,
+  primeLocalEducationState,
+  runEducationMutation,
+} from '../../platform/education/education-runtime.js';
 import { buildTeacherDashboard } from './teacher-dashboard-analytics.js';
 import { getSupabaseConfigurationStatus } from '../../platform/supabase/supabase-client.js';
 import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supabase-diagnostics.js';
@@ -83,8 +93,62 @@ function renderDistribution(items, emptyLabel) {
   return `<div class="teacher-distribution">${items.map((item) => `<div class="teacher-distribution__row"><span>${escapeHtml(item.name)}</span><div class="teacher-distribution__track"><i style="width:${Math.max((item.count / maximum) * 100, item.count ? 8 : 0)}%"></i></div><strong>${item.count}</strong></div>`).join('')}</div>`;
 }
 
+function renderEducationLoading() {
+  return `
+    <section class="teacher-platform teacher-platform--loading" data-teacher-platform>
+      <div class="teacher-runtime-state" role="status">
+        <strong>Carregando dados educacionais...</strong>
+        <span>Provider: ${escapeHtml(educationProviderLabel())}</span>
+      </div>
+    </section>
+  `;
+}
+
+function renderEducationError(error) {
+  return `
+    <section class="teacher-platform teacher-platform--error" data-teacher-platform>
+      <div class="teacher-runtime-state teacher-runtime-state--error" role="alert">
+        <strong>Não foi possível carregar os dados educacionais.</strong>
+        <span>${escapeHtml(error?.message || 'Erro desconhecido.')}</span>
+        <button type="button" class="teacher-data-button" data-reload-education>
+          Tentar novamente
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+async function refreshTeacherArea(sectionId = '') {
+  try {
+    await loadEducationState({ force: true });
+    rerenderTeacherArea(sectionId);
+  } catch {
+    rerenderTeacherArea(sectionId);
+  }
+}
+
 export function renderTeacherArea() {
-  const state = educationRepository.read();
+  let state = getCachedEducationState();
+
+  if (!state && !isRemoteEducationProvider()) {
+    state = primeLocalEducationState();
+  }
+
+  if (!state) {
+    const runtime = getEducationRuntimeStatus();
+
+    if (runtime.error) {
+      return renderEducationError(runtime.error);
+    }
+
+    queueMicrotask(() => {
+      loadEducationState()
+        .then(() => rerenderTeacherArea())
+        .catch(() => rerenderTeacherArea());
+    });
+
+    return renderEducationLoading();
+  }
   const dashboard = buildTeacherDashboard(state, {
     classId: uiState.dashboardClassId,
     term: uiState.dashboardTerm,
@@ -132,25 +196,25 @@ export function renderTeacherArea() {
     <section class="teacher-platform" aria-labelledby="teacher-area-title" data-teacher-platform>
       <header class="teacher-platform__header">
         <div>
-          <p class="teacher-platform__eyebrow">Plataforma educacional local</p>
+          <p class="teacher-platform__eyebrow">Plataforma educacional</p>
           <h1 id="teacher-area-title">Área do professor</h1>
-          <p>Gestão local preparada para posterior substituição por um repositório Supabase.</p>
+          <p>Gestão de turmas, alunos e avaliações com provider educacional configurável.</p>
         </div>
         <div class="teacher-platform__mode-group">
-          <span class="teacher-platform__mode">Persistência local · portátil</span>
+          <span class="teacher-platform__mode">${escapeHtml(educationProviderLabel())}</span>
           <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
-          <button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>
+          ${isRemoteEducationProvider() ? '' : '<button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>'}
           <button type="button" class="teacher-data-button teacher-data-button--crud" data-test-remote-crud>Validar CRUD remoto</button>
           <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="teacher">RLS Professor</button>
           <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="anonymous">RLS Anônimo</button>
           <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
-          <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
+          ${isRemoteEducationProvider() ? '' : '<label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>'}
         </div>
       </header>
 
-      <div class="teacher-metrics" aria-label="Indicadores locais">
+      <div class="teacher-metrics" aria-label="Indicadores educacionais">
         <article><strong>${activeClasses}</strong><span>Turmas ativas</span></article>
         <article><strong>${activeStudents}</strong><span>Alunos ativos</span></article>
         <article><strong>${drafts}</strong><span>Rascunhos</span></article>
@@ -165,7 +229,7 @@ export function renderTeacherArea() {
       </nav>
 
       <section id="teacher-dashboard" class="teacher-panel teacher-dashboard">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Visão gerencial local</p><h2>Dashboard</h2></div></div>
+        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Visão gerencial</p><h2>Dashboard</h2></div></div>
         <div class="teacher-dashboard__filters">
           <label>Turma<select data-dashboard-filter="class"><option value="">Todas as turmas</option>${state.classes.map((item) => `<option value="${item.id}"${item.id === uiState.dashboardClassId ? ' selected' : ''}>${escapeHtml(item.name)}</option>`).join('')}</select></label>
           <label>Período<select data-dashboard-filter="term"><option value="">Todos os períodos</option>${terms.map((term) => `<option value="${escapeHtml(term)}"${term === uiState.dashboardTerm ? ' selected' : ''}>${escapeHtml(term)}</option>`).join('')}</select></label>
@@ -174,7 +238,7 @@ export function renderTeacherArea() {
           <article><strong>${dashboard.metrics.activeClasses}</strong><span>Turmas ativas</span><small>${dashboard.metrics.archivedClasses} arquivadas</small></article>
           <article><strong>${dashboard.metrics.activeStudents}</strong><span>Alunos ativos</span><small>${dashboard.metrics.archivedStudents} arquivados</small></article>
           <article><strong>${dashboard.metrics.published}</strong><span>Avaliações publicadas</span><small>${dashboard.metrics.drafts} rascunhos</small></article>
-          <article><strong>${dashboard.metrics.archivedAssessments}</strong><span>Avaliações arquivadas</span><small>Histórico local</small></article>
+          <article><strong>${dashboard.metrics.archivedAssessments}</strong><span>Avaliações arquivadas</span><small>Histórico</small></article>
         </div>
         <div class="teacher-dashboard__alerts">
           <article class="${dashboard.alerts.studentsWithoutClass ? 'has-warning' : ''}"><strong>${dashboard.alerts.studentsWithoutClass}</strong><span>Alunos ativos sem turma</span></article>
@@ -188,7 +252,7 @@ export function renderTeacherArea() {
       </section>
 
       <section id="teacher-classes" class="teacher-panel">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão local</p><h2>Turmas</h2></div></div>
+        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão educacional</p><h2>Turmas</h2></div></div>
         <div class="teacher-toolbar">
           <label>Buscar turma<input type="search" data-teacher-search="class" value="${escapeHtml(uiState.classSearch)}" placeholder="Nome ou período"></label>
           <label class="teacher-check"><input type="checkbox" data-show-archived="class"${uiState.showArchivedClasses ? ' checked' : ''}> Mostrar arquivadas</label>
@@ -221,7 +285,7 @@ export function renderTeacherArea() {
       </section>
 
       <section id="teacher-students" class="teacher-panel">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão local</p><h2>Alunos</h2></div></div>
+        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão educacional</p><h2>Alunos</h2></div></div>
         <div class="teacher-toolbar">
           <label>Buscar aluno<input type="search" data-teacher-search="student" value="${escapeHtml(uiState.studentSearch)}" placeholder="Nome, matrícula, e-mail ou turma"></label>
           <label class="teacher-check"><input type="checkbox" data-show-archived="student"${uiState.showArchivedStudents ? ' checked' : ''}> Mostrar arquivados</label>
@@ -256,7 +320,7 @@ export function renderTeacherArea() {
       </section>
 
       <section id="teacher-assessments" class="teacher-panel">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão local</p><h2>Avaliações</h2></div></div>
+        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão educacional</p><h2>Avaliações</h2></div></div>
         <div class="teacher-toolbar">
           <label>Buscar avaliação<input type="search" data-teacher-search="assessment" value="${escapeHtml(uiState.assessmentSearch)}" placeholder="Título, módulo, turma ou status"></label>
           <label class="teacher-check"><input type="checkbox" data-show-archived="assessment"${uiState.showArchivedAssessments ? ' checked' : ''}> Mostrar arquivadas</label>
@@ -379,46 +443,46 @@ function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-document.addEventListener('submit', (event) => {
+document.addEventListener('submit', async (event) => {
   const form = event.target.closest?.('[data-education-form]');
   if (!form) return;
+
   event.preventDefault();
   const values = readForm(form);
-  try {
-    if (form.dataset.educationForm === 'class') {
-      if (values.id) {
-        educationRepository.updateClass(values.id, values);
-      } else {
-        educationRepository.addClass(values);
-      }
+  const submitButton = form.querySelector('button[type="submit"]');
 
+  try {
+    if (submitButton) submitButton.disabled = true;
+
+    if (form.dataset.educationForm === 'class') {
+      await runEducationMutation((repository) =>
+        values.id ? repository.updateClass(values.id, values) : repository.addClass(values),
+      );
       uiState.editClassId = '';
       rerenderTeacherArea('teacher-classes');
     }
 
     if (form.dataset.educationForm === 'student') {
-      if (values.id) {
-        educationRepository.updateStudent(values.id, values);
-      } else {
-        educationRepository.addStudent(values);
-      }
-
+      await runEducationMutation((repository) =>
+        values.id ? repository.updateStudent(values.id, values) : repository.addStudent(values),
+      );
       uiState.editStudentId = '';
       rerenderTeacherArea('teacher-students');
     }
 
     if (form.dataset.educationForm === 'assessment') {
-      if (values.id) {
-        educationRepository.updateAssessment(values.id, values);
-      } else {
-        educationRepository.addAssessment(values);
-      }
-
+      await runEducationMutation((repository) =>
+        values.id
+          ? repository.updateAssessment(values.id, values)
+          : repository.addAssessment(values),
+      );
       uiState.editAssessmentId = '';
       rerenderTeacherArea('teacher-assessments');
     }
   } catch (error) {
     alert(error instanceof Error ? error.message : 'Não foi possível salvar.');
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
 });
 
@@ -481,7 +545,7 @@ document.addEventListener('change', async (event) => {
 
   try {
     const payload = JSON.parse(await file.text());
-    const state = educationRepository.importData(payload);
+    const state = await importEducationData(payload);
     input.value = '';
     alert(
       `Dados importados: ${state.classes.length} turma(s), ${state.students.length} aluno(s) e ${state.assessments.length} avaliação(ões).`,
@@ -506,6 +570,12 @@ document.addEventListener('click', async (event) => {
   if (!button) return;
 
   try {
+    if (button.hasAttribute('data-reload-education')) {
+      button.disabled = true;
+      await refreshTeacherArea();
+      return;
+    }
+
     if (button.hasAttribute('data-test-supabase')) {
       const statusElement = document.querySelector('[data-supabase-status]');
       button.disabled = true;
@@ -553,7 +623,7 @@ document.addEventListener('click', async (event) => {
     }
 
     if (button.hasAttribute('data-migrate-education')) {
-      const localState = educationRepository.read();
+      const localState = getCachedEducationState() || primeLocalEducationState();
       const summary = {
         classes: localState.classes.length,
         students: localState.students.length,
@@ -565,7 +635,7 @@ document.addEventListener('click', async (event) => {
       );
       if (!confirmed) return;
 
-      const backupPayload = educationRepository.exportData();
+      const backupPayload = await exportEducationData();
       const backupBlob = new Blob([JSON.stringify(backupPayload, null, 2)], {
         type: 'application/json',
       });
@@ -667,7 +737,7 @@ document.addEventListener('click', async (event) => {
     }
 
     if (button.hasAttribute('data-export-education')) {
-      const payload = educationRepository.exportData();
+      const payload = await exportEducationData();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -698,19 +768,24 @@ document.addEventListener('click', async (event) => {
       uiState[key] = '';
       rerenderTeacherArea();
     } else if (button.dataset.classStatus) {
-      educationRepository.setClassStatus(button.dataset.classStatus, button.dataset.status);
+      await runEducationMutation((repository) =>
+        repository.setClassStatus(button.dataset.classStatus, button.dataset.status),
+      );
       rerenderTeacherArea('teacher-classes');
     } else if (button.dataset.studentStatus) {
-      educationRepository.setStudentStatus(button.dataset.studentStatus, button.dataset.status);
+      await runEducationMutation((repository) =>
+        repository.setStudentStatus(button.dataset.studentStatus, button.dataset.status),
+      );
       rerenderTeacherArea('teacher-students');
     } else if (button.dataset.assessmentStatus) {
-      educationRepository.setAssessmentStatus(
-        button.dataset.assessmentStatus,
-        button.dataset.status,
+      await runEducationMutation((repository) =>
+        repository.setAssessmentStatus(button.dataset.assessmentStatus, button.dataset.status),
       );
       rerenderTeacherArea('teacher-assessments');
     } else if (button.dataset.duplicateAssessment) {
-      educationRepository.duplicateAssessment(button.dataset.duplicateAssessment);
+      await runEducationMutation((repository) =>
+        repository.duplicateAssessment(button.dataset.duplicateAssessment),
+      );
       rerenderTeacherArea('teacher-assessments');
     }
   } catch (error) {
