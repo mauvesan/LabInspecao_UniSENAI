@@ -3,6 +3,7 @@ import { session } from '../session.js';
 import { storageService } from '../../services/storage-service.js';
 import { config } from '../../config.js';
 import { getStudentProgressService } from '../../platform/progress/student-progress-service.js';
+import { getStudentAssessmentService } from '../../platform/assessments/student-assessment-service.js';
 
 const MODULES = [
   {
@@ -139,6 +140,31 @@ export async function renderHome() {
 
   const frenagemState = moduleStates.F ?? {};
 
+  let availableAssessments = [];
+
+  if (shouldReadRemoteProgress) {
+    try {
+      availableAssessments = await getStudentAssessmentService().listAvailable();
+    } catch (error) {
+      console.warn('[D4.5.6A] Falha ao carregar avaliações publicadas.', error);
+    }
+  }
+
+  const assessmentCards = availableAssessments
+    .map(
+      (assessment) => `
+        <article class="module-card student-assessment-card">
+          <span class="home-section-kicker">${assessment.moduleLabel}</span>
+          <h3>${assessment.title}</h3>
+          <p>Avaliação publicada para sua turma.</p>
+          <a class="module-card-link" href="#/avaliacao/${assessment.id}">
+            Abrir avaliação →
+          </a>
+        </article>
+      `,
+    )
+    .join('');
+
   return `
     <main class="home-v2 home-v2--release41">
       <section class="home-header home-header--release41" aria-labelledby="home-title">
@@ -167,7 +193,23 @@ export async function renderHome() {
         </div>
       </section>
 
-      <section class="compact-dashboard" aria-label="Resumo do estudante">
+      <section class="home-modules home-assessments" aria-labelledby="available-assessments-title">
+    <div class="home-section-heading">
+      <div>
+        <span class="home-section-kicker">Atividades avaliativas</span>
+        <h2 id="available-assessments-title">Avaliações disponíveis</h2>
+      </div>
+      <span class="home-section-count">${availableAssessments.length} publicada(s)</span>
+    </div>
+
+    ${
+      assessmentCards
+        ? `<div class="module-grid">${assessmentCards}</div>`
+        : '<p class="home-empty-state">Nenhuma avaliação publicada disponível para você.</p>'
+    }
+  </section>
+
+  <section class="compact-dashboard" aria-label="Resumo do estudante">
         <article class="metric-card">
           <span>Experiência</span>
           <strong>${progress.xp ?? 0} XP</strong>
