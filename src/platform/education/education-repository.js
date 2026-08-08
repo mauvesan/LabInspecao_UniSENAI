@@ -1,6 +1,7 @@
 import { config } from '../../config.js';
 import { assertEducationRepository } from './education-repository-contract.js';
 import { LocalEducationRepository } from './local-education-repository.js';
+import { SupabaseEducationRepository } from './supabase-education-repository.js';
 
 export function createEducationRepository({
   provider = config.education.persistenceProvider,
@@ -10,9 +11,7 @@ export function createEducationRepository({
   }
 
   if (provider === 'supabase') {
-    throw new Error(
-      'Persistência Supabase ainda não está habilitada nesta versão. Defina VITE_EDUCATION_PERSISTENCE=local.',
-    );
+    return assertEducationRepository(new SupabaseEducationRepository());
   }
 
   throw new Error(`Provedor de persistência educacional desconhecido: ${provider}`);

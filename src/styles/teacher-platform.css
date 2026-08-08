@@ -607,3 +607,12 @@
   background: #7f1d1d;
   color: #fee2e2;
 }
+
+.teacher-data-button--remote {
+  border-color: #c4b5fd;
+  background: #5b21b6;
+}
+.teacher-data-button--remote:hover,
+.teacher-data-button--remote:focus-visible {
+  background: #6d28d9;
+}

@@ -2,6 +2,7 @@ import { educationRepository } from '../../platform/education/education-reposito
 import { buildTeacherDashboard } from './teacher-dashboard-analytics.js';
 import { getSupabaseConfigurationStatus } from '../../platform/supabase/supabase-client.js';
 import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supabase-diagnostics.js';
+import { runEducationRepositoryDiagnostic } from '../../platform/education/education-repository-diagnostics.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -135,6 +136,7 @@ export function renderTeacherArea() {
         <div class="teacher-platform__mode-group">
           <span class="teacher-platform__mode">Persistência local · portátil</span>
           <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
+          <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
           <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
           <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
@@ -514,6 +516,32 @@ document.addEventListener('click', async (event) => {
       }
 
       button.disabled = false;
+      return;
+    }
+
+    if (button.hasAttribute('data-compare-education')) {
+      const statusElement = document.querySelector('[data-supabase-status]');
+      button.disabled = true;
+      if (statusElement) {
+        statusElement.textContent = 'Comparando dados locais e remotos...';
+        statusElement.classList.remove('is-ok', 'is-error');
+      }
+      try {
+        const result = await runEducationRepositoryDiagnostic();
+        if (statusElement) {
+          statusElement.textContent = `Local: ${result.local.classes} turma(s), ${result.local.students} aluno(s), ${result.local.assessments} avaliação(ões). Supabase: ${result.remote.classes} turma(s), ${result.remote.students} aluno(s), ${result.remote.assessments} avaliação(ões).`;
+          statusElement.classList.toggle('is-ok', result.matches);
+          statusElement.classList.toggle('is-error', !result.matches);
+        }
+      } catch (error) {
+        if (statusElement) {
+          statusElement.textContent =
+            error instanceof Error ? error.message : 'Falha ao comparar os repositórios.';
+          statusElement.classList.add('is-error');
+        }
+      } finally {
+        button.disabled = false;
+      }
       return;
     }
 
