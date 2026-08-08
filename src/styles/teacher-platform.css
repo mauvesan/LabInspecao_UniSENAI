@@ -626,3 +626,13 @@
 .teacher-data-button--migrate:focus-visible {
   background: #c2410c;
 }
+
+/* v4.3.0-D4.4.3 — validação controlada do CRUD remoto */
+.teacher-data-button--crud {
+  border-color: #93c5fd;
+  background: #1d4ed8;
+}
+.teacher-data-button--crud:hover,
+.teacher-data-button--crud:focus-visible {
+  background: #2563eb;
+}

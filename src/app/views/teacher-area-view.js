@@ -4,6 +4,7 @@ import { getSupabaseConfigurationStatus } from '../../platform/supabase/supabase
 import { runSupabaseConnectivityDiagnostic } from '../../platform/supabase/supabase-diagnostics.js';
 import { runEducationRepositoryDiagnostic } from '../../platform/education/education-repository-diagnostics.js';
 import { migrateLocalEducationToSupabase } from '../../platform/education/education-migration-service.js';
+import { runRemoteCrudDiagnostic } from '../../platform/education/remote-crud-diagnostic.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -139,6 +140,7 @@ export function renderTeacherArea() {
           <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
           <button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>
+          <button type="button" class="teacher-data-button teacher-data-button--crud" data-test-remote-crud>Validar CRUD remoto</button>
           <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
           <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
           <label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>
@@ -592,6 +594,41 @@ document.addEventListener('click', async (event) => {
         if (statusElement) {
           statusElement.textContent =
             error instanceof Error ? error.message : 'Falha na migração educacional.';
+          statusElement.classList.add('is-error');
+        }
+      } finally {
+        button.disabled = false;
+      }
+      return;
+    }
+
+    if (button.hasAttribute('data-test-remote-crud')) {
+      const confirmed = window.confirm(
+        'Executar um teste CRUD remoto com registros temporários?\n\n' +
+          'O teste criará, editará, arquivará, duplicará e depois excluirá apenas registros identificados como teste.',
+      );
+      if (!confirmed) return;
+
+      const statusElement = document.querySelector('[data-supabase-status]');
+      button.disabled = true;
+      if (statusElement) {
+        statusElement.textContent = 'Validando CRUD remoto do Professor...';
+        statusElement.classList.remove('is-ok', 'is-error');
+      }
+
+      try {
+        const result = await runRemoteCrudDiagnostic();
+        if (statusElement) {
+          statusElement.textContent = result.ok
+            ? `CRUD remoto validado com sucesso (${result.marker}). Registros temporários removidos.`
+            : 'O diagnóstico CRUD remoto não foi concluído.';
+          statusElement.classList.toggle('is-ok', result.ok);
+          statusElement.classList.toggle('is-error', !result.ok);
+        }
+      } catch (error) {
+        if (statusElement) {
+          statusElement.textContent =
+            error instanceof Error ? error.message : 'Falha ao validar o CRUD remoto.';
           statusElement.classList.add('is-error');
         }
       } finally {
