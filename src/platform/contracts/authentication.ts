@@ -15,9 +15,15 @@ export interface AuthenticationSession {
 
 export type AuthenticationListener = (session: AuthenticationSession) => void;
 
+export interface AuthenticationCredentials {
+  email: string;
+  password: string;
+}
+
 export interface AuthenticationService {
   initialize(): Promise<AuthenticationSession>;
   getSession(): AuthenticationSession;
   subscribe(listener: AuthenticationListener): () => void;
+  signIn?(credentials: AuthenticationCredentials): Promise<AuthenticationSession>;
   signOut(): Promise<AuthenticationSession>;
 }
