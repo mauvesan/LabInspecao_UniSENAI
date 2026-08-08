@@ -3,6 +3,35 @@ import { getSupabaseAuthClient } from '../supabase/supabase-client.js';
 
 const FORBIDDEN_ATTEMPT_FIELDS = Object.freeze(['student_id', 'studentId', 'percentage', 'passed']);
 
+/**
+ * @typedef {'formative'|'assessment'} AttemptKind
+ */
+
+/**
+ * @typedef {Object} AttemptContext
+ * @property {AttemptKind} [attemptKind]
+ * @property {string|null} [assessmentId]
+ */
+
+/**
+ * @typedef {Object} SubmitModuleAttemptInput
+ * @property {string} moduleCode
+ * @property {number} score
+ * @property {number} total
+ * @property {unknown[]} [answers]
+ * @property {Array<{id?: string, statement?: string, options?: unknown[], correctIndex?: number, feedback?: string}>} [questions]
+ * @property {AttemptKind} [attemptKind]
+ * @property {string|null} [assessmentId]
+ * @property {string} [appVersion]
+ * @property {string} [page]
+ * @property {string} [userAgent]
+ */
+
+export const ATTEMPT_KINDS = Object.freeze({
+  FORMATIVE: 'formative',
+  ASSESSMENT: 'assessment',
+});
+
 function normalizeInteger(value, label) {
   const number = Number(value);
 
@@ -35,12 +64,32 @@ export function assertAttemptDoesNotContainServerOwnedFields(attempt) {
   }
 }
 
+/** @param {AttemptContext} [context] */
+export function validateAttemptContext({
+  attemptKind = ATTEMPT_KINDS.FORMATIVE,
+  assessmentId = null,
+} = {}) {
+  if (!Object.values(ATTEMPT_KINDS).includes(attemptKind)) {
+    throw new Error(`Tipo de tentativa inválido: ${attemptKind}.`);
+  }
+
+  if (attemptKind === ATTEMPT_KINDS.FORMATIVE && assessmentId) {
+    throw new Error('Tentativa formativa não pode carregar assessmentId.');
+  }
+
+  if (attemptKind === ATTEMPT_KINDS.ASSESSMENT && !assessmentId) {
+    throw new Error('Tentativa avaliativa exige assessmentId explícito.');
+  }
+}
+
+/** @param {SubmitModuleAttemptInput} input */
 export function buildSubmitModuleAttemptParameters({
   moduleCode,
   score,
   total,
   answers,
   questions,
+  attemptKind = ATTEMPT_KINDS.FORMATIVE,
   assessmentId = null,
   appVersion = config.appVersion,
   page = globalThis.location?.href || '',
@@ -51,6 +100,8 @@ export function buildSubmitModuleAttemptParameters({
   if (!normalizedModuleCode) {
     throw new Error('moduleCode é obrigatório para registrar a tentativa.');
   }
+
+  validateAttemptContext({ attemptKind, assessmentId });
 
   const normalizedScore = normalizeInteger(score, 'score');
   const normalizedTotal = normalizeInteger(total, 'total');
@@ -69,6 +120,7 @@ export function buildSubmitModuleAttemptParameters({
     p_total: normalizedTotal,
     p_answers_json: mapAnswers(questions, answers),
     p_questions_json: sanitizeQuestions(questions),
+    p_attempt_kind: attemptKind,
     p_assessment_id: assessmentId || null,
     p_app_version: String(appVersion ?? ''),
     p_page: String(page ?? ''),
@@ -81,6 +133,9 @@ export class StudentAttemptService {
     this.client = client;
   }
 
+  /**
+   * @param {SubmitModuleAttemptInput} attempt
+   */
   async submit(attempt) {
     assertAttemptDoesNotContainServerOwnedFields(attempt);
 

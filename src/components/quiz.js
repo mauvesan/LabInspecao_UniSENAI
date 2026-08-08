@@ -1,7 +1,10 @@
 import { config } from '../config.js';
 import { session } from '../app/session.js';
 import { storageService } from '../services/storage-service.js';
-import { getStudentAttemptService } from '../platform/progress/student-attempt-service.js';
+import {
+  ATTEMPT_KINDS,
+  getStudentAttemptService,
+} from '../platform/progress/student-attempt-service.js';
 import { showToast } from './toast.js';
 
 /**
@@ -9,7 +12,13 @@ import { showToast } from './toast.js';
  *
  * @param {{ container: HTMLElement, moduleCode: string, quiz: object }} parameters
  */
-export function createQuiz({ container, moduleCode, quiz }) {
+export function createQuiz({
+  container,
+  moduleCode,
+  quiz,
+  attemptKind = ATTEMPT_KINDS.FORMATIVE,
+  assessmentId = null,
+}) {
   if (!container) return undefined;
 
   container.innerHTML = `
@@ -114,6 +123,8 @@ export function createQuiz({ container, moduleCode, quiz }) {
         const attempt = {
           attemptId: crypto.randomUUID(),
           moduleCode,
+          attemptKind,
+          assessmentId,
           quizVersion: quiz.version,
           answers,
           correct,
@@ -137,6 +148,8 @@ export function createQuiz({ container, moduleCode, quiz }) {
               total: quiz.questions.length,
               answers,
               questions: quiz.questions,
+              attemptKind,
+              assessmentId,
             });
           } catch (error) {
             remoteError = error;
@@ -147,9 +160,12 @@ export function createQuiz({ container, moduleCode, quiz }) {
         const result = form.querySelector('.quiz-result');
         result.className = `quiz-result ${attempt.passed ? 'pass' : 'fail'}`;
 
-        const baseMessage = attempt.passed
-          ? `Aprovado: ${correct}/${quiz.questions.length}. Módulo concluído.`
-          : `Resultado: ${correct}/${quiz.questions.length}. Revise e tente novamente.`;
+        const baseMessage =
+          attemptKind === ATTEMPT_KINDS.ASSESSMENT
+            ? `Avaliação registrada: ${correct}/${quiz.questions.length}.`
+            : attempt.passed
+              ? `Aprovado: ${correct}/${quiz.questions.length}. Módulo concluído.`
+              : `Resultado: ${correct}/${quiz.questions.length}. Revise e tente novamente.`;
 
         if (remoteAttempt) {
           result.textContent = `${baseMessage} Resultado registrado no Supabase.`;
