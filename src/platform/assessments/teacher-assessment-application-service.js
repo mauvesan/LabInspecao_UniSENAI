@@ -108,6 +108,14 @@ export class TeacherAssessmentApplicationService {
     );
   }
 
+  getStudentRuleHistory(applicationId, studentId) {
+    return this.rpc(
+      'teacher_get_assessment_application_student_rule_history',
+      { p_application_id: applicationId, p_student_id: studentId },
+      'N\u00e3o foi poss\u00edvel carregar o hist\u00f3rico da exce\u00e7\u00e3o.',
+    );
+  }
+
   deleteStudentRule(applicationId, studentId) {
     return this.rpc(
       'teacher_delete_assessment_application_student_rule',

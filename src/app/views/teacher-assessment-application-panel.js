@@ -1,4 +1,10 @@
 import '../../styles/teacher-assessment-application.css';
+import { renderTeacherAssessmentExceptionHistory } from './teacher-assessment-exception-history-panel.js';
+import '../../styles/teacher-assessment-exception-history.css';
+import {
+  applyStudentRuleToForm,
+  resetStudentRuleForm,
+} from './teacher-assessment-rule-edit-state.js';
 import {
   mountTeacherAssessmentMonitoring,
   renderTeacherAssessmentMonitoring,
@@ -125,6 +131,14 @@ function renderRule(rule) {
       >
         Remover exceção
       </button>
+      <button
+        type="button"
+        data-application-rule-edit="${escapeHtml(rule.student_id)}"
+        data-application-id="${escapeHtml(rule.application_id || '')}"
+      >
+        Editar
+      </button>
+        <button type="button" data-application-rule-history="${escapeHtml(rule.student_id)}" data-application-id="${escapeHtml(rule.application_id || '')}">Hist\u00f3rico</button>
     </article>
   `;
 }
@@ -287,6 +301,11 @@ function renderApplication(application, students) {
           </label>
 
           <label>
+            Abertura individual
+            <input type="datetime-local" name="opensAtOverride">
+          </label>
+
+          <label>
             Prazo individual
             <input type="datetime-local" name="dueAtOverride">
           </label>
@@ -302,6 +321,13 @@ function renderApplication(application, students) {
           </label>
 
           <button type="submit">Salvar exceção</button>
+          <button
+            type="button"
+            data-application-rule-edit-cancel
+            hidden
+          >
+            Cancelar edição
+          </button>
         </form>
       </details>
     </article>
@@ -490,6 +516,35 @@ async function openTeacherApplicationMonitoring(applicationId) {
 
   monitoringDialog.showModal();
 }
+async function openTeacherAssessmentExceptionHistory(applicationId, studentId) {
+  const model = await service.getStudentRuleHistory(applicationId, studentId);
+  document.querySelector('[data-teacher-exception-history-dialog]')?.remove();
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    `
+    <dialog class="teacher-exception-history-dialog" data-teacher-exception-history-dialog>
+      <div class="teacher-exception-history-shell">
+        <header>
+          <div><p>\u00c1rea do Professor</p><h2>Hist\u00f3rico da exce\u00e7\u00e3o</h2></div>
+          <button type="button" data-teacher-exception-history-close aria-label="Fechar">\u00d7</button>
+        </header>
+        ${renderTeacherAssessmentExceptionHistory(model)}
+      </div>
+    </dialog>
+  `,
+  );
+  const dialog = document.querySelector('[data-teacher-exception-history-dialog]');
+  if (!dialog) return;
+  dialog.addEventListener('click', (event) => {
+    const b = event.target.closest('[data-teacher-exception-history-close]');
+    if (!b) return;
+    dialog.close();
+    dialog.remove();
+  });
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  dialog.showModal();
+}
+
 export async function openTeacherAssessmentApplications(assessmentId, classes = [], students = []) {
   const payload = await service.getApplications(assessmentId);
 
@@ -530,6 +585,48 @@ export async function openTeacherAssessmentApplications(assessmentId, classes = 
         button.disabled = true;
         await service.setStatus(button.dataset.applicationId, button.dataset.applicationStatus);
         await reload();
+        return;
+      }
+
+      if (button.dataset.applicationRuleEdit) {
+        const applicationCard = button.closest('[data-application-card]');
+        const form = applicationCard?.querySelector('[data-application-rule]');
+
+        if (!form) return;
+
+        const application = payload.applications.find(
+          (item) => item.id === button.dataset.applicationId,
+        );
+
+        const rule = application?.student_rules?.find(
+          (item) => item.student_id === button.dataset.applicationRuleEdit,
+        );
+
+        if (!rule) {
+          throw new Error('Não foi possível localizar a exceção selecionada.');
+        }
+
+        applyStudentRuleToForm(form, rule);
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+
+      if (button.hasAttribute('data-application-rule-edit-cancel')) {
+        const form = button.closest('[data-application-rule]');
+        resetStudentRuleForm(form);
+        return;
+      }
+
+      if (button.dataset.applicationRuleHistory) {
+        button.disabled = true;
+        try {
+          await openTeacherAssessmentExceptionHistory(
+            button.dataset.applicationId,
+            button.dataset.applicationRuleHistory,
+          );
+        } finally {
+          if (button.isConnected) button.disabled = false;
+        }
         return;
       }
 
@@ -582,14 +679,18 @@ export async function openTeacherAssessmentApplications(assessmentId, classes = 
       } else if (form.dataset.applicationRule) {
         await service.upsertStudentRule({
           applicationId: form.dataset.applicationRule,
-          studentId: String(data.get('studentId') || '').trim(),
+          studentId: String(
+            form.dataset.applicationRuleEditStudent || data.get('studentId') || '',
+          ).trim(),
           eligibility: String(data.get('eligibility') || 'inherit'),
           maxAttemptsOverride: data.get('maxAttemptsOverride'),
-          opensAtOverride: null,
+          opensAtOverride: toIso(data.get('opensAtOverride')),
           dueAtOverride: toIso(data.get('dueAtOverride')),
           closesAtOverride: toIso(data.get('closesAtOverride')),
           reason: String(data.get('reason') || '').trim(),
         });
+
+        resetStudentRuleForm(form);
       }
 
       await reload();
