@@ -91,6 +91,15 @@ export class TeacherAssessmentApplicationService {
     );
   }
 
+  getApplicationMonitoring(applicationId) {
+    return this.rpc(
+      'teacher_get_assessment_application_monitoring',
+      {
+        p_application_id: applicationId,
+      },
+      'NÃ£o foi possÃ­vel carregar o monitoramento da aplicaÃ§Ã£o.',
+    );
+  }
   deleteStudentRule(applicationId, studentId) {
     return this.rpc(
       'teacher_delete_assessment_application_student_rule',

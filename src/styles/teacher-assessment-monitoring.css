@@ -1,0 +1,182 @@
+.teacher-monitoring-dialog {
+  width: min(1180px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+}
+
+.teacher-monitoring-dialog::backdrop {
+  background: rgb(0 0 0 / 0.56);
+}
+
+.teacher-monitoring-shell {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.teacher-monitoring-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.teacher-monitoring-dialog-header h2 {
+  margin: 4px 0 0;
+}
+
+.teacher-monitoring-dialog-header p {
+  margin: 0;
+  opacity: 0.72;
+}
+
+.teacher-monitoring-dialog-header button {
+  min-width: 40px;
+}
+
+.teacher-monitoring-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.teacher-monitoring-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.teacher-monitoring-header h2 {
+  margin: 4px 0;
+}
+
+.teacher-monitoring-header p {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.teacher-monitoring-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.teacher-monitoring-period {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+}
+
+.teacher-monitoring-period span {
+  opacity: 0.7;
+}
+
+.teacher-monitoring-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.teacher-monitoring-summary-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+}
+
+.teacher-monitoring-summary-card span {
+  font-size: 0.82rem;
+  opacity: 0.72;
+}
+
+.teacher-monitoring-summary-card strong {
+  font-size: 1.35rem;
+}
+
+.teacher-monitoring-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(190px, 280px);
+  gap: 12px;
+}
+
+.teacher-monitoring-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.teacher-monitoring-controls input,
+.teacher-monitoring-controls select {
+  width: 100%;
+}
+
+.teacher-monitoring-table-wrap {
+  overflow-x: auto;
+}
+
+.teacher-monitoring-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teacher-monitoring-table th,
+.teacher-monitoring-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #d9dee7);
+  vertical-align: top;
+}
+
+.teacher-monitoring-table th {
+  font-size: 0.82rem;
+  opacity: 0.72;
+}
+
+.teacher-monitoring-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.teacher-monitoring-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 999px;
+  font-size: 0.76rem;
+}
+
+.teacher-monitoring-empty {
+  padding: 18px 0;
+  text-align: center;
+  opacity: 0.72;
+}
+
+@media (max-width: 900px) {
+  .teacher-monitoring-header,
+  .teacher-monitoring-dialog-header {
+    display: grid;
+  }
+
+  .teacher-monitoring-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-monitoring-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .teacher-monitoring-summary {
+    grid-template-columns: 1fr;
+  }
+}

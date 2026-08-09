@@ -1,4 +1,9 @@
 import '../../styles/teacher-assessment-application.css';
+import {
+  mountTeacherAssessmentMonitoring,
+  renderTeacherAssessmentMonitoring,
+} from './teacher-assessment-monitoring-panel.js';
+import '../../styles/teacher-assessment-monitoring.css';
 import { getTeacherAssessmentApplicationService } from '../../platform/assessments/teacher-assessment-application-service.js';
 
 const service = getTeacherAssessmentApplicationService();
@@ -199,6 +204,12 @@ function renderApplication(application, students) {
       </form>
 
       <div class="teacher-application-actions">
+        <button
+          type="button"
+          data-application-monitoring="${escapeHtml(application.id)}"
+        >
+          Monitorar alunos
+        </button>
         ${
           application.status === 'draft'
             ? `<button type="button" data-application-status="scheduled" data-application-id="${application.id}">Agendar</button>
@@ -384,6 +395,71 @@ function wireStudentFilters(dialog) {
   });
 }
 
+async function openTeacherApplicationMonitoring(applicationId) {
+  const model = await service.getApplicationMonitoring(applicationId);
+
+  document.querySelector('[data-teacher-monitoring-dialog]')?.remove();
+
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    `
+      <dialog
+        class="teacher-monitoring-dialog"
+        data-teacher-monitoring-dialog
+      >
+        <div class="teacher-monitoring-shell">
+          <header class="teacher-monitoring-dialog-header">
+            <div>
+              Área do Professor
+              <h2>Monitoramento da aplicação</h2>
+            </div>
+
+            <button
+              type="button"
+              data-teacher-monitoring-close
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </header>
+
+          ${renderTeacherAssessmentMonitoring(model)}
+        </div>
+      </dialog>
+    `,
+  );
+
+  const monitoringDialog = document.querySelector('[data-teacher-monitoring-dialog]');
+
+  if (!monitoringDialog) {
+    return;
+  }
+
+  const disposeMonitoring = mountTeacherAssessmentMonitoring(monitoringDialog);
+
+  monitoringDialog.addEventListener('click', (event) => {
+    const closeButton = event.target.closest('[data-teacher-monitoring-close]');
+
+    if (!closeButton) {
+      return;
+    }
+
+    disposeMonitoring?.();
+    monitoringDialog.close();
+    monitoringDialog.remove();
+  });
+
+  monitoringDialog.addEventListener(
+    'close',
+    () => {
+      disposeMonitoring?.();
+      monitoringDialog.remove();
+    },
+    { once: true },
+  );
+
+  monitoringDialog.showModal();
+}
 export async function openTeacherAssessmentApplications(assessmentId, classes = [], students = []) {
   const payload = await service.getApplications(assessmentId);
 
@@ -412,6 +488,14 @@ export async function openTeacherAssessmentApplications(assessmentId, classes = 
         return;
       }
 
+      if (button.dataset.applicationMonitoring) {
+        button.disabled = true;
+
+        await openTeacherApplicationMonitoring(button.dataset.applicationMonitoring);
+
+        button.disabled = false;
+        return;
+      }
       if (button.dataset.applicationStatus) {
         button.disabled = true;
         await service.setStatus(button.dataset.applicationId, button.dataset.applicationStatus);
