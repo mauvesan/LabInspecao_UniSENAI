@@ -2,64 +2,64 @@
   "version": "2026.1",
   "questions": [
     {
-      "id": "F-Q01",
-      "statement": "A eficiência de frenagem relaciona:",
+      "id": "S-Q01",
+      "statement": "No ensaio de suspensão, o índice de aderência representa principalmente:",
       "options": [
-        "a diferença entre as forças esquerda e direita",
-        "a soma das forças de frenagem com o peso do veículo",
-        "a força dianteira com a traseira",
-        "a pressão hidráulica com a área do pistão"
-      ],
-      "correctIndex": 1,
-      "feedback": "A eficiência global utiliza a soma das forças medidas e o peso do veículo."
-    },
-    {
-      "id": "F-Q02",
-      "statement": "O desequilíbrio de frenagem é calculado comparando:",
-      "options": [
-        "as rodas do mesmo eixo",
-        "o eixo dianteiro com o traseiro",
-        "o freio de serviço com o estacionamento",
-        "a massa suspensa com a não suspensa"
+        "a capacidade da roda de manter contato com a superfície durante o ensaio",
+        "a capacidade da mola de manter constante a altura da carroceria no ensaio",
+        "a capacidade do pneu de manter constante sua deformação durante o ensaio",
+        "a capacidade do amortecedor de impedir o movimento vertical durante o ensaio"
       ],
       "correctIndex": 0,
-      "feedback": "A comparação lateral ocorre entre as rodas do mesmo eixo."
+      "feedback": "O índice de aderência representa o comportamento do contato roda-superfície durante a excitação do banco."
     },
     {
-      "id": "F-Q03",
-      "statement": "Eficiência elevada com desequilíbrio elevado indica:",
+      "id": "S-Q02",
+      "statement": "Duas rodas do mesmo eixo apresentam índices de aderência de 68% e 43%. Esse resultado sugere:",
       "options": [
-        "conformidade automática",
-        "boa capacidade global, mas risco de desvio lateral",
-        "falta de força em todas as rodas",
-        "ausência de qualquer falha"
-      ],
-      "correctIndex": 1,
-      "feedback": "A eficiência global não elimina o risco de assimetria."
-    },
-    {
-      "id": "F-Q04",
-      "statement": "Oscilação periódica de força pode estar associada a:",
-      "options": [
-        "disco empenado ou tambor ovalizado",
-        "apenas baixa pressão dos pneus",
-        "excesso de combustível",
-        "falha do catalisador"
-      ],
-      "correctIndex": 0,
-      "feedback": "Irregularidades geométricas podem gerar variações periódicas."
-    },
-    {
-      "id": "F-Q05",
-      "statement": "Em veículo híbrido, o ensaio deve considerar:",
-      "options": [
-        "que a regeneração nunca interfere",
-        "somente a bateria de 12 V",
-        "a interação entre frenagem regenerativa e freio de atrito",
-        "somente o eixo traseiro"
+        "diferença relevante na pressão de inflação aplicada às duas rodas do eixo",
+        "diferença relevante na distribuição estática de carga entre os dois eixos",
+        "assimetria relevante no comportamento da suspensão entre os lados do eixo",
+        "assimetria relevante na capacidade de frenagem entre os lados do eixo"
       ],
       "correctIndex": 2,
-      "feedback": "O procedimento deve evitar que a regeneração mascare o freio de atrito."
+      "feedback": "Uma diferença expressiva entre os lados do mesmo eixo indica comportamento assimétrico da suspensão."
+    },
+    {
+      "id": "S-Q03",
+      "statement": "Qual é a principal função do amortecedor no sistema de suspensão?",
+      "options": [
+        "suportar a carga vertical do veículo e definir sua altura de rodagem",
+        "dissipar energia das oscilações e controlar os movimentos da suspensão",
+        "manter a geometria das rodas constante durante todos os movimentos verticais",
+        "isolar integralmente a carroceria das irregularidades transmitidas pelas rodas"
+      ],
+      "correctIndex": 1,
+      "feedback": "O amortecedor dissipa energia e controla a amplitude e a duração das oscilações."
+    },
+    {
+      "id": "S-Q04",
+      "statement": "Durante uma varredura de frequência, a amplitude de oscilação aumenta significativamente em determinada faixa. O fenômeno mais compatível é:",
+      "options": [
+        "aumento da rigidez efetiva provocado pela redução da frequência de excitação",
+        "redução do movimento relativo provocada pelo aumento da massa não suspensa",
+        "estabilização dinâmica provocada pelo equilíbrio entre excitação e amortecimento",
+        "amplificação da resposta provocada pela proximidade da frequência natural"
+      ],
+      "correctIndex": 3,
+      "feedback": "Próximo à frequência natural pode ocorrer amplificação da resposta dinâmica por ressonância."
+    },
+    {
+      "id": "S-Q05",
+      "statement": "Um ensaio apresenta baixo índice de aderência em uma das rodas. Qual é a conduta tecnicamente mais adequada?",
+      "options": [
+        "substituir o amortecedor da roda e repetir o ensaio após o reparo realizado",
+        "correlacionar o resultado com outras evidências antes de definir a causa",
+        "corrigir a pressão do pneu e considerar encerrado o diagnóstico da suspensão",
+        "substituir a mola correspondente e verificar posteriormente a altura do veículo"
+      ],
+      "correctIndex": 1,
+      "feedback": "O resultado do ensaio é uma evidência e deve ser correlacionado com outras verificações antes de definir a causa."
     }
   ]
 }

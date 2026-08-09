@@ -2,64 +2,64 @@
   "version": "2026.1",
   "questions": [
     {
-      "id": "F-Q01",
-      "statement": "A eficiência de frenagem relaciona:",
+      "id": "G-Q01",
+      "statement": "Em um motor Otto, um valor de lambda menor que 1 indica uma condição em que há:",
       "options": [
-        "a diferença entre as forças esquerda e direita",
-        "a soma das forças de frenagem com o peso do veículo",
-        "a força dianteira com a traseira",
-        "a pressão hidráulica com a área do pistão"
-      ],
-      "correctIndex": 1,
-      "feedback": "A eficiência global utiliza a soma das forças medidas e o peso do veículo."
-    },
-    {
-      "id": "F-Q02",
-      "statement": "O desequilíbrio de frenagem é calculado comparando:",
-      "options": [
-        "as rodas do mesmo eixo",
-        "o eixo dianteiro com o traseiro",
-        "o freio de serviço com o estacionamento",
-        "a massa suspensa com a não suspensa"
-      ],
-      "correctIndex": 0,
-      "feedback": "A comparação lateral ocorre entre as rodas do mesmo eixo."
-    },
-    {
-      "id": "F-Q03",
-      "statement": "Eficiência elevada com desequilíbrio elevado indica:",
-      "options": [
-        "conformidade automática",
-        "boa capacidade global, mas risco de desvio lateral",
-        "falta de força em todas as rodas",
-        "ausência de qualquer falha"
-      ],
-      "correctIndex": 1,
-      "feedback": "A eficiência global não elimina o risco de assimetria."
-    },
-    {
-      "id": "F-Q04",
-      "statement": "Oscilação periódica de força pode estar associada a:",
-      "options": [
-        "disco empenado ou tambor ovalizado",
-        "apenas baixa pressão dos pneus",
-        "excesso de combustível",
-        "falha do catalisador"
-      ],
-      "correctIndex": 0,
-      "feedback": "Irregularidades geométricas podem gerar variações periódicas."
-    },
-    {
-      "id": "F-Q05",
-      "statement": "Em veículo híbrido, o ensaio deve considerar:",
-      "options": [
-        "que a regeneração nunca interfere",
-        "somente a bateria de 12 V",
-        "a interação entre frenagem regenerativa e freio de atrito",
-        "somente o eixo traseiro"
+        "maior quantidade de ar que a requerida para a quantidade de combustível admitida",
+        "proporção entre ar e combustível correspondente à condição estequiométrica",
+        "menor quantidade de ar que a requerida para a quantidade de combustível admitida",
+        "quantidade de ar independente da quantidade de combustível admitida pelo motor"
       ],
       "correctIndex": 2,
-      "feedback": "O procedimento deve evitar que a regeneração mascare o freio de atrito."
+      "feedback": "Lambda menor que 1 caracteriza mistura rica, com menos ar que o necessário para a condição estequiométrica."
+    },
+    {
+      "id": "G-Q02",
+      "statement": "Uma concentração elevada de HC nos gases de escape está mais diretamente associada a:",
+      "options": [
+        "presença de combustível que não participou completamente do processo de combustão",
+        "presença de dióxido de carbono formado completamente no processo de combustão",
+        "presença de oxigênio utilizado completamente durante o processo de combustão",
+        "presença de vapor de água formado normalmente durante o processo de combustão"
+      ],
+      "correctIndex": 0,
+      "feedback": "HC elevado está relacionado à presença de hidrocarbonetos não queimados ou parcialmente queimados."
+    },
+    {
+      "id": "G-Q03",
+      "statement": "Por que CO, HC, O2 e lambda devem ser interpretados em conjunto durante o diagnóstico?",
+      "options": [
+        "porque todos os parâmetros variam na mesma proporção quando a rotação é alterada",
+        "porque cada parâmetro identifica isoladamente um componente específico com defeito",
+        "porque a combinação dos parâmetros determina diretamente a pressão nos cilindros",
+        "porque o padrão conjunto permite interpretar melhor mistura e qualidade da combustão"
+      ],
+      "correctIndex": 3,
+      "feedback": "A interpretação conjunta dos gases e de lambda fornece um diagnóstico mais consistente do processo de combustão."
+    },
+    {
+      "id": "G-Q04",
+      "statement": "Um analisador indica lambda igual a 1,08 em condição estabilizada de ensaio. Esse resultado é compatível, em princípio, com:",
+      "options": [
+        "mistura mais rica que a condição estequiométrica de referência",
+        "mistura mais pobre que a condição estequiométrica de referência",
+        "mistura exatamente igual à condição estequiométrica de referência",
+        "mistura cuja relação ar-combustível não pode ser associada ao valor de lambda"
+      ],
+      "correctIndex": 1,
+      "feedback": "Lambda maior que 1 indica excesso relativo de ar em comparação com a condição estequiométrica."
+    },
+    {
+      "id": "G-Q05",
+      "statement": "Por que temperatura e condição de funcionamento do motor devem ser controladas durante a análise de gases?",
+      "options": [
+        "porque determinam diretamente a concentração de cada gás sem influência da combustão",
+        "porque eliminam a necessidade de analisar conjuntamente CO, HC, O2 e valor de lambda",
+        "porque influenciam os valores medidos e a comparação técnica entre os resultados",
+        "porque modificam a calibração interna do analisador sempre que a rotação é alterada"
+      ],
+      "correctIndex": 2,
+      "feedback": "Temperatura, regime de funcionamento e estabilização afetam as condições de combustão e a interpretação dos resultados."
     }
   ]
 }
