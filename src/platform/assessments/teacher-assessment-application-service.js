@@ -100,6 +100,14 @@ export class TeacherAssessmentApplicationService {
       'NÃ£o foi possÃ­vel carregar o monitoramento da aplicaÃ§Ã£o.',
     );
   }
+  getApplicationStudentHistory(applicationId, studentId) {
+    return this.rpc(
+      'teacher_get_assessment_application_student_history',
+      { p_application_id: applicationId, p_student_id: studentId },
+      'N\u00e3o foi poss\u00edvel carregar o hist\u00f3rico individual do aluno.',
+    );
+  }
+
   deleteStudentRule(applicationId, studentId) {
     return this.rpc(
       'teacher_delete_assessment_application_student_rule',

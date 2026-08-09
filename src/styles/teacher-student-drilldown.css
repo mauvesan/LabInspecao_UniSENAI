@@ -1,0 +1,61 @@
+.teacher-student-drilldown-dialog {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+}
+.teacher-student-drilldown-dialog::backdrop {
+  background: rgb(0 0 0 / 0.56);
+}
+.teacher-student-drilldown-shell {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+.teacher-student-drilldown {
+  display: grid;
+  gap: 16px;
+}
+.teacher-student-drilldown__summary,
+.teacher-student-drilldown__effective {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.teacher-student-drilldown__summary > div,
+.teacher-student-drilldown__effective > div,
+.teacher-student-drilldown__attempts article {
+  padding: 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+}
+.teacher-student-drilldown__attempts {
+  display: grid;
+  gap: 12px;
+}
+.teacher-student-drilldown__attempts article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.teacher-student-drilldown__attempts article > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+@media (max-width: 900px) {
+  .teacher-student-drilldown__summary,
+  .teacher-student-drilldown__effective,
+  .teacher-student-drilldown__attempts article > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .teacher-student-drilldown__summary,
+  .teacher-student-drilldown__effective,
+  .teacher-student-drilldown__attempts article > div {
+    grid-template-columns: 1fr;
+  }
+}

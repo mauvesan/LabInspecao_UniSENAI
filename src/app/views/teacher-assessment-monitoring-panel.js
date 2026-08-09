@@ -159,7 +159,8 @@ export function renderTeacherAssessmentMonitoring(model) {
               <th>Melhor resultado</th>
               <th>Último resultado</th>
               <th>Situação</th>
-              <th>Última tentativa</th>
+              <th>Última tentativa</th>              <th>A\u00e7\u00f5es</th>
+
             </tr>
           </thead>
 
@@ -205,6 +206,10 @@ export function renderTeacherAssessmentMonitoring(model) {
                     <td>
                       ${escapeHtml(formatDate(student.last_attempt_at))}
                     </td>
+                    <td>
+                      <button type="button" data-student-drilldown="${escapeHtml(student.student_id)}" data-application-id="${escapeHtml(application.id || '')}">Ver hist\u00f3rico</button>
+                    </td>
+
                   </tr>
                 `,
               )

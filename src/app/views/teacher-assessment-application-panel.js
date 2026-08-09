@@ -4,6 +4,8 @@ import {
   renderTeacherAssessmentMonitoring,
 } from './teacher-assessment-monitoring-panel.js';
 import '../../styles/teacher-assessment-monitoring.css';
+import { renderTeacherStudentDrilldown } from './teacher-student-drilldown-panel.js';
+import '../../styles/teacher-student-drilldown.css';
 import { getTeacherAssessmentApplicationService } from '../../platform/assessments/teacher-assessment-application-service.js';
 
 const service = getTeacherAssessmentApplicationService();
@@ -395,6 +397,25 @@ function wireStudentFilters(dialog) {
   });
 }
 
+async function openTeacherStudentDrilldown(applicationId, studentId) {
+  const model = await service.getApplicationStudentHistory(applicationId, studentId);
+  document.querySelector('[data-teacher-student-drilldown-dialog]')?.remove();
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    `<dialog class="teacher-student-drilldown-dialog" data-teacher-student-drilldown-dialog><div class="teacher-student-drilldown-shell"><header><div><p>\u00c1rea do Professor</p><h2>Hist\u00f3rico individual do aluno</h2></div><button type="button" data-teacher-student-drilldown-close aria-label="Fechar">\u00d7</button></header>${renderTeacherStudentDrilldown(model)}</div></dialog>`,
+  );
+  const dialog = document.querySelector('[data-teacher-student-drilldown-dialog]');
+  if (!dialog) return;
+  dialog.addEventListener('click', (event) => {
+    const b = event.target.closest('[data-teacher-student-drilldown-close]');
+    if (!b) return;
+    dialog.close();
+    dialog.remove();
+  });
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  dialog.showModal();
+}
+
 async function openTeacherApplicationMonitoring(applicationId) {
   const model = await service.getApplicationMonitoring(applicationId);
 
@@ -438,6 +459,15 @@ async function openTeacherApplicationMonitoring(applicationId) {
   const disposeMonitoring = mountTeacherAssessmentMonitoring(monitoringDialog);
 
   monitoringDialog.addEventListener('click', (event) => {
+    const drilldownButton = event.target.closest('[data-student-drilldown]');
+    if (drilldownButton) {
+      void openTeacherStudentDrilldown(
+        drilldownButton.dataset.applicationId,
+        drilldownButton.dataset.studentDrilldown,
+      );
+      return;
+    }
+
     const closeButton = event.target.closest('[data-teacher-monitoring-close]');
 
     if (!closeButton) {
