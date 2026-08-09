@@ -1,4 +1,9 @@
-import { getStudentAssessmentExecutionService } from '../../platform/assessments/student-assessment-execution-service.js';
+import { getStudentAssessmentApplicationService } from '../../platform/assessments/student-assessment-application-service.js';
+import {
+  renderStudentAssessmentApplicationMeta,
+  assessmentApplicationCanSubmit,
+} from './student-assessment-application-meta.js';
+import '../../styles/student-assessment-application.css';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -28,27 +33,38 @@ function renderOptions(item) {
 
 export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
   try {
-    const service = getStudentAssessmentExecutionService();
-    const content = await service.getContent(assessmentId);
+    const service = getStudentAssessmentApplicationService();
+    const content = await service.getApplicationContent(assessmentId);
     const items = Array.isArray(content?.items) ? content.items : [];
 
     const html = `
-      <section class="home-v2 student-assessment-detail" data-student-assessment="${escapeHtml(assessmentId)}">
+      <section
+        class="home-v2 student-assessment-detail"
+        data-student-assessment="${escapeHtml(assessmentId)}"
+      >
         <a href="#/" class="student-assessment-back">← Voltar para a Home</a>
+
         <span class="home-tag">Avaliação publicada</span>
+
         <h1>${escapeHtml(content?.title || 'Avaliação')}</h1>
 
         ${
           items.length
             ? `
+              ${renderStudentAssessmentApplicationMeta(content)}
+
               <form data-assessment-form>
                 ${items
                   .map(
                     (item) => `
-                      <fieldset class="quiz-question" data-assessment-item="${escapeHtml(item.id)}">
+                      <fieldset
+                        class="quiz-question"
+                        data-assessment-item="${escapeHtml(item.id)}"
+                      >
                         <legend>
                           ${escapeHtml(item.position)}. ${escapeHtml(item.statement)}
                         </legend>
+
                         <div class="quiz-options">
                           ${renderOptions(item)}
                         </div>
@@ -57,17 +73,27 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                   )
                   .join('')}
 
-                <div class="quiz-actions">
-                  <button type="submit" class="button primary" data-assessment-submit>
+                <div class="student-assessment-actions">
+                  <button
+                    type="submit"
+                    class="button primary"
+                    data-assessment-submit
+                    ${assessmentApplicationCanSubmit(content) ? '' : 'disabled'}
+                  >
                     Enviar avaliação
                   </button>
-                </div>
 
-                <p class="quiz-status" data-assessment-status aria-live="polite"></p>
+                  <p
+                    class="student-assessment-status"
+                    data-assessment-status
+                    role="status"
+                    aria-live="polite"
+                  ></p>
+                </div>
               </form>
             `
             : `
-              <div class="student-assessment-notice">
+              <div class="student-assessment-empty">
                 <strong>Conteúdo avaliativo ainda não configurado.</strong>
                 <p>Esta avaliação ainda não possui itens disponíveis.</p>
               </div>
@@ -78,6 +104,7 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
 
     return {
       html,
+
       mount(root) {
         const form = root.querySelector('[data-assessment-form]');
         if (!form) return undefined;
@@ -112,16 +139,20 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
             if (status) status.textContent = 'Enviando avaliação...';
 
             try {
-              const result = await service.submit({
+              const result = await service.submitApplicationAttempt({
                 assessmentId,
                 answers,
+                appVersion: '4.3.0-D4.5.6E.3.2',
+                page: window.location.hash || '#/',
+                userAgent: navigator.userAgent || '',
               });
 
               if (status) {
                 status.textContent =
                   `Resultado registrado: ${result.score}/${result.total} ` +
                   `(${Number(result.percentage).toFixed(1)}%). ` +
-                  (result.passed ? 'Aprovado.' : 'Não aprovado.');
+                  (result.passed ? 'Aprovado.' : 'Não aprovado.') +
+                  ` Tentativas restantes: ${Number(result.attempts_remaining ?? 0)}.`;
               }
 
               for (const input of form.querySelectorAll('input, button')) {
@@ -134,7 +165,10 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                     ? error.message
                     : 'Não foi possível registrar a avaliação.';
               }
-              if (submitButton) submitButton.disabled = false;
+
+              if (submitButton) {
+                submitButton.disabled = !assessmentApplicationCanSubmit(content);
+              }
             }
           },
           { signal: controller.signal },
@@ -147,8 +181,12 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
     return `
       <section class="home-v2 student-assessment-detail">
         <a href="#/" class="student-assessment-back">← Voltar para a Home</a>
+
         <h1>Não foi possível carregar a avaliação</h1>
-        <p>${escapeHtml(error instanceof Error ? error.message : 'Falha inesperada.')}</p>
+
+        <p>
+          ${escapeHtml(error instanceof Error ? error.message : 'Falha inesperada.')}
+        </p>
       </section>
     `;
   }

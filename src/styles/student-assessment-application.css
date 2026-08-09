@@ -1,0 +1,36 @@
+.student-assessment-application-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 22px;
+}
+
+.student-assessment-application-meta > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+  background: var(--surface-subtle, rgb(255 255 255 / 0.04));
+}
+
+.student-assessment-application-meta span,
+.student-assessment-application-meta small {
+  opacity: 0.76;
+}
+
+.student-assessment-application-meta strong {
+  font-size: 1rem;
+}
+
+@media (max-width: 820px) {
+  .student-assessment-application-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .student-assessment-application-meta {
+    grid-template-columns: 1fr;
+  }
+}
