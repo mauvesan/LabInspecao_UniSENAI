@@ -1,0 +1,119 @@
+.student-assessment-history {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color, #d9dee7);
+}
+
+.student-assessment-history__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.student-assessment-history__heading h2 {
+  margin: 4px 0 0;
+}
+
+.student-assessment-history__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.student-assessment-history__current {
+  display: grid;
+  gap: 3px;
+  min-width: 210px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+}
+
+.student-assessment-history__current span,
+.student-assessment-history__current small {
+  opacity: 0.72;
+}
+
+.student-assessment-history__list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-assessment-history__item {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+  background: var(--surface-subtle, rgb(255 255 255 / 0.04));
+}
+
+.student-assessment-history__item-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.student-assessment-history__item-heading time {
+  opacity: 0.72;
+}
+
+.student-assessment-history__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-assessment-history__metrics span {
+  display: grid;
+  gap: 3px;
+  font-size: 0.82rem;
+  opacity: 0.76;
+}
+
+.student-assessment-history__metrics strong {
+  font-size: 0.96rem;
+  opacity: 1;
+}
+
+.student-assessment-history__legacy,
+.student-assessment-history__empty p,
+.student-assessment-history--warning p {
+  margin: 0;
+  opacity: 0.78;
+}
+
+.student-assessment-history__empty,
+.student-assessment-history--warning {
+  padding: 14px;
+  border: 1px solid var(--border-color, #d9dee7);
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .student-assessment-history__heading {
+    display: grid;
+  }
+
+  .student-assessment-history__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .student-assessment-history__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .student-assessment-history__item-heading {
+    display: grid;
+  }
+}

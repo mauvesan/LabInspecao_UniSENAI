@@ -11,6 +11,12 @@ import {
 } from './student-assessment-post-attempt-state.js';
 import '../../styles/student-assessment-post-attempt.css';
 
+import {
+  renderStudentAssessmentHistory,
+  renderStudentAssessmentHistoryFailure,
+} from './student-assessment-history.js';
+import '../../styles/student-assessment-history.css';
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -44,6 +50,14 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
     const content = await service.getApplicationContent(assessmentId);
     const items = Array.isArray(content?.items) ? content.items : [];
 
+    let history;
+
+    try {
+      history = await service.getAssessmentHistory(assessmentId);
+    } catch {
+      history = null;
+    }
+
     const html = `
       <section
         class="home-v2 student-assessment-detail"
@@ -60,7 +74,9 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
         ${
           items.length
             ? `
-              ${renderStudentAssessmentApplicationMeta(content)}
+              <div data-assessment-application-meta-host>
+                ${renderStudentAssessmentApplicationMeta(content)}
+              </div>
 
               <form data-assessment-form>
                 ${items
@@ -116,6 +132,14 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
               </div>
             `
         }
+
+        <div data-assessment-history-host>
+          ${
+            history
+              ? renderStudentAssessmentHistory(history)
+              : renderStudentAssessmentHistoryFailure()
+          }
+        </div>
       </section>
     `;
 
@@ -131,21 +155,28 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
 
         const controller = new AbortController();
 
-        /*
-         * Referências compartilhadas pelos dois listeners.
-         *
-         * Elas precisam permanecer no escopo de mount(), e não
-         * dentro do callback de submit.
-         */
         const status = form.querySelector('[data-assessment-status]');
         const submitButton = form.querySelector('[data-assessment-submit]');
         const postAttempt = form.querySelector('[data-assessment-post-attempt]');
 
-        /*
-         * ==========================================================
-         * SUBMISSÃO DE UMA TENTATIVA
-         * ==========================================================
-         */
+        const applicationMetaHost = root.querySelector('[data-assessment-application-meta-host]');
+
+        const historyHost = root.querySelector('[data-assessment-history-host]');
+
+        async function refreshHistory() {
+          if (!historyHost) {
+            return;
+          }
+
+          try {
+            const refreshedHistory = await service.getAssessmentHistory(assessmentId);
+
+            historyHost.innerHTML = renderStudentAssessmentHistory(refreshedHistory);
+          } catch {
+            historyHost.innerHTML = renderStudentAssessmentHistoryFailure();
+          }
+        }
+
         form.addEventListener(
           'submit',
           async (event) => {
@@ -153,12 +184,6 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
 
             const answers = {};
 
-            /*
-             * Validação exclusivamente de preenchimento.
-             *
-             * Não existe aqui enforcement de elegibilidade,
-             * janela ou número de tentativas.
-             */
             for (const item of items) {
               const selected = form.querySelector(
                 `input[name="assessment-item-${CSS.escape(item.id)}"]:checked`,
@@ -184,14 +209,10 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
             }
 
             try {
-              /*
-               * A autoridade de submissão continua exclusivamente
-               * no servidor.
-               */
               const result = await service.submitApplicationAttempt({
                 assessmentId,
                 answers,
-                appVersion: '4.3.0-D4.5.6E.4',
+                appVersion: '4.3.0-D4.5.6E.5.2.1',
                 page: window.location.hash || '#/',
                 userAgent: navigator.userAgent || '',
               });
@@ -200,27 +221,17 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                 status.textContent = 'Tentativa registrada. Atualizando estado da aplicação...';
               }
 
-              /*
-               * Bloqueia imediatamente a tentativa que acabou de ser
-               * enviada. Uma eventual nova tentativa só será liberada
-               * depois de nova consulta ao servidor.
-               */
               for (const input of form.querySelectorAll('input, button')) {
                 input.disabled = true;
               }
 
               try {
-                /*
-                 * Reidratação obrigatória.
-                 *
-                 * Não fazemos:
-                 *   attemptsRemaining--
-                 *   attemptsUsed++
-                 *
-                 * O estado exibido é sempre o estado novamente
-                 * retornado pelo backend.
-                 */
                 const refreshedContent = await service.getApplicationContent(assessmentId);
+
+                if (applicationMetaHost) {
+                  applicationMetaHost.innerHTML =
+                    renderStudentAssessmentApplicationMeta(refreshedContent);
+                }
 
                 if (postAttempt) {
                   postAttempt.innerHTML = renderStudentAssessmentPostAttemptState({
@@ -229,16 +240,12 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                   });
                 }
 
+                await refreshHistory();
+
                 if (status) {
                   status.textContent = '';
                 }
               } catch {
-                /*
-                 * A tentativa já foi registrada.
-                 *
-                 * Se a reidratação falhar, não devemos liberar
-                 * outra tentativa com base em estado local.
-                 */
                 if (postAttempt) {
                   postAttempt.innerHTML = renderPostAttemptRefreshFailure();
                 }
@@ -248,11 +255,6 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                 }
               }
             } catch (error) {
-              /*
-               * Falha da própria submissão.
-               *
-               * Aqui nenhuma tentativa nova foi confirmada.
-               */
               if (status) {
                 status.textContent =
                   error instanceof Error
@@ -260,13 +262,6 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                     : 'Não foi possível registrar a avaliação.';
               }
 
-              /*
-               * O estado original recebido na abertura da tela pode
-               * reabilitar apenas a interface desta tentativa.
-               *
-               * O servidor continuará sendo a autoridade caso o
-               * usuário tente efetivamente enviar.
-               */
               if (submitButton) {
                 submitButton.disabled = !assessmentApplicationCanSubmit(content);
               }
@@ -275,11 +270,6 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
           { signal: controller.signal },
         );
 
-        /*
-         * ==========================================================
-         * SOLICITAÇÃO DE NOVA TENTATIVA
-         * ==========================================================
-         */
         form.addEventListener(
           'click',
           async (event) => {
@@ -296,13 +286,12 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
             }
 
             try {
-              /*
-               * Nova consulta obrigatória ao servidor.
-               *
-               * Não confiamos no saldo que estava na memória quando
-               * o painel pós-tentativa foi renderizado.
-               */
               const refreshedContent = await service.getApplicationContent(assessmentId);
+
+              if (applicationMetaHost) {
+                applicationMetaHost.innerHTML =
+                  renderStudentAssessmentApplicationMeta(refreshedContent);
+              }
 
               const remaining = Number(
                 refreshedContent?.application?.attemptsRemaining ??
@@ -310,12 +299,6 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                   0,
               );
 
-              /*
-               * Esse bloco é apenas uma proteção de UX.
-               *
-               * Se o estado mudou entre a renderização do botão e o
-               * clique, não fabricamos um resultado acadêmico 0/0.
-               */
               if (remaining <= 0) {
                 if (submitButton) {
                   submitButton.disabled = true;
@@ -326,13 +309,11 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
                     'Limite de tentativas atingido. Não há novas tentativas disponíveis para esta aplicação.';
                 }
 
+                await refreshHistory();
+
                 return;
               }
 
-              /*
-               * Somente depois da resposta positiva do servidor
-               * uma nova tentativa visual é preparada.
-               */
               for (const input of form.querySelectorAll('input[type="radio"]')) {
                 input.checked = false;
                 input.disabled = false;
@@ -349,11 +330,9 @@ export async function renderStudentAssessmentDetail({ assessmentId } = {}) {
               if (postAttempt) {
                 postAttempt.innerHTML = '';
               }
+
+              await refreshHistory();
             } catch (error) {
-              /*
-               * Não libera o formulário quando não foi possível
-               * confirmar o estado atual da aplicação.
-               */
               if (submitButton) {
                 submitButton.disabled = true;
               }

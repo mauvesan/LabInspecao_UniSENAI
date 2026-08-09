@@ -86,6 +86,17 @@ export class StudentAssessmentApplicationService {
     return data;
   }
 
+  async getAssessmentHistory(assessmentId) {
+    const { data, error } = await this.client.rpc('student_get_assessment_history', {
+      p_assessment_id: assessmentId,
+    });
+
+    if (error) {
+      throw wrapFailure(error, 'NÃ£o foi possÃ­vel carregar o histÃ³rico da avaliaÃ§Ã£o.');
+    }
+
+    return data;
+  }
   // Compatibility surface for the already validated student detail view.
   // Every alias still routes exclusively through the E.3.1 application RPCs.
   getAssessmentContent(assessmentId) {
