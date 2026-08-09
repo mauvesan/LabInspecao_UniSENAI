@@ -7,6 +7,7 @@ Adicionar enforcement de aplicação sem reescrever o scorer formal já validado
 ## Estratégia
 
 `submit_assessment_application_attempt()`:
+
 1. resolve a aplicação efetiva do aluno;
 2. valida elegibilidade, abertura, encerramento e limite de tentativas;
 3. cria contexto transacional (`set_config`);
@@ -19,12 +20,14 @@ Adicionar enforcement de aplicação sem reescrever o scorer formal já validado
 
 `get_available_assessment_application_content(assessment_id)` lê a versão exata
 vinculada à aplicação e retorna somente:
+
 - enunciados;
 - alternativas;
 - pontos;
 - metadados operacionais da aplicação.
 
 Não retorna:
+
 - `correct_option_id`;
 - feedback;
 - qualquer chave privada.
@@ -32,6 +35,7 @@ Não retorna:
 ## Resolução de elegibilidade
 
 Ordem:
+
 - `deny` => bloqueia;
 - `allow` => permite mesmo fora da turma;
 - `inherit`/sem regra => exige matrícula ativa na turma.
