@@ -1,5 +1,6 @@
 import { exposeRlsDiagnosticHarness } from './app/access/rls-dev-harness.js';
 exposeRlsDiagnosticHarness();
+
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
@@ -14,23 +15,16 @@ import './styles/didactic-legibility.css';
 import './styles/print.css';
 
 import { createApplication } from './app/index.ts';
-
 import { ApplicationComposition } from './app/composition/index.js';
-
 import { router } from './app/router.js';
-
 import { session } from './app/session.js';
-
 import { appHeader } from './components/app-header.js';
-
 import { toastHost } from './components/toast.js';
-
 import { config } from './config.js';
-
 import { createPlatformRuntime } from './platform/index.js';
 
 /**
- * Cria a composiÃ§Ã£o visual temporÃ¡ria da aplicaÃ§Ã£o.
+ * Cria a composição visual temporária da aplicação.
  */
 function createApplicationComposition(platform) {
   return new ApplicationComposition({
@@ -45,8 +39,8 @@ function createApplicationComposition(platform) {
 }
 
 /**
- * Exibe uma mensagem de erro quando a inicializaÃ§Ã£o
- * nÃ£o pode ser concluÃ­da.
+ * Exibe uma mensagem de erro quando a inicialização
+ * não pode ser concluída.
  */
 function renderStartupError() {
   const applicationRoot = document.querySelector('#app');
@@ -56,24 +50,21 @@ function renderStartupError() {
   }
 
   applicationRoot.innerHTML = `
-    <main
-      class="startup-error"
-      role="alert"
-    >
+    <main class="startup-error">
       <h1>
-        NÃ£o foi possÃ­vel iniciar a aplicaÃ§Ã£o
+        Não foi possível iniciar a aplicação
       </h1>
 
       <p>
-        Recarregue a pÃ¡gina. Se o problema persistir,
-        informe o responsÃ¡vel tÃ©cnico.
+        Recarregue a página. Se o problema persistir,
+        informe o responsável técnico.
       </p>
     </main>
   `;
 }
 
 /**
- * Composition root executÃ¡vel da aplicaÃ§Ã£o.
+ * Composition root executável da aplicação.
  */
 async function bootstrap() {
   const application = createApplication();

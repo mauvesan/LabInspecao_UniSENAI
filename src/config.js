@@ -1,5 +1,5 @@
 export const config = Object.freeze({
-  appName: import.meta.env.VITE_APP_NAME || 'LabInspeÃ§Ã£o_UniSENAI',
+  appName: import.meta.env.VITE_APP_NAME || 'LabInspeção_UniSENAI',
 
   appVersion: import.meta.env.VITE_APP_VERSION || '4.3.0-D4.5.5',
 

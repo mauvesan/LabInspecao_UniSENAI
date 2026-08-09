@@ -22,6 +22,7 @@ import {
   openTeacherAssessmentAuthoring,
 } from './teacher-assessment-authoring-panel.js';
 import { openTeacherAssessmentAudit } from './teacher-assessment-audit-panel.js';
+import { openTeacherAssessmentApplications } from './teacher-assessment-application-panel.js';
 
 let teacherNavigationController = null;
 let teacherNavigationFrame = 0;
@@ -452,7 +453,8 @@ export function renderTeacherArea() {
                   .map((item) => {
                     const archived = item.status === 'archived';
                     const actions = [
-                      `<button type="button" data-assessment-audit="${item.id}">HistÃ³rico e resultados</button>`,
+                      `<button type="button" data-assessment-audit="${item.id}">Histórico e resultados</button>`,
+                      `<button type="button" data-assessment-applications="${item.id}">Aplicações</button>`,
                     ];
 
                     if (item.status === 'draft') {
@@ -868,6 +870,15 @@ document.addEventListener('click', async (event) => {
       URL.revokeObjectURL(url);
       return;
     }
+    if (button.dataset.assessmentApplications) {
+      await openTeacherAssessmentApplications(
+        button.dataset.assessmentApplications,
+        getCachedEducationState()?.classes || [],
+        getCachedEducationState()?.students || [],
+      );
+      return;
+    }
+
     if (button.dataset.assessmentAudit) {
       await openTeacherAssessmentAudit(button.dataset.assessmentAudit);
       return;
