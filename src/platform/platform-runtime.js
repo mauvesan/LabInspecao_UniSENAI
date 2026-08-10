@@ -56,6 +56,68 @@ export class PlatformRuntime {
     return this.authentication.subscribe(listener);
   }
 
+  isPasswordRecoveryActive() {
+    return (
+      typeof this.authentication.isPasswordRecoveryActive === 'function' &&
+      this.authentication.isPasswordRecoveryActive()
+    );
+  }
+
+  subscribeToPasswordRecovery(listener) {
+    if (typeof this.authentication.subscribeToPasswordRecovery !== 'function') {
+      return () => {};
+    }
+
+    return this.authentication.subscribeToPasswordRecovery(listener);
+  }
+
+  async requestPasswordRecovery(email, redirectTo) {
+    if (typeof this.authentication.requestPasswordRecovery !== 'function') {
+      throw new Error('O provedor de autenticação atual não oferece recuperação de senha.');
+    }
+
+    return this.authentication.requestPasswordRecovery(email, redirectTo);
+  }
+
+  async updatePassword(password) {
+    if (typeof this.authentication.updatePassword !== 'function') {
+      throw new Error('O provedor de autenticação atual não permite atualizar a senha.');
+    }
+
+    return this.authentication.updatePassword(password);
+  }
+
+  isFirstAccessActive() {
+    return (
+      typeof this.authentication.isFirstAccessActive === 'function' &&
+      this.authentication.isFirstAccessActive()
+    );
+  }
+
+  getFirstAccessData() {
+    if (typeof this.authentication.getFirstAccessData !== 'function') {
+      return null;
+    }
+
+    return this.authentication.getFirstAccessData();
+  }
+
+  subscribeToFirstAccess(listener) {
+    if (typeof this.authentication.subscribeToFirstAccess !== 'function') {
+      return () => {};
+    }
+
+    return this.authentication.subscribeToFirstAccess(listener);
+  }
+
+  async completeFirstAccess(password) {
+    if (typeof this.authentication.completeFirstAccess !== 'function') {
+      throw new Error('O provedor de autenticação atual não oferece conclusão de primeiro acesso.');
+    }
+
+    return this.authentication.completeFirstAccess(password);
+  }
+
   async signIn(credentials) {
     if (typeof this.authentication.signIn !== 'function') {
       throw new Error('O provedor de autenticação atual não oferece login.');
