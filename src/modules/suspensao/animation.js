@@ -461,11 +461,7 @@ function calculateVisualBodyDisplacement({
 
   const visualRoadAmplitude = calculateVisualRoadAmplitude(roadAmplitude);
   const relativeLimit = Math.max(1.5, visualRoadAmplitude * profile.maxRoadRatio);
-  const effectiveLimit = Math.min(
-    profile.limit,
-    MAX_VISUAL_BODY_DISPLACEMENT,
-    relativeLimit,
-  );
+  const effectiveLimit = Math.min(profile.limit, MAX_VISUAL_BODY_DISPLACEMENT, relativeLimit);
 
   return clamp(compressed, -effectiveLimit, effectiveLimit);
 }
