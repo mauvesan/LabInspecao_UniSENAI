@@ -219,6 +219,14 @@ function drawAnimation(svg, metrics, time, dynamicState) {
   drawRoad(svg, simulationPhase, visualRoadAmplitude);
   drawBody(svg, { centerX: CENTER_X, bodyY });
 
+  drawSuspensionMounts({
+    svg,
+    centerX: CENTER_X,
+    topY: suspensionTopY,
+    bottomY: suspensionBottomY,
+    wheelY,
+  });
+
   append(svg, 'path', {
     d: createSpringPath(CENTER_X - 42, suspensionTopY, suspensionBottomY),
     class: 'dyn-spring',
@@ -389,32 +397,39 @@ function calculateVisualRoadAmplitude(roadAmplitude) {
 
 const VISUAL_PROFILES = Object.freeze({
   balanced: Object.freeze({
-    gain: 0.78,
-    limit: 16,
+    gain: 0.3,
+    limit: 8,
+    maxRoadRatio: 0.22,
   }),
   worn: Object.freeze({
-    gain: 0.9,
-    limit: 21,
+    gain: 0.72,
+    limit: 18,
+    maxRoadRatio: 0.65,
   }),
   rigid: Object.freeze({
-    gain: 0.62,
-    limit: 13,
+    gain: 0.36,
+    limit: 10,
+    maxRoadRatio: 0.32,
   }),
   loaded: Object.freeze({
-    gain: 0.68,
-    limit: 15,
+    gain: 0.34,
+    limit: 10,
+    maxRoadRatio: 0.28,
   }),
   resonance: Object.freeze({
-    gain: 0.82,
-    limit: 25,
+    gain: 0.9,
+    limit: 27,
+    maxRoadRatio: 1.1,
   }),
   extreme: Object.freeze({
-    gain: 0.58,
-    limit: 14,
+    gain: 0.28,
+    limit: 9,
+    maxRoadRatio: 0.2,
   }),
   custom: Object.freeze({
-    gain: 0.74,
-    limit: 20,
+    gain: 0.55,
+    limit: 16,
+    maxRoadRatio: 0.6,
   }),
 });
 
@@ -427,28 +442,32 @@ function calculateVisualBodyDisplacement({
   const profile = VISUAL_PROFILES[visualProfile] || VISUAL_PROFILES.custom;
 
   const amplitude = Math.max(0.5, finite(roadAmplitude, 0.5));
-
   const ratio = nonNegativeFinite(frequencyRatio, 0);
 
   /*
-   * A escala visual é deliberadamente moderada.
-   * A função tanh preserva diferenças pequenas e comprime
-   * progressivamente respostas elevadas, sobretudo perto
-   * da ressonância, evitando deslocamentos artificiais.
+   * A animação preserva a tendência física calculada, mas usa uma escala
+   * visual própria. Além do ganho de cada cenário, a amplitude da massa
+   * suspensa é limitada em relação à amplitude VISUAL da pista.
+   *
+   * Isso evita que um preset com transmissibilidade elevada faça a
+   * carroceria parecer acompanhar a pista quase rigidamente em condições
+   * nas quais o objetivo didático é mostrar isolamento/amortecimento.
    */
   const baseScale = clamp(9 / Math.sqrt(amplitude), 2.1, 5.2);
-
   const resonanceWeight = 1 + Math.max(0, 1 - Math.abs(ratio - 1)) * 0.08;
 
   const scaled = finite(rawBodyAmplitude, 0) * baseScale * profile.gain * resonanceWeight;
-
   const compressed = profile.limit * Math.tanh(scaled / Math.max(1, profile.limit));
 
-  return clamp(
-    compressed,
-    -Math.min(profile.limit, MAX_VISUAL_BODY_DISPLACEMENT),
-    Math.min(profile.limit, MAX_VISUAL_BODY_DISPLACEMENT),
+  const visualRoadAmplitude = calculateVisualRoadAmplitude(roadAmplitude);
+  const relativeLimit = Math.max(1.5, visualRoadAmplitude * profile.maxRoadRatio);
+  const effectiveLimit = Math.min(
+    profile.limit,
+    MAX_VISUAL_BODY_DISPLACEMENT,
+    relativeLimit,
   );
+
+  return clamp(compressed, -effectiveLimit, effectiveLimit);
 }
 
 function calculateDeltaTime(currentTime, previousTime) {
@@ -514,6 +533,45 @@ function drawWheel(svg, { centerX, wheelY, contact, contactState }) {
   });
 }
 
+function drawSuspensionMounts({ svg, centerX, topY, bottomY, wheelY }) {
+  const springX = centerX - 42;
+  const damperX = centerX + 42;
+  const mountHalfWidth = 20;
+
+  append(svg, 'line', {
+    x1: springX - mountHalfWidth,
+    y1: topY,
+    x2: damperX + mountHalfWidth,
+    y2: topY,
+    class: 'dyn-suspension-mount',
+  });
+
+  append(svg, 'line', {
+    x1: springX - mountHalfWidth,
+    y1: bottomY,
+    x2: damperX + mountHalfWidth,
+    y2: bottomY,
+    class: 'dyn-suspension-mount',
+  });
+
+  append(svg, 'rect', {
+    x: centerX - 26,
+    y: bottomY - 7,
+    width: 52,
+    height: 14,
+    rx: 7,
+    class: 'dyn-unsprung-mass',
+  });
+
+  append(svg, 'line', {
+    x1: centerX,
+    y1: bottomY + 7,
+    x2: centerX,
+    y2: wheelY - WHEEL_HUB_RADIUS,
+    class: 'dyn-suspension-link',
+  });
+}
+
 function drawDamper(svg, x, topY, bottomY) {
   const upper = Math.min(topY, bottomY);
   const lower = Math.max(topY, bottomY);
@@ -550,17 +608,41 @@ function createSpringPath(x, topY, bottomY) {
   const lower = Math.max(topY, bottomY);
   const available = lower - upper;
 
-  if (available <= 0) return `M ${x} ${upper}`;
-
-  const segments = 9;
-  const springAmplitude = Math.min(16, Math.max(7, available / 5));
-  let path = `M ${x} ${upper}`;
-
-  for (let index = 1; index <= segments; index += 1) {
-    const y = upper + (available * index) / segments;
-    const offset = index === segments ? 0 : index % 2 === 0 ? -springAmplitude : springAmplitude;
-    path += ` L ${x + offset} ${y}`;
+  if (available <= 0) {
+    return `M ${x} ${upper}`;
   }
+
+  const leadLength = Math.min(14, available * 0.12);
+  const coilTop = upper + leadLength;
+  const coilBottom = lower - leadLength;
+
+  const coils = 6;
+  const coilHeight = (coilBottom - coilTop) / coils;
+  const amplitude = Math.min(14, Math.max(8, available / 10));
+
+  let path = `M ${x} ${upper} L ${x} ${coilTop}`;
+
+  let y = coilTop;
+
+  for (let index = 0; index < coils; index += 1) {
+    const middleY = y + coilHeight / 2;
+    const endY = y + coilHeight;
+
+    path += `
+      C
+        ${x + amplitude} ${y + coilHeight * 0.18},
+        ${x + amplitude} ${middleY - coilHeight * 0.18},
+        ${x} ${middleY}
+      C
+        ${x - amplitude} ${middleY + coilHeight * 0.18},
+        ${x - amplitude} ${endY - coilHeight * 0.18},
+        ${x} ${endY}
+    `;
+
+    y = endY;
+  }
+
+  path += ` L ${x} ${lower}`;
 
   return path;
 }

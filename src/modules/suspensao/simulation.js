@@ -39,6 +39,10 @@ export function initializeSuspensaoSimulation(_module, root) {
     controlIds.map((id) => [id, root.querySelector(`#${id}-output`)]),
   );
 
+  const vehicleWheelValues = Object.fromEntries(
+    controlIds.map((id) => [id, root.querySelector(`[data-wheel-value="${id}"]`)]),
+  );
+
   const elements = {
     averageMetric: root.querySelector('#metric-eff'),
     frontDifferenceMetric: root.querySelector('#metric-df'),
@@ -50,6 +54,7 @@ export function initializeSuspensaoSimulation(_module, root) {
   const requiredElements = [
     ...Object.values(controls),
     ...Object.values(outputs),
+    ...Object.values(vehicleWheelValues),
     ...Object.values(elements),
   ];
 
@@ -70,6 +75,7 @@ export function initializeSuspensaoSimulation(_module, root) {
     const metrics = calculateSuspensionMetrics(values);
 
     updateControlOutputs(outputs, values);
+    updateVehicleTopView(vehicleWheelValues, values);
     updateMetrics(elements, metrics);
     updateStatus(elements.statusPanel, metrics);
     drawSuspensionChart(elements.chart, values);
@@ -201,6 +207,16 @@ function updateControlOutputs(outputs, values) {
 
     outputs[id].value = formattedValue;
     outputs[id].textContent = formattedValue;
+  });
+}
+
+function updateVehicleTopView(vehicleWheelValues, values) {
+  controlIds.forEach((id) => {
+    const formattedValue = `${formatNumber(values[id], 0)}%`;
+    const element = vehicleWheelValues[id];
+
+    element.textContent = formattedValue;
+    element.setAttribute('aria-label', `Índice de aderência: ${formattedValue}`);
   });
 }
 

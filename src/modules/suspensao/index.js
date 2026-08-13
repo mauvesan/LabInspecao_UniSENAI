@@ -21,8 +21,14 @@ const suspensaoModule = {
     }
 
     const cleanupFunctions = [];
-    const previousModuleMarker = root.getAttribute('data-module');
-    root.setAttribute('data-module', 'suspensao');
+
+    const moduleRoot = root.matches?.('.module-page--suspensao')
+      ? root
+      : (root.querySelector('.module-page--suspensao') ?? root);
+
+    const previousModuleMarker = moduleRoot.getAttribute('data-module');
+
+    moduleRoot.setAttribute('data-module', 'suspensao');
 
     const registerCleanup = (cleanup) => {
       if (typeof cleanup === 'function') {
@@ -56,9 +62,9 @@ const suspensaoModule = {
 
     return () => {
       if (previousModuleMarker === null) {
-        root.removeAttribute('data-module');
+        moduleRoot.removeAttribute('data-module');
       } else {
-        root.setAttribute('data-module', previousModuleMarker);
+        moduleRoot.setAttribute('data-module', previousModuleMarker);
       }
 
       [...cleanupFunctions].reverse().forEach((cleanup) => {

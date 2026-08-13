@@ -283,87 +283,94 @@ export function renderFundamentos() {
         background: linear-gradient(145deg, #eaf3ff, #e5fbff);
         border: 1px solid #c8dcf4;
       }
-      #frenagem-fundamentos .technical-premise__label,
-      #frenagem-fundamentos .section-heading__eyebrow {
-        color: var(--f41-blue); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; font-size: .78rem;
-      }
-      #frenagem-fundamentos .technical-premise__title,
-      #frenagem-fundamentos .section-heading__title,
-      #frenagem-fundamentos h3,
-      #frenagem-fundamentos h4 { color: var(--f41-ink); }
-      #frenagem-fundamentos .braking-process,
-      #frenagem-fundamentos .inspection-focus,
-      #frenagem-fundamentos .measured-quantities,
-      #frenagem-fundamentos .conceptual-calculations,
-      #frenagem-fundamentos .evidence-interpretation {
-        padding: 1.4rem;
-        border: 1px solid var(--f41-line);
-        border-radius: 1.25rem;
-        background: rgba(255,255,255,.94);
-        box-shadow: 0 10px 28px rgba(18,46,92,.06);
-      }
-      #frenagem-fundamentos .process-chain {
-        list-style: none !important;
-        margin: 1.25rem 0 0 !important;
-        padding: 0 !important;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1rem;
-        counter-reset: none;
-      }
-      #frenagem-fundamentos .process-chain__item {
-        position: relative;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: .85rem;
-        min-height: 9.5rem;
-        padding: 1.1rem;
-        border: 1px solid #cbdaf0;
-        border-radius: 1rem;
-        background: linear-gradient(180deg, #fff, #f7faff);
-        box-shadow: 0 8px 20px rgba(20,52,100,.06);
-      }
-      #frenagem-fundamentos .process-chain__marker {
-        display: grid; place-items: center;
-        width: 2.65rem; height: 2.65rem;
-        border-radius: .85rem;
-        background: linear-gradient(145deg, var(--f41-blue), #19a5bc);
-        color: #fff; font-weight: 900;
-        box-shadow: 0 8px 18px rgba(23,92,211,.25);
-      }
-      #frenagem-fundamentos .process-chain__title { margin: .1rem 0 .45rem; font-size: 1.05rem; }
-      #frenagem-fundamentos .process-chain__description { margin: 0; color: var(--f41-muted); line-height: 1.55; }
-      #frenagem-fundamentos .inspection-principle {
-        display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center;
-        padding: 1.25rem 1.4rem;
-        border: 1px solid #f3cf85;
-        border-left: .45rem solid #e7a72f;
-        border-radius: 1rem;
-        background: #fffaf0;
-      }
-      #frenagem-fundamentos .inspection-principle__icon {
-        display:grid; place-items:center; width:2.8rem; height:2.8rem; border-radius:50%; background:#e7a72f; color:#fff; font-weight:900; font-size:1.3rem;
-      }
-      #frenagem-fundamentos .inspection-question-grid,
-      #frenagem-fundamentos .measured-quantities__grid,
-      #frenagem-fundamentos .conceptual-calculations__grid {
-        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.15rem;
-      }
-      #frenagem-fundamentos .inspection-question,
-      #frenagem-fundamentos .measured-quantity,
-      #frenagem-fundamentos .calculation-card,
-      #frenagem-fundamentos .evidence-relation {
-        padding: 1.1rem; border: 1px solid #d5e0ef; border-radius: 1rem; background: #fff;
-      }
-      #frenagem-fundamentos .inspection-question__number,
-      #frenagem-fundamentos .measured-quantity__symbol {
-        display:inline-grid; place-items:center; min-width:2.4rem; height:2.4rem; padding:0 .55rem; border-radius:.75rem; background:#eaf2ff; color:var(--f41-blue); font-weight:900;
-      }
-      #frenagem-fundamentos p { line-height: 1.65; }
-      #frenagem-fundamentos .formula { font-size: clamp(1.35rem, 3vw, 2rem); text-align:center; color:var(--f41-ink); font-weight:800; }
-      #frenagem-fundamentos .formula__fraction { display:inline-grid; vertical-align:middle; text-align:center; }
-      #frenagem-fundamentos .formula__fraction > span:first-child { border-bottom:2px solid currentColor; padding:0 .35rem .15rem; }
-      #frenagem-fundamentos .formula__fraction > span:last-child { padding-top:.15rem; }
+        #frenagem-fundamentos .formula-legend {
+  width: 100%;
+  margin: 0.9rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+#frenagem-fundamentos .formula-legend > div {
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid #60a5fa;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.92);
+  text-align: left;
+}
+
+#frenagem-fundamentos .formula-legend dt {
+  margin: 0 0 0.25rem;
+  color: var(--f41-blue);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+#frenagem-fundamentos .formula-legend dd {
+  margin: 0;
+  color: var(--f41-ink);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+#frenagem-fundamentos .technical-premise__insight {
+  width: 100%;
+  margin: 0.4rem 0 0;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid var(--f41-blue);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: #263548;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  #frenagem-fundamentos .formula-legend {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
       @media (max-width: 900px) {
         #frenagem-fundamentos .technical-premise { grid-template-columns: 1fr; }
         #frenagem-fundamentos .process-chain { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -833,12 +840,13 @@ export function renderFundamentos() {
           </div>
 
           <a
-            href="#frenagem-frenometro"
-            class="button button--secondary section-transition__action"
-          >
-            Conhecer o frenômetro
-            <span aria-hidden="true">→</span>
-          </a>
+  href="#"
+  class="button button--secondary section-transition__action"
+  data-section-target="frenagem-frenometro"
+>
+  Conhecer o frenômetro
+  <span aria-hidden="true">→</span>
+</a>
         </footer>
 
       </div>

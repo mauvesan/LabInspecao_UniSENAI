@@ -346,6 +346,22 @@ function calculateStoichiometricAFR(state) {
     : calculateGasolineBlendAFR(state.ethanolContent);
 }
 
+function calculateDilutionCorrection(state) {
+  const measuredCarbonSum = state.co + state.co2;
+  const rawFactor = measuredCarbonSum > 0 ? 15 / measuredCarbonSum : Number.POSITIVE_INFINITY;
+  const appliedFactor = Number.isFinite(rawFactor) ? Math.max(1, rawFactor) : rawFactor;
+  const validSample = Number.isFinite(rawFactor) && rawFactor <= 2.5;
+
+  return {
+    measuredCarbonSum,
+    rawFactor,
+    appliedFactor,
+    validSample,
+    coCorrected: state.co * appliedFactor,
+    hcCorrected: state.hc * appliedFactor,
+  };
+}
+
 function getMixtureState(lambda) {
   if (lambda < 0.97) return 'Mistura rica';
   if (lambda > 1.03) return 'Mistura pobre';
@@ -455,6 +471,25 @@ function buildEvidence(state) {
   else evidence.push(`HC: ${formatNumber(state.hc)} ppm.`);
   if (state.o2 > 4) evidence.push(`O₂ residual elevado: ${formatNumber(state.o2, 2, 2)}%.`);
   else evidence.push(`O₂ residual: ${formatNumber(state.o2, 2, 2)}%.`);
+  if (state.dilution) {
+    const factorText = Number.isFinite(state.dilution.rawFactor)
+      ? formatNumber(state.dilution.rawFactor, 2, 2)
+      : 'indefinido';
+
+    evidence.push(
+      `Fator de diluição: ${factorText}. ` +
+        `${state.dilution.validSample ? 'Amostra dentro do critério de diluição.' : 'Amostra acima do limite de diluição; verificar a amostragem.'}`,
+    );
+
+    if (Number.isFinite(state.dilution.coCorrected)) {
+      evidence.push(`CO corrigido: ${formatNumber(state.dilution.coCorrected, 2, 2)}%.`);
+    }
+
+    if (Number.isFinite(state.dilution.hcCorrected)) {
+      evidence.push(`HC corrigido: ${formatNumber(state.dilution.hcCorrected)} ppm.`);
+    }
+  }
+
   evidence.push(
     `Lambda ${formatNumber(state.lambda, 2, 2)}: ${getMixtureState(state.lambda).toLowerCase()}.`,
   );
@@ -703,6 +738,10 @@ export function initializeGasesOttoSimulation(module, root) {
     hc: requireElement(root, '#otto-metric-hc'),
     o2: requireElement(root, '#otto-metric-o2'),
     lambda: requireElement(root, '#otto-metric-lambda'),
+    dilutionFactor: requireElement(root, '#otto-metric-dilution-factor'),
+    dilutionStatus: requireElement(root, '#otto-metric-dilution-status'),
+    coCorrected: requireElement(root, '#otto-metric-co-corrected'),
+    hcCorrected: requireElement(root, '#otto-metric-hc-corrected'),
     condition: requireElement(root, '#otto-metric-condition'),
   };
 
@@ -853,26 +892,59 @@ export function initializeGasesOttoSimulation(module, root) {
 
   function updateMetrics(state, diagnosis) {
     setText(metricElements.co, `${formatNumber(state.co, 2, 2)}%`);
-
     setText(metricElements.co2, `${formatNumber(state.co2, 1, 1)}%`);
-
     setText(metricElements.hc, `${formatNumber(state.hc)} ppm`);
-
     setText(metricElements.o2, `${formatNumber(state.o2, 2, 2)}%`);
-
     setText(metricElements.lambda, formatNumber(state.lambda, 2, 2));
 
-    setText(metricElements.condition, diagnosis.condition);
+    const dilution = state.dilution;
+
+    setText(
+      metricElements.dilutionFactor,
+      Number.isFinite(dilution.rawFactor) ? formatNumber(dilution.rawFactor, 2, 2) : '—',
+    );
+
+    setText(
+      metricElements.dilutionStatus,
+      dilution.validSample
+        ? dilution.rawFactor < 1
+          ? 'Correção aplicada com fator 1,00'
+          : 'Amostra adequada para correção'
+        : 'Rever sonda e linha de amostragem',
+    );
+
+    setText(
+      metricElements.coCorrected,
+      Number.isFinite(dilution.coCorrected) ? `${formatNumber(dilution.coCorrected, 2, 2)}%` : '—',
+    );
+
+    setText(
+      metricElements.hcCorrected,
+      Number.isFinite(dilution.hcCorrected) ? `${formatNumber(dilution.hcCorrected)} ppm` : '—',
+    );
+
+    setText(
+      metricElements.condition,
+      dilution.validSample ? diagnosis.condition : 'Rever amostragem',
+    );
 
     ['co', 'co2', 'hc', 'o2', 'lambda'].forEach((metric) => {
-      const metricCard = metricElements[metric].closest('.metric-card');
-
-      applyStateClass(metricCard, classifyMetric(metric, state[metric]).level);
+      applyStateClass(
+        metricElements[metric].closest('.metric-card'),
+        classifyMetric(metric, state[metric]).level,
+      );
     });
 
-    const conditionCard = metricElements.condition.closest('.metric-card');
+    const dilutionLevel = dilution.validSample ? 'normal' : 'critical';
 
-    applyStateClass(conditionCard, diagnosis.level);
+    [metricElements.dilutionFactor, metricElements.coCorrected, metricElements.hcCorrected].forEach(
+      (element) => applyStateClass(element.closest('.metric-card'), dilutionLevel),
+    );
+
+    applyStateClass(
+      metricElements.condition.closest('.metric-card'),
+      dilution.validSample ? diagnosis.level : 'critical',
+    );
   }
 
   function updateDiagnosis(state, diagnosisId, scores) {
@@ -890,16 +962,20 @@ export function initializeGasesOttoSimulation(module, root) {
 
     const score = diagnosisId === 'cold' ? null : scores[diagnosisId];
 
+    const dilutionInvalid = state.dilution && !state.dilution.validSample;
+
     setText(
       diagnosisElements.alert,
-      score === null
-        ? 'Medição didática inconclusiva enquanto o motor permanecer frio.'
-        : `Hipótese didática predominante: ${diagnosis.title}. ` +
+      dilutionInvalid
+        ? 'Interpretação condicionada: o fator de diluição está acima de 2,50. Verifique a amostragem e repita o ensaio antes de considerar o diagnóstico conclusivo.'
+        : score === null
+          ? 'Medição didática inconclusiva enquanto o motor permanecer frio.'
+          : `Hipótese didática predominante: ${diagnosis.title}. ` +
             `Índice de compatibilidade: ${score} ` +
             `ponto${score === 1 ? '' : 's'}.`,
     );
 
-    applyStateClass(diagnosisElements.alert, diagnosis.level);
+    applyStateClass(diagnosisElements.alert, dilutionInvalid ? 'critical' : diagnosis.level);
 
     const diagnosisCard = diagnosisElements.title.closest('.content-card');
 
@@ -927,6 +1003,7 @@ export function initializeGasesOttoSimulation(module, root) {
 
     state.stoichiometricAFR = afr;
     state.realAFR = state.lambda * afr;
+    state.dilution = calculateDilutionCorrection(state);
 
     updateControlOutputs(state);
 
@@ -940,9 +1017,12 @@ export function initializeGasesOttoSimulation(module, root) {
     if (!activeQuickCase) {
       setText(
         simulationStatus,
-        'Valores ajustados manualmente. Analise a correlação ' +
-          'entre os gases e o diagnóstico apresentado.',
+        state.dilution.validSample
+          ? 'Valores ajustados manualmente. Analise as leituras medidas, os valores corrigidos e o diagnóstico apresentado.'
+          : 'Fator de diluição acima de 2,50. Verifique a posição da sonda e a integridade da linha de amostragem antes de interpretar o ensaio como conclusivo.',
       );
+
+      applyStateClass(simulationStatus, state.dilution.validSample ? diagnosis.level : 'critical');
     }
   }
 

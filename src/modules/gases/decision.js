@@ -2,17 +2,17 @@ const FEEDBACK = {
   liberar: {
     correct: false,
     title: 'A liberação não é tecnicamente adequada.',
-    text: 'CO e HC elevados, associados a lambda inferior a 1 e baixo teor de O₂, indicam combustão rica persistente. A condição requer diagnóstico antes da liberação.',
+    text: 'CO e HC corrigidos permanecem elevados, com fator de diluição adequado. Associados a lambda inferior a 1 e baixo teor de O₂, os resultados sustentam uma condição de mistura rica persistente. A condição requer diagnóstico antes da liberação.',
   },
   catalisador: {
     correct: false,
     title: 'A substituição direta do catalisador é prematura.',
-    text: 'Um catalisador degradado pode elevar CO e HC, mas os valores de lambda e O₂ apontam primeiro para uma mistura rica. A causa da formação dos poluentes deve ser investigada antes do pós-tratamento.',
+    text: 'Um catalisador degradado pode elevar CO e HC, inclusive após a correção por diluição, mas lambda e O₂ apontam primeiro para uma mistura rica. A causa da formação dos poluentes deve ser investigada antes de atribuir o resultado diretamente ao pós-tratamento.',
   },
   diagnostico: {
     correct: true,
     title: 'Decisão tecnicamente adequada.',
-    text: 'O conjunto CO elevado, HC elevado, O₂ baixo e lambda menor que 1 é compatível com mistura rica. O encaminhamento correto é diagnosticar alimentação, sensores e controle da mistura, corrigir a causa confirmada e repetir o ensaio.',
+    text: 'O conjunto formado por CO corrigido elevado, HC corrigido elevado, O₂ baixo e lambda menor que 1 é compatível com mistura rica. Como o fator de diluição é adequado, o encaminhamento correto é diagnosticar alimentação, sensores e controle da mistura, corrigir a causa confirmada e repetir o ensaio.',
   },
   entradaAr: {
     correct: false,

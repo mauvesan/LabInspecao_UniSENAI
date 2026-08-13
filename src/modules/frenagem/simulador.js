@@ -9,23 +9,26 @@ const OSCILLATION_LIMIT = 20;
 
 const EXAMPLE_CASES = Object.freeze({
   balanced: Object.freeze({
-    label: 'Condição equilibrada',
-    description: 'Forças próximas entre os lados e eficiência global satisfatória.',
-    input: Object.freeze({
-      forces: Object.freeze({
-        service: Object.freeze({
-          frontLeft: 3.0,
-          frontRight: 2.9,
-          rearLeft: 2.0,
-          rearRight: 1.95,
-        }),
-        parking: Object.freeze({ left: 1.4, right: 1.35 }),
+  label: 'Condição equilibrada',
+  description: 'Forças próximas entre os lados e eficiência global satisfatória.',
+  input: Object.freeze({
+    forces: Object.freeze({
+      service: Object.freeze({
+        frontLeft: 3.1,
+        frontRight: 3.0,
+        rearLeft: 1.9,
+        rearRight: 1.85,
       }),
-      referenceForce: 14.5,
-      pedalForce: 320,
-      unit: 'kN',
+      parking: Object.freeze({
+        left: 2.0,
+        right: 1.95,
+      }),
     }),
+    referenceForce: 14.5,
+    pedalForce: 320,
+    unit: 'kN',
   }),
+}),
   frontImbalance: Object.freeze({
     label: 'Desequilíbrio dianteiro',
     description: 'Reproduz o estudo de caso com perda relevante no lado dianteiro direito.',

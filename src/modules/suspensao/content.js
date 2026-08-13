@@ -444,149 +444,222 @@ function renderBenchSection() {
         </article>
 
         <article class="content-card">
-          <h3>Representação simplificada do ensaio</h3>
+  <h3>Representação simplificada do ensaio</h3>
 
-          <div
-            class="technical-diagram"
-            role="img"
-            aria-label="Representação de uma roda apoiada sobre uma plataforma vibratória, ligada à carroceria por mola e amortecedor"
-          >
-            <svg
-              viewBox="0 0 520 360"
-              class="technical-diagram__svg"
-              aria-hidden="true"
-            >
-              <rect
-                x="125"
-                y="48"
-                width="270"
-                height="68"
-                rx="14"
-                class="diagram-body"
-              />
+  <div
+    class="technical-diagram"
+    role="img"
+    aria-label="Representação de uma roda apoiada sobre uma plataforma vibratória, ligada à massa suspensa por mola e amortecedor em paralelo"
+  >
+    <svg
+      viewBox="0 0 560 430"
+      class="technical-diagram__svg"
+      aria-hidden="true"
+    >
+      <!-- Massa suspensa / carroceria -->
+      <rect
+        x="120"
+        y="42"
+        width="320"
+        height="72"
+        rx="16"
+        class="diagram-body"
+      />
 
-              <text
-                x="260"
-                y="88"
-                text-anchor="middle"
-                class="diagram-label"
-              >
-                Massa suspensa
-              </text>
+      <text
+        x="280"
+        y="84"
+        text-anchor="middle"
+        class="diagram-label"
+      >
+        Massa suspensa / carroceria
+      </text>
 
-              <path
-                d="
-                  M200 116
-                  L200 134
-                  L180 148
-                  L220 164
-                  L180 180
-                  L220 196
-                  L180 212
-                  L220 228
-                  L200 242
-                  L200 258
-                "
-                class="diagram-line"
-              />
+      <!-- Travessa superior -->
+      <line
+        x1="185"
+        y1="126"
+        x2="375"
+        y2="126"
+        class="diagram-mount"
+      />
 
-              <line
-                x1="320"
-                y1="116"
-                x2="320"
-                y2="146"
-                class="diagram-line"
-              />
+      <!-- Mola -->
+      <path
+        d="
+          M210 126
+          L210 142
+          C232 148 232 158 210 164
+          C188 170 188 180 210 186
+          C232 192 232 202 210 208
+          C188 214 188 224 210 230
+          C232 236 232 246 210 252
+          C188 258 188 268 210 274
+          L210 288
+        "
+        class="diagram-spring"
+      />
 
-              <rect
-                x="300"
-                y="146"
-                width="40"
-                height="76"
-                rx="6"
-                class="diagram-component"
-              />
+      <!-- Amortecedor -->
+      <line
+        x1="350"
+        y1="126"
+        x2="350"
+        y2="165"
+        class="diagram-damper-rod"
+      />
 
-              <line
-                x1="320"
-                y1="222"
-                x2="320"
-                y2="258"
-                class="diagram-line"
-              />
+      <rect
+        x="329"
+        y="165"
+        width="42"
+        height="82"
+        rx="7"
+        class="diagram-damper-body"
+      />
 
-              <circle
-                cx="260"
-                cy="276"
-                r="49"
-                class="diagram-wheel"
-              />
+      <line
+        x1="350"
+        y1="247"
+        x2="350"
+        y2="288"
+        class="diagram-damper-rod"
+      />
 
-              <circle
-                cx="260"
-                cy="276"
-                r="21"
-                class="diagram-hub"
-              />
+      <!-- Travessa inferior / massa não suspensa -->
+      <line
+        x1="185"
+        y1="288"
+        x2="375"
+        y2="288"
+        class="diagram-mount"
+      />
 
-              <rect
-                x="132"
-                y="326"
-                width="256"
-                height="18"
-                rx="6"
-                class="diagram-platform"
-              />
+      <rect
+        x="235"
+        y="280"
+        width="90"
+        height="18"
+        rx="9"
+        class="diagram-unsprung-mass"
+      />
 
-              <line
-                x1="260"
-                y1="325"
-                x2="260"
-                y2="315"
-                class="diagram-line"
-              />
+      <text
+        x="280"
+        y="274"
+        text-anchor="middle"
+        class="diagram-caption diagram-caption--unsprung"
+      >
+        Massa não suspensa
+      </text>
 
-              <path
-                d="M105 334 L75 334"
-                class="diagram-arrow"
-              />
+      <!-- Ligação com o cubo -->
+      <line
+        x1="280"
+        y1="298"
+        x2="280"
+        y2="315"
+        class="diagram-link"
+      />
 
-              <path
-                d="M415 334 L445 334"
-                class="diagram-arrow"
-              />
+      <!-- Roda -->
+      <circle
+        cx="280"
+        cy="344"
+        r="48"
+        class="diagram-wheel"
+      />
 
-              <text
-                x="200"
-                y="154"
-                text-anchor="end"
-                class="diagram-caption"
-              >
-                Mola
-              </text>
+      <circle
+        cx="280"
+        cy="344"
+        r="20"
+        class="diagram-hub"
+      />
 
-              <text
-                x="345"
-                y="184"
-                class="diagram-caption"
-              >
-                Amortecedor
-              </text>
+      <!-- Plataforma vibratória -->
+      <rect
+        x="135"
+        y="395"
+        width="290"
+        height="20"
+        rx="7"
+        class="diagram-platform"
+      />
 
-              <text
-                x="260"
-                y="355"
-                text-anchor="middle"
-                class="diagram-caption"
-              >
-                Plataforma vibratória
-              </text>
-            </svg>
-          </div>
-        </article>
-      </div>
+      <text
+        x="280"
+        y="427"
+        text-anchor="middle"
+        class="diagram-caption"
+      >
+        Plataforma vibratória
+      </text>
 
-      <div class="content-grid content-grid--3">
+      <!-- Excitação vertical -->
+      <line
+        x1="460"
+        y1="375"
+        x2="460"
+        y2="407"
+        class="diagram-excitation-line"
+      />
+
+      <path
+        d="M460 366 L451 379 L469 379 Z"
+        class="diagram-excitation-arrow"
+      />
+
+      <path
+        d="M460 416 L451 403 L469 403 Z"
+        class="diagram-excitation-arrow"
+      />
+
+      <text
+        x="480"
+        y="393"
+        class="diagram-caption"
+      >
+        Excitação
+      </text>
+
+      <!-- Identificação dos componentes -->
+      <text
+        x="170"
+        y="210"
+        text-anchor="end"
+        class="diagram-caption"
+      >
+        Mola
+      </text>
+
+      <line
+        x1="178"
+        y1="206"
+        x2="194"
+        y2="206"
+        class="diagram-leader"
+      />
+
+      <text
+        x="390"
+        y="210"
+        class="diagram-caption"
+      >
+        Amortecedor
+      </text>
+
+      <line
+        x1="372"
+        y1="206"
+        x2="384"
+        y2="206"
+        class="diagram-leader"
+      />
+    </svg>
+  </div>
+</article>
+<div class="content-grid content-grid--3">
         <article class="content-card">
           <h3>Carga estática</h3>
 
@@ -1030,7 +1103,7 @@ function renderInspectionSection() {
       outputId: 'fr-output',
       label: 'Dianteira direita',
       shortLabel: 'FR',
-      value: 68,
+      value: 69,
     },
     {
       id: 'rl',
@@ -1044,7 +1117,7 @@ function renderInspectionSection() {
       outputId: 'rr-output',
       label: 'Traseira direita',
       shortLabel: 'RR',
-      value: 61,
+      value: 63,
     },
   ];
 
@@ -1168,6 +1241,7 @@ function renderInspectionSection() {
                 <div
                   class="vehicle-wheel vehicle-wheel--fl"
                   data-wheel="fl"
+                  data-wheel-key="frontLeft"
                 >
                   <span class="vehicle-wheel__code">
                     FL
@@ -1180,6 +1254,7 @@ function renderInspectionSection() {
                   <strong
                     class="vehicle-wheel__value"
                     data-wheel-value="fl"
+                    data-vehicle-wheel-value="frontLeft"
                   >
                     72%
                   </strong>
@@ -1188,6 +1263,7 @@ function renderInspectionSection() {
                 <div
                   class="vehicle-wheel vehicle-wheel--fr"
                   data-wheel="fr"
+                  data-wheel-key="frontRight"
                 >
                   <span class="vehicle-wheel__code">
                     FR
@@ -1200,8 +1276,9 @@ function renderInspectionSection() {
                   <strong
                     class="vehicle-wheel__value"
                     data-wheel-value="fr"
+                    data-vehicle-wheel-value="frontRight"
                   >
-                    68%
+                    69%
                   </strong>
                 </div>
 
@@ -1217,6 +1294,7 @@ function renderInspectionSection() {
                 <div
                   class="vehicle-wheel vehicle-wheel--rl"
                   data-wheel="rl"
+                  data-wheel-key="rearLeft"
                 >
                   <span class="vehicle-wheel__code">
                     RL
@@ -1229,6 +1307,7 @@ function renderInspectionSection() {
                   <strong
                     class="vehicle-wheel__value"
                     data-wheel-value="rl"
+                    data-vehicle-wheel-value="rearLeft"
                   >
                     65%
                   </strong>
@@ -1237,6 +1316,7 @@ function renderInspectionSection() {
                 <div
                   class="vehicle-wheel vehicle-wheel--rr"
                   data-wheel="rr"
+                  data-wheel-key="rearRight"
                 >
                   <span class="vehicle-wheel__code">
                     RR
@@ -1249,8 +1329,9 @@ function renderInspectionSection() {
                   <strong
                     class="vehicle-wheel__value"
                     data-wheel-value="rr"
+                    data-vehicle-wheel-value="rearRight"
                   >
-                    61%
+                    63%
                   </strong>
                 </div>
               </div>

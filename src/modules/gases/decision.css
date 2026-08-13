@@ -6,7 +6,7 @@
 
 [data-gases-decision] .decision-case__evidence {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
   margin: 0;
 }
@@ -121,4 +121,19 @@
   [data-gases-decision] .decision-case__evidence {
     grid-template-columns: 1fr;
   }
+}
+
+[data-gases-decision] .decision-case__evidence--derived {
+  border-color: #b8cfea;
+  background: #eef5ff;
+}
+
+[data-gases-decision] .decision-case__correction-note {
+  margin: 1rem 0 0;
+  padding: 0.9rem 1rem;
+  border-left: 4px solid #2563eb;
+  border-radius: 0.55rem;
+  background: #f3f7ff;
+  color: #334155;
+  line-height: 1.55;
 }

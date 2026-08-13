@@ -1922,12 +1922,13 @@ export function renderEstudoCaso() {
           </div>
 
           <a
-            href="#frenagem-simulador"
-            class="button button--secondary section-transition__action"
-          >
-            Abrir o simulador
-            <span aria-hidden="true">→</span>
-          </a>
+  href="#"
+  class="button button--secondary section-transition__action"
+  data-section-target="frenagem-simulador"
+>
+  Abrir o simulador
+  <span aria-hidden="true">→</span>
+</a>
         </footer>
 
       </div>

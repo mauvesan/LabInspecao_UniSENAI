@@ -1,6 +1,193 @@
 /* LabInspeção UniSENAI — Release 4.1 | Home + Frenagem
    Camada visual carregada pelo bundler Vite. Não altera cálculos, IDs ou eventos. */
 
+/* =========================================================
+   HERO — HIERARQUIA E LEGIBILIDADE
+   ========================================================= */
+
+#frenagem-hero .initial-evidence,
+#frenagem-hero .inspection-mission,
+#frenagem-hero .learning-path {
+  margin-top: 1.5rem;
+  padding: 1.4rem;
+  color: var(--r41-ink);
+}
+
+#frenagem-hero .initial-evidence__label,
+#frenagem-hero .inspection-mission__label,
+#frenagem-hero .learning-path__label,
+#frenagem-hero .inspection-mission__role-label {
+  margin: 0 0 0.35rem;
+  color: var(--r41-blue);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#frenagem-hero .initial-evidence__title,
+#frenagem-hero .inspection-mission__title,
+#frenagem-hero .learning-path__title {
+  margin: 0;
+  color: var(--r41-navy);
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.25;
+}
+
+#frenagem-hero .initial-evidence__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+#frenagem-hero .evidence-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 0.9rem;
+  row-gap: 0.25rem;
+  padding: 1.1rem;
+  border: 1px solid var(--r41-line);
+  border-radius: 1rem;
+  background: #f8fbff;
+}
+
+#frenagem-hero .evidence-card__index {
+  grid-row: 1 / 3;
+  align-self: start;
+  min-width: 2.6rem;
+  height: 2.6rem;
+  font-size: 0.92rem;
+}
+
+#frenagem-hero .evidence-card__title {
+  margin: 0;
+  color: var(--r41-navy);
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+#frenagem-hero .evidence-card__text {
+  margin: 0;
+  color: #40536b;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+#frenagem-hero .inspection-mission__questions {
+  margin: 1rem 0 0;
+  padding-left: 1.4rem;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+#frenagem-hero .inspection-mission__role {
+  margin-top: 1.2rem;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid var(--r41-blue);
+  border-radius: 0.85rem;
+  background: #eef5ff;
+}
+
+#frenagem-hero .inspection-mission__role-title {
+  display: block;
+  color: var(--r41-navy);
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+#frenagem-hero .inspection-mission__role-text {
+  margin: 0.45rem 0 0;
+  color: #40536b;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+#frenagem-hero .learning-path__list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+}
+
+#frenagem-hero .learning-path__item {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 0.55rem;
+  border: 1px solid var(--r41-line);
+  border-radius: 0.85rem;
+  background: #f8fbff;
+  text-align: center;
+}
+
+#frenagem-hero .learning-path__number {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: var(--r41-blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+#frenagem-hero .learning-path__label {
+  margin: 0;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#frenagem-hero .module-hero__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.3rem;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.96);
+  color: var(--r41-ink);
+}
+
+#frenagem-hero .module-hero__closing-text {
+  margin: 0;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  #frenagem-hero .learning-path__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  #frenagem-hero .initial-evidence__cards {
+    grid-template-columns: 1fr;
+  }
+
+  #frenagem-hero .learning-path__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #frenagem-hero .module-hero__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 [data-module='frenagem'] {
   --r41-navy: #0b1f3a;
   --r41-blue: #185adb;
@@ -564,5 +751,191 @@
   [data-module='frenagem'] .brake-simulator__case-grid,
   [data-module='frenagem'] .brake-simulator__guidance {
     grid-template-columns: 1fr !important;
+  }
+}
+/* =========================================================
+   HERO — HIERARQUIA E LEGIBILIDADE
+   ========================================================= */
+
+#frenagem-hero .initial-evidence,
+#frenagem-hero .inspection-mission,
+#frenagem-hero .learning-path {
+  margin-top: 1.5rem;
+  padding: 1.4rem;
+  color: var(--r41-ink);
+}
+
+#frenagem-hero .initial-evidence__label,
+#frenagem-hero .inspection-mission__label,
+#frenagem-hero .learning-path__label,
+#frenagem-hero .inspection-mission__role-label {
+  margin: 0 0 0.35rem;
+  color: var(--r41-blue);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#frenagem-hero .initial-evidence__title,
+#frenagem-hero .inspection-mission__title,
+#frenagem-hero .learning-path__title {
+  margin: 0;
+  color: var(--r41-navy);
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.25;
+}
+
+#frenagem-hero .initial-evidence__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+#frenagem-hero .evidence-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 0.9rem;
+  row-gap: 0.25rem;
+  padding: 1.1rem;
+  border: 1px solid var(--r41-line);
+  border-radius: 1rem;
+  background: #f8fbff;
+}
+
+#frenagem-hero .evidence-card__index {
+  grid-row: 1 / 3;
+  align-self: start;
+  min-width: 2.6rem;
+  height: 2.6rem;
+  font-size: 0.92rem;
+}
+
+#frenagem-hero .evidence-card__title {
+  margin: 0;
+  color: var(--r41-navy);
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+#frenagem-hero .evidence-card__text {
+  margin: 0;
+  color: #40536b;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+#frenagem-hero .inspection-mission__questions {
+  margin: 1rem 0 0;
+  padding-left: 1.4rem;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+#frenagem-hero .inspection-mission__role {
+  margin-top: 1.2rem;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid var(--r41-blue);
+  border-radius: 0.85rem;
+  background: #eef5ff;
+}
+
+#frenagem-hero .inspection-mission__role-title {
+  display: block;
+  color: var(--r41-navy);
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+#frenagem-hero .inspection-mission__role-text {
+  margin: 0.45rem 0 0;
+  color: #40536b;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+#frenagem-hero .learning-path__list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+}
+
+#frenagem-hero .learning-path__item {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 0.55rem;
+  border: 1px solid var(--r41-line);
+  border-radius: 0.85rem;
+  background: #f8fbff;
+  text-align: center;
+}
+
+#frenagem-hero .learning-path__number {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: var(--r41-blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+#frenagem-hero .learning-path__label {
+  margin: 0;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#frenagem-hero .module-hero__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.3rem;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.96);
+  color: var(--r41-ink);
+}
+
+#frenagem-hero .module-hero__closing-text {
+  margin: 0;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  #frenagem-hero .learning-path__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  #frenagem-hero .initial-evidence__cards {
+    grid-template-columns: 1fr;
+  }
+
+  #frenagem-hero .learning-path__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #frenagem-hero .module-hero__footer {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

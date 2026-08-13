@@ -418,9 +418,9 @@ export function gasesOttoContent() {
           aria-labelledby="otto-tab-measurement"
           data-otto-panel="measurement"
         >
-          <div class="simulation-layout">
+          <div class="simulation-layout otto-simulation-workspace">
             <section
-              class="simulation-controls"
+              class="simulation-controls otto-control-panel"
               aria-label="Controles da medição"
             >
               <div class="content-card">
@@ -447,8 +447,19 @@ export function gasesOttoContent() {
                 })}
               </div>
 
-              <div class="content-card">
-                <h3>Composição dos gases</h3>
+              <div class="content-card otto-gas-composition">
+                <div class="otto-gas-composition__header">
+                  <div>
+                    <h3>Composição dos gases</h3>
+                    <p>
+                      Ajuste as concentrações medidas pelo analisador. Os valores
+                      corrigidos de CO e HC são calculados automaticamente a partir
+                      do fator de diluição da amostra.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="otto-gas-composition__grid">
 
                 ${rangeControl({
                   id: 'otto-co',
@@ -499,6 +510,12 @@ export function gasesOttoContent() {
                   value: 1,
                   unit: '',
                 })}
+                </div>
+
+                <p class="otto-gas-composition__note">
+                  Fator de diluição = 15 ÷ (CO + CO₂). Quando o resultado é
+                  inferior a 1,00, aplica-se 1,00 na correção de CO e HC.
+                </p>
               </div>
 
               ${quickCases([
@@ -542,12 +559,24 @@ export function gasesOttoContent() {
             </section>
 
             <section class="otto-measurement-results">
+              <header class="otto-results-header">
+                <div>
+                  <span class="otto-results-eyebrow">Resultados calculados</span>
+                  <h3>Medição e correção da amostra</h3>
+                </div>
+                <p>
+                  CO e HC corrigidos compensam a diluição da amostra. Um fator
+                  de diluição superior a 2,50 indica que a condição de amostragem
+                  deve ser verificada antes da interpretação conclusiva.
+                </p>
+              </header>
+
               <div
                 class="metric-grid"
-                aria-label="Resultados da medição"
+                aria-label="Resultados medidos e corrigidos"
               >
-                <article class="metric-card">
-                  <span>CO</span>
+                <article class="metric-card metric-card--measured">
+                  <span>CO medido</span>
 
                   <strong id="otto-metric-co">
                     —
@@ -556,8 +585,8 @@ export function gasesOttoContent() {
                   <small>Combustão incompleta</small>
                 </article>
 
-                <article class="metric-card">
-                  <span>CO₂</span>
+                <article class="metric-card metric-card--measured">
+                  <span>CO₂ medido</span>
 
                   <strong id="otto-metric-co2">
                     —
@@ -566,8 +595,8 @@ export function gasesOttoContent() {
                   <small>Conversão do carbono</small>
                 </article>
 
-                <article class="metric-card">
-                  <span>HC</span>
+                <article class="metric-card metric-card--measured">
+                  <span>HC medido</span>
 
                   <strong id="otto-metric-hc">
                     —
@@ -576,8 +605,8 @@ export function gasesOttoContent() {
                   <small>Combustível não queimado</small>
                 </article>
 
-                <article class="metric-card">
-                  <span>O₂</span>
+                <article class="metric-card metric-card--measured">
+                  <span>O₂ medido</span>
 
                   <strong id="otto-metric-o2">
                     —
@@ -586,7 +615,7 @@ export function gasesOttoContent() {
                   <small>Oxigênio remanescente</small>
                 </article>
 
-                <article class="metric-card">
+                <article class="metric-card metric-card--measured">
                   <span>Lambda</span>
 
                   <strong id="otto-metric-lambda">
@@ -596,13 +625,27 @@ export function gasesOttoContent() {
                   <small>Relação relativa de ar</small>
                 </article>
 
-                <article class="metric-card">
+                <article class="metric-card metric-card--corrected">
+                  <span>Fator de diluição</span>
+                  <strong id="otto-metric-dilution-factor">—</strong>
+                  <small id="otto-metric-dilution-status">Condição da amostra</small>
+                </article>
+
+                <article class="metric-card metric-card--corrected">
+                  <span>CO corrigido</span>
+                  <strong id="otto-metric-co-corrected">—</strong>
+                  <small>CO medido × fator aplicado</small>
+                </article>
+
+                <article class="metric-card metric-card--corrected">
+                  <span>HC corrigido</span>
+                  <strong id="otto-metric-hc-corrected">—</strong>
+                  <small>HC medido × fator aplicado</small>
+                </article>
+
+                <article class="metric-card metric-card--condition">
                   <span>Condição</span>
-
-                  <strong id="otto-metric-condition">
-                    —
-                  </strong>
-
+                  <strong id="otto-metric-condition">—</strong>
                   <small>Interpretação conjunta</small>
                 </article>
               </div>
@@ -611,7 +654,7 @@ export function gasesOttoContent() {
                 id: 'otto-gases-chart',
                 title: 'Composição dos gases de escapamento',
                 description:
-                  'CO, CO₂ e O₂ são apresentados em percentual. HC é indicado separadamente em ppm.',
+                  'O gráfico apresenta as leituras medidas. CO e HC corrigidos são exibidos separadamente nos indicadores de correção da amostra.',
               })}
             </section>
           </div>
@@ -1156,12 +1199,21 @@ export function gasesOttoContent() {
           vazamentos na linha de amostragem nem falhas aparentes do analisador.
         </p>
         <dl class="decision-case__evidence">
-          <div><dt>CO</dt><dd>2,80%</dd></div>
-          <div><dt>CO₂</dt><dd>12,1%</dd></div>
-          <div><dt>HC</dt><dd>420 ppm</dd></div>
-          <div><dt>O₂</dt><dd>0,30%</dd></div>
+          <div><dt>CO medido</dt><dd>2,80%</dd></div>
+          <div><dt>CO₂ medido</dt><dd>12,1%</dd></div>
+          <div><dt>HC medido</dt><dd>420 ppm</dd></div>
+          <div><dt>O₂ medido</dt><dd>0,30%</dd></div>
           <div><dt>Lambda</dt><dd>0,94</dd></div>
+          <div class="decision-case__evidence--derived"><dt>Fator de diluição</dt><dd>1,01</dd></div>
+          <div class="decision-case__evidence--derived"><dt>CO corrigido</dt><dd>2,82%</dd></div>
+          <div class="decision-case__evidence--derived"><dt>HC corrigido</dt><dd>423 ppm</dd></div>
         </dl>
+
+        <p class="decision-case__correction-note">
+          Como o fator de diluição é inferior ao limite de 2,50, a amostra é
+          adequada para a interpretação. Os valores corrigidos permanecem
+          elevados e reforçam a necessidade de diagnóstico antes de um novo ensaio.
+        </p>
       </article>
 
       <form class="decision-form" data-decision-form>
