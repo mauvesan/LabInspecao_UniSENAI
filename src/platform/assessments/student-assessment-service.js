@@ -5,10 +5,12 @@ const MODULE_LABELS = Object.freeze({
   suspensao: 'Suspensão',
   opacidade: 'Opacidade',
   gases: 'Gases Otto',
+  'produtos-perigosos': 'Produtos Perigosos',
   F: 'Frenagem',
   S: 'Suspensão',
   K: 'Opacidade',
   O: 'Gases Otto',
+  P: 'Produtos Perigosos',
 });
 
 /** @param {unknown} value */
@@ -19,68 +21,106 @@ function asText(value) {
 /** @param {Record<string, unknown>} row */
 export function mapStudentAssessment(row) {
   const moduleCode = asText(row.module_code);
+
   return {
     id: asText(row.id),
     title: asText(row.title),
     moduleCode,
-    moduleLabel: MODULE_LABELS[moduleCode] || moduleCode || 'Módulo',
-    classId: row.class_id == null ? null : asText(row.class_id),
+    moduleLabel:
+      MODULE_LABELS[moduleCode] ||
+      moduleCode ||
+      'Módulo',
+    classId:
+      row.class_id == null
+        ? null
+        : asText(row.class_id),
     status: asText(row.status),
     createdAt: asText(row.created_at),
     updatedAt: asText(row.updated_at),
   };
 }
 
+function wrapFailure(error, fallbackMessage) {
+  const failure = new Error(
+    error?.message || fallbackMessage,
+  );
+
+  failure.cause = error;
+
+  return failure;
+}
+
 export class StudentAssessmentService {
-  constructor({ client = getSupabaseAuthClient() } = {}) {
+  constructor({
+    client = getSupabaseAuthClient(),
+  } = {}) {
     this.client = client;
   }
 
+  /**
+   * Lista somente avaliações que possuem uma aplicação
+   * efetivamente disponível para o aluno autenticado.
+   *
+   * A decisão de elegibilidade permanece no banco,
+   * por meio de private.resolve_student_assessment_application().
+   */
   async listAvailable() {
-    const { data, error } = await this.client
-      .from('assessments')
-      .select('id,title,module_code,class_id,status,created_at,updated_at')
-      .eq('status', 'published')
-      .order('created_at', { ascending: false });
+    const { data, error } = await this.client.rpc(
+      'list_available_assessments',
+    );
 
     if (error) {
-      const failure = new Error(
-        error.message || 'Não foi possível carregar as avaliações disponíveis.',
+      throw wrapFailure(
+        error,
+        'Não foi possível carregar as avaliações disponíveis.',
       );
-      failure.cause = error;
-      throw failure;
     }
 
     return (data || []).map(mapStudentAssessment);
   }
 
-  /** @param {string} assessmentId */
+  /**
+   * Mantido por compatibilidade.
+   *
+   * A tela formal de execução utiliza o serviço de aplicação,
+   * que realiza a validação autoritativa no banco.
+   *
+   * @param {string} assessmentId
+   */
   async getAvailableById(assessmentId) {
-    const id = String(assessmentId || '').trim();
-    if (!id) throw new Error('assessmentId é obrigatório.');
+    const id = String(
+      assessmentId || '',
+    ).trim();
 
-    const { data, error } = await this.client
-      .from('assessments')
-      .select('id,title,module_code,class_id,status,created_at,updated_at')
-      .eq('id', id)
-      .eq('status', 'published')
-      .maybeSingle();
-
-    if (error) {
-      const failure = new Error(error.message || 'Não foi possível carregar a avaliação.');
-      failure.cause = error;
-      throw failure;
+    if (!id) {
+      throw new Error(
+        'assessmentId é obrigatório.',
+      );
     }
 
-    return data ? mapStudentAssessment(data) : null;
+    const available =
+      await this.listAvailable();
+
+    return (
+      available.find(
+        (assessment) =>
+          assessment.id === id,
+      ) || null
+    );
   }
 }
 
 let singleton = null;
+
 export function getStudentAssessmentService() {
-  if (!singleton) singleton = new StudentAssessmentService();
+  if (!singleton) {
+    singleton =
+      new StudentAssessmentService();
+  }
+
   return singleton;
 }
+
 export function resetStudentAssessmentServiceForTests() {
   singleton = null;
 }

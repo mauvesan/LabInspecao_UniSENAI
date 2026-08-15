@@ -520,17 +520,107 @@ export function renderTeacherArea() {
           <p>Gestão de turmas, alunos e avaliações com provider educacional configurável.</p>
         </div>
         <div class="teacher-platform__mode-group">
-          <span class="teacher-platform__mode">${escapeHtml(educationProviderLabel())}</span>
-          <button type="button" class="teacher-data-button teacher-data-button--supabase" data-test-supabase>Testar Supabase</button>
-          <button type="button" class="teacher-data-button teacher-data-button--remote" data-compare-education>Comparar local × Supabase</button>
-          ${isRemoteEducationProvider() ? '' : '<button type="button" class="teacher-data-button teacher-data-button--migrate" data-migrate-education>Migrar local → Supabase</button>'}
-          <button type="button" class="teacher-data-button teacher-data-button--crud" data-test-remote-crud>Validar CRUD remoto</button>
-          <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="teacher">RLS Professor</button>
-          <button type="button" class="teacher-data-button teacher-data-button--rls" data-test-rls="anonymous">RLS Anônimo</button>
-          <span class="teacher-supabase-status${supabaseConfiguration.configured ? ' is-configured' : ''}" data-supabase-status>${supabaseConfiguration.configured ? 'Configurado · não testado' : 'Supabase não configurado'}</span>
-          <button type="button" class="teacher-data-button" data-export-education>Exportar dados</button>
-          ${isRemoteEducationProvider() ? '' : '<label class="teacher-data-button teacher-data-button--import">Importar dados<input type="file" accept="application/json,.json" data-import-education hidden></label>'}
-        </div>
+  <span class="teacher-platform__mode">
+    ${escapeHtml(educationProviderLabel())}
+  </span>
+
+  ${
+    isRemoteEducationProvider()
+      ? `
+          <button
+            type="button"
+            class="teacher-data-button"
+            data-export-education
+          >
+            Exportar dados
+          </button>
+        `
+      : `
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--supabase"
+            data-test-supabase
+          >
+            Testar Supabase
+          </button>
+
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--remote"
+            data-compare-education
+          >
+            Comparar local × Supabase
+          </button>
+
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--migrate"
+            data-migrate-education
+          >
+            Migrar local → Supabase
+          </button>
+
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--crud"
+            data-test-remote-crud
+          >
+            Validar CRUD remoto
+          </button>
+
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--rls"
+            data-test-rls="teacher"
+          >
+            RLS Professor
+          </button>
+
+          <button
+            type="button"
+            class="teacher-data-button teacher-data-button--rls"
+            data-test-rls="anonymous"
+          >
+            RLS Anônimo
+          </button>
+
+          <span
+            class="teacher-supabase-status${
+              supabaseConfiguration.configured
+                ? ' is-configured'
+                : ''
+            }"
+            data-supabase-status
+          >
+            ${
+              supabaseConfiguration.configured
+                ? 'Configurado · não testado'
+                : 'Supabase não configurado'
+            }
+          </span>
+
+          <button
+            type="button"
+            class="teacher-data-button"
+            data-export-education
+          >
+            Exportar dados
+          </button>
+
+          <label
+            class="teacher-data-button teacher-data-button--import"
+          >
+            Importar dados
+            <input
+              type="file"
+              accept="application/json,.json"
+              data-import-education
+              hidden
+            >
+          </label>
+        `
+  }
+</div>
       </header>
 
       <div class="teacher-metrics" aria-label="Indicadores educacionais">

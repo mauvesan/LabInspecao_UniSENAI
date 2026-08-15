@@ -156,7 +156,7 @@ export async function renderHome() {
         <article class="module-card student-assessment-card">
           <span class="home-section-kicker">${assessment.moduleLabel}</span>
           <h3>${assessment.title}</h3>
-          <p>Avaliação publicada para sua turma.</p>
+          <p>Avaliação disponível para realização.</p>
           <a class="module-card-link" href="#/avaliacao/${assessment.id}">
             Abrir avaliação →
           </a>
@@ -199,13 +199,15 @@ export async function renderHome() {
         <span class="home-section-kicker">Atividades avaliativas</span>
         <h2 id="available-assessments-title">Avaliações disponíveis</h2>
       </div>
-      <span class="home-section-count">${availableAssessments.length} publicada(s)</span>
+      <span class="home-section-count">
+  ${availableAssessments.length} disponível(is)
+</span>
     </div>
 
     ${
       assessmentCards
         ? `<div class="module-grid">${assessmentCards}</div>`
-        : '<p class="home-empty-state">Nenhuma avaliação publicada disponível para você.</p>'
+        : '<p class="home-empty-state">Nenhuma avaliação disponível para você neste momento.</p>'
     }
   </section>
 
