@@ -102,7 +102,7 @@ function renderDistribution(items, emptyLabel) {
 
 function renderTeacherProgressTable(summary) {
   if (!summary.rows.length) {
-    return '<p class="teacher-empty">Ainda não há progresso remoto no filtro atual.</p>';
+    return '<p class="teacher-empty">Ainda não há progresso formativo no filtro atual.</p>';
   }
 
   return `
@@ -119,6 +119,7 @@ function renderTeacherProgressTable(summary) {
             <th>Última tentativa</th>
           </tr>
         </thead>
+
         <tbody>
           ${summary.rows
             .map(
@@ -126,18 +127,132 @@ function renderTeacherProgressTable(summary) {
                 <tr>
                   <td>
                     <strong>${escapeHtml(row.studentName)}</strong>
-                    <small>${escapeHtml(row.enrollment || 'Sem matrícula')}</small>
+                    <small>${escapeHtml(
+                      row.enrollment || 'Sem matrícula',
+                    )}</small>
                   </td>
+
                   <td>${escapeHtml(row.className)}</td>
+
                   <td>${escapeHtml(row.moduleCode)}</td>
+
                   <td>${row.bestPercentage.toFixed(1)}%</td>
+
                   <td>${row.attemptCount}</td>
+
                   <td>
-                    <span class="teacher-progress-status ${row.completed ? 'is-complete' : 'is-pending'}">
-                      ${row.completed ? 'Concluído' : 'Em andamento'}
+                    <span
+                      class="teacher-progress-status ${
+                        row.completed
+                          ? 'is-complete'
+                          : 'is-pending'
+                      }"
+                    >
+                      ${
+                        row.completed
+                          ? 'Concluído'
+                          : 'Em andamento'
+                      }
                     </span>
                   </td>
-                  <td>${escapeHtml(formatRecentDate(row.lastAttemptAt))}</td>
+
+                  <td>
+                    ${escapeHtml(
+                      formatRecentDate(row.lastAttemptAt),
+                    )}
+                  </td>
+                </tr>
+              `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTeacherFormalAssessmentTable(formal) {
+  if (formal?.error) {
+    return `
+      <p class="teacher-progress-error" role="alert">
+        ${escapeHtml(formal.error)}
+      </p>
+    `;
+  }
+
+  if (!formal?.rows?.length) {
+    return `
+      <p class="teacher-empty">
+        Ainda não há resultados de avaliações formais no filtro atual.
+      </p>
+    `;
+  }
+
+  return `
+    <div class="teacher-progress-table-wrap">
+      <table class="teacher-progress-table">
+        <thead>
+          <tr>
+            <th>Aluno</th>
+            <th>Turma</th>
+            <th>Avaliação</th>
+            <th>Módulo</th>
+            <th>Melhor nota</th>
+            <th>Tentativas</th>
+            <th>Situação</th>
+            <th>Última tentativa</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${formal.rows
+            .map(
+              (row) => `
+                <tr>
+                  <td>
+                    <strong>${escapeHtml(row.studentName)}</strong>
+                    <small>${escapeHtml(
+                      row.enrollment || 'Sem matrícula',
+                    )}</small>
+                  </td>
+
+                  <td>${escapeHtml(row.className)}</td>
+
+                  <td>
+                    <strong>
+                      ${escapeHtml(row.assessmentTitle)}
+                    </strong>
+                  </td>
+
+                  <td>
+                    ${escapeHtml(row.moduleCode || 'Geral')}
+                  </td>
+
+                  <td>${row.bestPercentage.toFixed(1)}%</td>
+
+                  <td>${row.attemptCount}</td>
+
+                  <td>
+                    <span
+                      class="teacher-progress-status ${
+                        row.passed
+                          ? 'is-complete'
+                          : 'is-pending'
+                      }"
+                    >
+                      ${
+                        row.passed
+                          ? 'Aprovado'
+                          : 'Não aprovado'
+                      }
+                    </span>
+                  </td>
+
+                  <td>
+                    ${escapeHtml(
+                      formatRecentDate(row.lastAttemptAt),
+                    )}
+                  </td>
                 </tr>
               `,
             )
@@ -149,44 +264,149 @@ function renderTeacherProgressTable(summary) {
 }
 
 async function hydrateTeacherProgressDashboard() {
-  const container = document.querySelector('[data-teacher-progress]');
+  const container = document.querySelector(
+    '[data-teacher-progress]',
+  );
+
   if (!container) return;
 
   container.innerHTML =
-    '<p class="teacher-progress-loading" role="status">Carregando progresso remoto...</p>';
+    '<p class="teacher-progress-loading" role="status">Carregando resultados remotos...</p>';
 
   try {
-    const summary = await getTeacherProgressService().readSummary({
-      classId: uiState.dashboardClassId,
-      term: uiState.dashboardTerm,
-    });
+    const summary =
+      await getTeacherProgressService().readSummary({
+        classId: uiState.dashboardClassId,
+        term: uiState.dashboardTerm,
+      });
+
+    const formal = summary.formal || {
+      metrics: {
+        studentsWithResults: 0,
+        passedAssessments: 0,
+        averageBestPercentage: 0,
+        attempts: 0,
+      },
+      rows: [],
+      error: null,
+    };
 
     container.innerHTML = `
-      <div class="teacher-progress-metrics">
-        <article>
-          <strong>${summary.metrics.studentsWithProgress}</strong>
-          <span>Alunos com progresso</span>
-        </article>
-        <article>
-          <strong>${summary.metrics.completedModules}</strong>
-          <span>Módulos concluídos</span>
-        </article>
-        <article>
-          <strong>${summary.metrics.averageBestPercentage.toFixed(1)}%</strong>
-          <span>Média das melhores notas</span>
-        </article>
-        <article>
-          <strong>${summary.metrics.attempts}</strong>
-          <span>Tentativas registradas</span>
-        </article>
-      </div>
-      ${renderTeacherProgressTable(summary)}
+      <section
+        class="teacher-progress-section"
+        aria-labelledby="teacher-formative-progress-title"
+      >
+        <div class="teacher-panel__heading">
+          <div>
+            <p class="teacher-panel__kicker">
+              Atividades dos módulos
+            </p>
+
+            <h4 id="teacher-formative-progress-title">
+              Progresso formativo
+            </h4>
+          </div>
+        </div>
+
+        <div class="teacher-progress-metrics">
+          <article>
+            <strong>
+              ${summary.metrics.studentsWithProgress}
+            </strong>
+            <span>Alunos com progresso</span>
+          </article>
+
+          <article>
+            <strong>
+              ${summary.metrics.completedModules}
+            </strong>
+            <span>Módulos concluídos</span>
+          </article>
+
+          <article>
+            <strong>
+              ${summary.metrics.averageBestPercentage.toFixed(
+                1,
+              )}%
+            </strong>
+            <span>Média das melhores notas</span>
+          </article>
+
+          <article>
+            <strong>
+              ${summary.metrics.attempts}
+            </strong>
+            <span>Tentativas formativas</span>
+          </article>
+        </div>
+
+        ${renderTeacherProgressTable(summary)}
+      </section>
+
+      <section
+        class="teacher-progress-section"
+        aria-labelledby="teacher-formal-results-title"
+      >
+        <div class="teacher-panel__heading">
+          <div>
+            <p class="teacher-panel__kicker">
+              Avaliações formais
+            </p>
+
+            <h4 id="teacher-formal-results-title">
+              Resultados das avaliações
+            </h4>
+          </div>
+        </div>
+
+        ${
+          formal.error
+            ? renderTeacherFormalAssessmentTable(formal)
+            : `
+                <div class="teacher-progress-metrics">
+                  <article>
+                    <strong>
+                      ${formal.metrics.studentsWithResults}
+                    </strong>
+                    <span>Alunos avaliados</span>
+                  </article>
+
+                  <article>
+                    <strong>
+                      ${formal.metrics.passedAssessments}
+                    </strong>
+                    <span>Aprovações</span>
+                  </article>
+
+                  <article>
+                    <strong>
+                      ${formal.metrics.averageBestPercentage.toFixed(
+                        1,
+                      )}%
+                    </strong>
+                    <span>Média das melhores notas</span>
+                  </article>
+
+                  <article>
+                    <strong>
+                      ${formal.metrics.attempts}
+                    </strong>
+                    <span>Tentativas formais</span>
+                  </article>
+                </div>
+
+                ${renderTeacherFormalAssessmentTable(formal)}
+              `
+        }
+      </section>
     `;
   } catch (error) {
     container.innerHTML = `
       <p class="teacher-progress-error" role="alert">
         ${escapeHtml(
-          error instanceof Error ? error.message : 'Não foi possível carregar o progresso remoto.',
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar os resultados remotos.',
         )}
       </p>
     `;
@@ -353,7 +573,7 @@ export function renderTeacherArea() {
           <div class="teacher-panel__heading">
             <div>
               <p class="teacher-panel__kicker">Resultados Supabase</p>
-              <h3>Progresso dos alunos</h3>
+              <h3>Desempenho dos alunos</h3>
             </div>
           </div>
           <div data-teacher-progress>
