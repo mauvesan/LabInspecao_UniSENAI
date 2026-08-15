@@ -47,6 +47,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_AUTH_PROVIDER: ${{ vars.VITE_AUTH_PROVIDER }}
+          VITE_EDUCATION_PERSISTENCE: ${{ vars.VITE_EDUCATION_PERSISTENCE }}
         run: npm run build
 
       - name: Upload GitHub Pages artifact
