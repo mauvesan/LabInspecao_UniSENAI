@@ -23,6 +23,7 @@ import {
 } from './teacher-assessment-authoring-panel.js';
 import { openTeacherAssessmentAudit } from './teacher-assessment-audit-panel.js';
 import { openTeacherAssessmentApplications } from './teacher-assessment-application-panel.js';
+import { getStudentInvitationService } from '../../platform/education/student-invitation-service.js';
 
 let teacherNavigationController = null;
 let teacherRenderRevision = 0;
@@ -671,157 +672,334 @@ export function renderTeacherArea() {
               ? classes
                   .map((item) => {
                     const archived = item.status === 'archived';
+
                     return `<article class="teacher-list__item${archived ? ' is-archived' : ''}">
-                      <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.term || 'Período não informado')} · ${archived ? 'Arquivada' : 'Ativa'}</span></div>
-                      ${actionButtons([
-                        `<button type="button" data-edit-class="${item.id}">Editar</button>`,
-                        `<button type="button" class="${archived ? 'teacher-button--restore' : 'teacher-button--danger'}" data-class-status="${item.id}" data-status="${archived ? 'active' : 'archived'}">${archived ? 'Restaurar' : 'Arquivar'}</button>`,
-                      ])}
-                    </article>`;
+  <div>
+    <strong>${escapeHtml(item.name)}</strong>
+    <span>
+      ${escapeHtml(item.term || 'Período não informado')}
+      ·
+      ${archived ? 'Arquivada' : 'Ativa'}
+    </span>
+  </div>
+
+  ${actionButtons([
+    `<button type="button" data-edit-class="${item.id}">Editar</button>`,
+    `<button
+      type="button"
+      class="${archived ? 'teacher-button--restore' : 'teacher-button--danger'}"
+      data-class-status="${item.id}"
+      data-status="${archived ? 'active' : 'archived'}"
+    >
+      ${archived ? 'Restaurar' : 'Arquivar'}
+    </button>`,
+  ])}
+</article>`;
                   })
                   .join('')
               : '<p class="teacher-empty">Nenhuma turma encontrada.</p>'
           }
-        </div>
-      </section>
+</div>
+</section>
 
-      <section id="teacher-students" class="teacher-panel">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão educacional</p><h2>Alunos</h2></div></div>
-        <div class="teacher-toolbar">
-          <label>Buscar aluno<input type="search" data-teacher-search="student" value="${escapeHtml(uiState.studentSearch)}" placeholder="Nome, matrícula, e-mail ou turma"></label>
-          <label class="teacher-check"><input type="checkbox" data-show-archived="student"${uiState.showArchivedStudents ? ' checked' : ''}> Mostrar arquivados</label>
-        </div>
-        <form
-  class="teacher-form teacher-form--wide"
-  data-education-form="student"
-  data-editing-student-id="${editingStudent?.id || ''}"
->
-  <label>
-    Nome
-    <input
-      name="name"
-      required
-      value="${escapeHtml(editingStudent?.name || '')}"
-      placeholder="Nome completo"
-    >
-  </label>
+<section id="teacher-students" class="teacher-panel">
+  <div class="teacher-panel__heading">
+    <div>
+      <p class="teacher-panel__kicker">Gestão educacional</p>
+      <h2>Alunos</h2>
+    </div>
+  </div>
 
-  <label>
-    Matrícula
-    <input
-      name="enrollment"
-      value="${escapeHtml(editingStudent?.enrollment || '')}"
-      placeholder="Matrícula"
-    >
-  </label>
+  <div class="teacher-toolbar">
+    <label>
+      Buscar aluno
+      <input
+        type="search"
+        data-teacher-search="student"
+        value="${escapeHtml(uiState.studentSearch)}"
+        placeholder="Nome, matrícula, e-mail ou turma"
+      >
+    </label>
 
-  <label>
-    E-mail
-    <input
-      name="email"
-      type="email"
-      value="${escapeHtml(editingStudent?.email || '')}"
-      placeholder="aluno@exemplo.com"
-    >
-  </label>
+    <label class="teacher-check">
+      <input
+        type="checkbox"
+        data-show-archived="student"
+        ${uiState.showArchivedStudents ? 'checked' : ''}
+      >
+      Mostrar arquivados
+    </label>
+  </div>
 
-  <label>
-    Turma
-    <select name="classId">
-      ${renderClassOptions(state.classes, editingStudent?.classId || '')}
-    </select>
-  </label>
-
-  <button type="submit">
-    ${editingStudent ? 'Salvar alterações' : 'Adicionar aluno'}
-  </button>
-
-  <button
-    type="button"
-    class="teacher-button--secondary"
-    data-cancel-edit="student"
-    ${editingStudent ? '' : 'disabled aria-hidden="true"'}
-    style="visibility:${editingStudent ? 'visible' : 'hidden'}; pointer-events:${editingStudent ? 'auto' : 'none'};"
+  <form
+    class="teacher-form teacher-form--wide"
+    data-education-form="student"
+    data-editing-student-id="${editingStudent?.id || ''}"
   >
-    Cancelar
-  </button>
-</form>
-        <div class="teacher-list">
-          ${
-            students.length
-              ? students
-                  .map((item) => {
-                    const archived = item.status === 'archived';
-                    return `<article class="teacher-list__item${archived ? ' is-archived' : ''}">
-                      <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.enrollment || 'Sem matrícula')} · ${escapeHtml(classNameById(state.classes, item.classId))}${item.email ? ` · ${escapeHtml(item.email)}` : ''} · ${archived ? 'Arquivado' : 'Ativo'}</span></div>
-                      ${actionButtons([
-                        `<button type="button" data-edit-student="${item.id}">Editar / transferir</button>`,
-                        `<button type="button" class="${archived ? 'teacher-button--restore' : 'teacher-button--danger'}" data-student-status="${item.id}" data-status="${archived ? 'active' : 'archived'}">${archived ? 'Restaurar' : 'Arquivar'}</button>`,
-                      ])}
-                    </article>`;
-                  })
-                  .join('')
-              : '<p class="teacher-empty">Nenhum aluno encontrado.</p>'
-          }
-        </div>
-      </section>
+    <label>
+      Nome
+      <input
+        name="name"
+        required
+        value="${escapeHtml(editingStudent?.name || '')}"
+        placeholder="Nome completo"
+      >
+    </label>
 
-      <section id="teacher-assessments" class="teacher-panel">
-        <div class="teacher-panel__heading"><div><p class="teacher-panel__kicker">Gestão educacional</p><h2>Avaliações</h2></div></div>
-        <div class="teacher-toolbar">
-          <label>Buscar avaliação<input type="search" data-teacher-search="assessment" value="${escapeHtml(uiState.assessmentSearch)}" placeholder="Título, módulo, turma ou status"></label>
-          <label class="teacher-check"><input type="checkbox" data-show-archived="assessment"${uiState.showArchivedAssessments ? ' checked' : ''}> Mostrar arquivadas</label>
-        </div>
-        <form class="teacher-form teacher-form--wide" data-education-form="assessment">
-          <label>Título<input name="title" required placeholder="Ex.: Avaliação de Frenagem"></label>
-          <label>Módulo<select name="moduleCode" required>
-            ${['frenagem', 'suspensao', 'opacidade', 'gases', 'produtos-perigosos']
-              .map((code) => `<option value="${code}">${code}</option>`)
-              .join('')}
-          </select></label>
-          <label>Turma<select name="classId" required>${renderClassOptions(state.classes)}</select></label>
-          <button type="submit">Criar avaliação em rascunho</button>
-        </form>
-        <div class="teacher-list">
-          ${
-            assessments.length
-              ? assessments
-                  .map((item) => {
-                    const archived = item.status === 'archived';
-                    const actions = [
-                      `<button type="button" data-assessment-audit="${item.id}">Histórico e resultados</button>`,
-                      `<button type="button" data-assessment-applications="${item.id}">Aplicações</button>`,
-                    ];
+    <label>
+      Matrícula
+      <input
+        name="enrollment"
+        value="${escapeHtml(editingStudent?.enrollment || '')}"
+        placeholder="Matrícula"
+      >
+    </label>
 
-                    if (item.status === 'draft') {
-                      actions.push(
-                        `<button type="button" data-author-assessment="${item.id}">Editar conteúdo</button>`,
-                      );
-                    }
+    <label>
+      E-mail
+      <input
+        name="email"
+        type="email"
+        value="${escapeHtml(editingStudent?.email || '')}"
+        placeholder="aluno@exemplo.com"
+      >
+    </label>
 
-                    if (item.status === 'published') {
-                      actions.push(
-                        `<button type="button" class="teacher-button--publish" data-author-clone-assessment="${item.id}">Criar nova versão</button>`,
-                      );
-                    }
+    <label>
+      Turma
+      <select name="classId">
+        ${renderClassOptions(state.classes, editingStudent?.classId || '')}
+      </select>
+    </label>
 
-                    if (archived) {
-                      actions.push(
-                        '<span class="teacher-authoring-readonly">Somente leitura</span>',
-                      );
-                    }
-                    return `<article class="teacher-list__item${archived ? ' is-archived' : ''}">
-                      <div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.moduleCode || 'Geral')} · ${escapeHtml(classNameById(state.classes, item.classId))} · ${assessmentStatusLabel(item.status)}</span></div>
-                      ${actionButtons(actions)}
-                    </article>`;
-                  })
-                  .join('')
-              : '<p class="teacher-empty">Nenhuma avaliação encontrada.</p>'
-          }
-        </div>
-      </section>
-    </section>
-  `;
+    <button type="submit">
+      ${editingStudent ? 'Salvar alterações' : 'Adicionar aluno'}
+    </button>
+
+    <button
+      type="button"
+      class="teacher-button--secondary"
+      data-cancel-edit="student"
+      ${editingStudent ? '' : 'disabled aria-hidden="true"'}
+      style="
+        visibility:${editingStudent ? 'visible' : 'hidden'};
+        pointer-events:${editingStudent ? 'auto' : 'none'};
+      "
+    >
+      Cancelar
+    </button>
+  </form>
+
+  <div class="teacher-list">
+    ${
+      students.length
+        ? students
+            .map((item) => {
+              const archived = item.status === 'archived';
+
+              const actions = [
+                `<button
+                  type="button"
+                  data-edit-student="${item.id}"
+                >
+                  Editar / transferir
+                </button>`,
+              ];
+
+              if (!archived && !item.authUserId) {
+                actions.push(
+                  `<button
+                    type="button"
+                    class="teacher-button--secondary"
+                    data-invite-student="${item.id}"
+                  >
+                    Enviar convite
+                  </button>`,
+                );
+              }
+
+              actions.push(
+                `<button
+                  type="button"
+                  class="${archived ? 'teacher-button--restore' : 'teacher-button--danger'}"
+                  data-student-status="${item.id}"
+                  data-status="${archived ? 'active' : 'archived'}"
+                >
+                  ${archived ? 'Restaurar' : 'Arquivar'}
+                </button>`,
+              );
+
+              return `
+                <article
+                  class="teacher-list__item${archived ? ' is-archived' : ''}"
+                >
+                  <div>
+                    <strong>
+                      ${escapeHtml(item.name)}
+                    </strong>
+
+                    <span>
+                      ${escapeHtml(item.enrollment || 'Sem matrícula')}
+                      ·
+                      ${escapeHtml(classNameById(state.classes, item.classId))}
+                      ${item.email ? ` · ${escapeHtml(item.email)}` : ''}
+                      ·
+                      ${archived ? 'Arquivado' : 'Ativo'}
+                    </span>
+                  </div>
+
+                  ${actionButtons(actions)}
+                </article>
+              `;
+            })
+            .join('')
+        : '<p class="teacher-empty">Nenhum aluno encontrado.</p>'
+    }
+  </div>
+</section>
+
+<section id="teacher-assessments" class="teacher-panel">
+  <div class="teacher-panel__heading">
+    <div>
+      <p class="teacher-panel__kicker">Gestão educacional</p>
+      <h2>Avaliações</h2>
+    </div>
+  </div>
+
+  <div class="teacher-toolbar">
+    <label>
+      Buscar avaliação
+      <input
+        type="search"
+        data-teacher-search="assessment"
+        value="${escapeHtml(uiState.assessmentSearch)}"
+        placeholder="Título, módulo, turma ou status"
+      >
+    </label>
+
+    <label class="teacher-check">
+      <input
+        type="checkbox"
+        data-show-archived="assessment"
+        ${uiState.showArchivedAssessments ? 'checked' : ''}
+      >
+      Mostrar arquivadas
+    </label>
+  </div>
+
+  <form
+    class="teacher-form teacher-form--wide"
+    data-education-form="assessment"
+  >
+    <label>
+      Título
+      <input
+        name="title"
+        required
+        placeholder="Ex.: Avaliação de Frenagem"
+      >
+    </label>
+
+    <label>
+      Módulo
+      <select name="moduleCode" required>
+        ${['frenagem', 'suspensao', 'opacidade', 'gases', 'produtos-perigosos']
+          .map((code) => `<option value="${code}">${code}</option>`)
+          .join('')}
+      </select>
+    </label>
+
+    <label>
+      Turma
+      <select name="classId" required>
+        ${renderClassOptions(state.classes)}
+      </select>
+    </label>
+
+    <button type="submit">
+      Criar avaliação em rascunho
+    </button>
+  </form>
+
+  <div class="teacher-list">
+    ${
+      assessments.length
+        ? assessments
+            .map((item) => {
+              const archived = item.status === 'archived';
+
+              const actions = [
+                `<button
+                  type="button"
+                  data-assessment-audit="${item.id}"
+                >
+                  Histórico e resultados
+                </button>`,
+
+                `<button
+                  type="button"
+                  data-assessment-applications="${item.id}"
+                >
+                  Aplicações
+                </button>`,
+              ];
+
+              if (item.status === 'draft') {
+                actions.push(
+                  `<button
+                    type="button"
+                    data-author-assessment="${item.id}"
+                  >
+                    Editar conteúdo
+                  </button>`,
+                );
+              }
+
+              if (item.status === 'published') {
+                actions.push(
+                  `<button
+                    type="button"
+                    class="teacher-button--publish"
+                    data-author-clone-assessment="${item.id}"
+                  >
+                    Criar nova versão
+                  </button>`,
+                );
+              }
+
+              if (archived) {
+                actions.push('<span class="teacher-authoring-readonly">Somente leitura</span>');
+              }
+
+              return `
+                <article
+                  class="teacher-list__item${archived ? ' is-archived' : ''}"
+                >
+                  <div>
+                    <strong>
+                      ${escapeHtml(item.title)}
+                    </strong>
+
+                    <span>
+                      ${escapeHtml(item.moduleCode || 'Geral')}
+                      ·
+                      ${escapeHtml(classNameById(state.classes, item.classId))}
+                      ·
+                      ${assessmentStatusLabel(item.status)}
+                    </span>
+                  </div>
+
+                  ${actionButtons(actions)}
+                </article>
+              `;
+            })
+            .join('')
+        : '<p class="teacher-empty">Nenhuma avaliação encontrada.</p>'
+    }
+  </div>
+</section>
+</section>
+`;
 }
 
 function getTeacherStickyOffset() {
@@ -1503,6 +1681,80 @@ document.addEventListener('click', async (event) => {
       );
 
       rerenderTeacherArea('teacher-classes');
+    } else if (button.dataset.inviteStudent) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const studentId = String(button.dataset.inviteStudent || '').trim();
+
+      if (!studentId) {
+        alert('Não foi possível identificar o aluno para envio do convite.');
+        return;
+      }
+
+      const state = getCachedEducationState();
+
+      const student = state?.students?.find((item) => item.id === studentId);
+
+      if (!student) {
+        alert('Não foi possível localizar os dados do aluno.');
+        return;
+      }
+
+      if (student.status !== 'active') {
+        alert('Somente alunos ativos podem receber convite.');
+        return;
+      }
+
+      if (student.authUserId) {
+        alert('Este aluno já possui uma conta de acesso vinculada.');
+        return;
+      }
+
+      if (!student.email) {
+        alert('O aluno precisa ter um e-mail cadastrado antes do envio do convite.');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Enviar convite de primeiro acesso para ${student.name} (${student.email})?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const originalText = button.textContent || 'Enviar convite';
+
+      button.disabled = true;
+      button.textContent = 'Enviando convite...';
+
+      try {
+        const result = await getStudentInvitationService().inviteStudent(studentId);
+
+        alert(
+          result.status === 'existing_auth_linked'
+            ? 'A conta de acesso existente foi vinculada ao aluno com sucesso.'
+            : 'Convite enviado com sucesso.',
+        );
+
+        /*
+         * Atualiza o estado remoto para receber o novo authUserId.
+         * Em seguida mantém a Área do Professor na seção Alunos.
+         */
+        await refreshTeacherArea();
+
+        uiState.activeSectionId = 'teacher-students';
+
+        applyTeacherActiveSection();
+      } catch (error) {
+        alert(
+          error instanceof Error ? error.message : 'Não foi possível enviar o convite ao aluno.',
+        );
+
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     } else if (button.dataset.studentStatus) {
       await runEducationMutation((repository) =>
         repository.setStudentStatus(button.dataset.studentStatus, button.dataset.status),

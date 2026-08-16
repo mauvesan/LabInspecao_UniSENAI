@@ -23,6 +23,7 @@ function mapStudent(row, membershipsByStudent = new Map()) {
     name: row.name,
     email: row.email || '',
     enrollment: row.enrollment || '',
+    authUserId: row.auth_user_id ?? null,
     classId: membershipsByStudent.get(row.id) || '',
     status: row.status,
     createdAt: row.created_at,
@@ -87,12 +88,15 @@ export class SupabaseEducationRepository {
     const [classesResult, studentsResult, membershipsResult, assessmentsResult] = await Promise.all(
       [
         this.client.from('classes').select('id,name,term,status,created_at,updated_at'),
+
         this.client
           .from('students')
-          .select('id,name,email,enrollment,status,created_at,updated_at'),
+          .select('id,name,email,enrollment,auth_user_id,status,created_at,updated_at'),
+
         this.client
           .from('class_memberships')
           .select('class_id,student_id,status,joined_at,created_at,updated_at'),
+
         this.client
           .from('assessments')
           .select('id,title,module_code,class_id,status,created_at,updated_at'),
