@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 type InviteStudentRequest = {
   student_id?: string;
+  operation?: string;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -78,14 +79,6 @@ function normalizeEmail(value: unknown): string {
   return String(value ?? '')
     .trim()
     .toLowerCase();
-}
-
-function safeErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return String(error ?? 'Erro desconhecido');
 }
 
 async function writeAudit(
@@ -280,6 +273,19 @@ Deno.serve(async (request: Request) => {
     );
   }
 
+  const operation = String(body.operation ?? 'invite')
+    .trim()
+    .toLowerCase();
+
+  if (operation !== 'invite' && operation !== 'resend') {
+    return errorResponse(
+      request,
+      400,
+      'INVALID_OPERATION',
+      'A operação informada é inválida. Use invite ou resend.',
+    );
+  }
+
   /*
    * ----------------------------------------------------------
    * 6. Busca o aluno acadêmico
@@ -329,7 +335,175 @@ Deno.serve(async (request: Request) => {
 
   /*
    * ----------------------------------------------------------
-   * 7. Impede novo provisionamento quando já existe vínculo
+   * 7. Reenvio idempotente de acesso
+   * ----------------------------------------------------------
+   *
+   * O Supabase não oferece resend(type='invite').
+   * Também não devemos chamar inviteUserByEmail() novamente
+   * para um e-mail que já existe em auth.users.
+   *
+   * Para o reenvio usamos um magic link para a mesma conta,
+   * sem criar usuário, profile ou novo vínculo acadêmico.
+   */
+  if (operation === 'resend') {
+    if (!student.auth_user_id) {
+      return errorResponse(
+        request,
+        409,
+        'STUDENT_NOT_LINKED',
+        'O aluno ainda não possui uma conta de acesso. Envie o primeiro convite.',
+      );
+    }
+
+    const { data: existingAuthData, error: existingAuthError } =
+      await adminClient.auth.admin.getUserById(student.auth_user_id);
+
+    const existingAuthUser = existingAuthData?.user ?? null;
+
+    if (existingAuthError || !existingAuthUser) {
+      console.error(
+        '[invite-student] Falha ao consultar usuário Auth vinculado:',
+        existingAuthError,
+      );
+
+      await writeAudit(adminClient, {
+        studentId,
+        authUserId: student.auth_user_id,
+        email,
+        action: 'invite_resend_failed',
+        performedBy: teacherProfile.id,
+        details: {
+          enrollment: student.enrollment,
+          reason: existingAuthError?.message ?? 'Usuário Auth vinculado não foi localizado.',
+        },
+      });
+
+      return errorResponse(
+        request,
+        500,
+        'LINKED_AUTH_USER_LOOKUP_FAILED',
+        'Não foi possível consultar a conta de acesso vinculada ao aluno.',
+      );
+    }
+
+    const authEmail = normalizeEmail(existingAuthUser.email);
+
+    if (authEmail !== email) {
+      await writeAudit(adminClient, {
+        studentId,
+        authUserId: existingAuthUser.id,
+        email,
+        action: 'invite_resend_failed',
+        performedBy: teacherProfile.id,
+        details: {
+          enrollment: student.enrollment,
+          reason: 'E-mail acadêmico diverge do e-mail da conta Auth.',
+          auth_email: authEmail,
+        },
+      });
+
+      return errorResponse(
+        request,
+        409,
+        'AUTH_EMAIL_MISMATCH',
+        'O e-mail cadastrado no aluno diverge da conta de acesso vinculada.',
+      );
+    }
+
+    /*
+     * Reenvio só é permitido enquanto o e-mail ainda não
+     * tiver sido confirmado. Depois disso o aluno já passou
+     * do estado "Convite enviado".
+     */
+    if (existingAuthUser.email_confirmed_at) {
+      return errorResponse(
+        request,
+        409,
+        'INVITATION_ALREADY_ACCEPTED',
+        'O aluno já confirmou o e-mail. O reenvio do convite não é mais necessário.',
+      );
+    }
+
+    /*
+     * Cliente não autenticado usado apenas para solicitar
+     * magic link para uma conta existente.
+     *
+     * shouldCreateUser=false garante que esta operação
+     * nunca crie outro usuário por acidente.
+     */
+    const mailerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+
+    const { error: resendError } = await mailerClient.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: STUDENT_INVITE_REDIRECT_URL,
+      },
+    });
+
+    if (resendError) {
+      console.error('[invite-student] Falha ao reenviar acesso:', resendError);
+
+      await writeAudit(adminClient, {
+        studentId,
+        authUserId: existingAuthUser.id,
+        email,
+        action: 'invite_resend_failed',
+        performedBy: teacherProfile.id,
+        details: {
+          enrollment: student.enrollment,
+          reason: resendError.message,
+          delivery: 'magiclink',
+          redirect_to: STUDENT_INVITE_REDIRECT_URL,
+        },
+      });
+
+      return errorResponse(
+        request,
+        resendError.status === 429 ? 429 : 502,
+        resendError.status === 429 ? 'INVITE_RESEND_RATE_LIMITED' : 'INVITE_RESEND_FAILED',
+        resendError.status === 429
+          ? 'O limite de reenvios foi atingido. Tente novamente mais tarde.'
+          : 'Não foi possível reenviar o acesso ao aluno.',
+      );
+    }
+
+    await writeAudit(adminClient, {
+      studentId,
+      authUserId: existingAuthUser.id,
+      email,
+      action: 'invite_resent',
+      performedBy: teacherProfile.id,
+      details: {
+        enrollment: student.enrollment,
+        delivery: 'magiclink',
+        redirect_to: STUDENT_INVITE_REDIRECT_URL,
+      },
+    });
+
+    return jsonResponse(request, 200, {
+      ok: true,
+      data: {
+        student_id: student.id,
+        student_name: student.name,
+        enrollment: student.enrollment,
+        email,
+        auth_user_id: existingAuthUser.id,
+        status: 'invite_resent',
+        delivery: 'magiclink',
+      },
+    });
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 8. Primeiro convite: impede novo provisionamento quando
+   *    já existe vínculo
    * ----------------------------------------------------------
    */
 
@@ -358,7 +532,7 @@ Deno.serve(async (request: Request) => {
 
   /*
    * ----------------------------------------------------------
-   * 8. Localiza ou cria o usuário Auth
+   * 9. Localiza ou cria o usuário Auth
    * ----------------------------------------------------------
    */
 
@@ -368,8 +542,8 @@ Deno.serve(async (request: Request) => {
   /*
    * Procura primeiro um usuário Auth existente com o mesmo e-mail.
    *
-   * Isso evita falha em convites repetidos ou quando a conta
-   * foi criada anteriormente por outro fluxo.
+   * Isso evita falha quando a conta foi criada anteriormente
+   * por outro fluxo, mas ainda não está vinculada ao aluno.
    */
   const { data: usersPage, error: listUsersError } = await adminClient.auth.admin.listUsers({
     page: 1,
@@ -431,10 +605,8 @@ Deno.serve(async (request: Request) => {
     invitationWasSent = true;
   } else {
     /*
-     * Conta Auth já existente.
-     *
-     * Atualizamos os metadados administrativos necessários
-     * para o fluxo de onboarding do LabInspeção.
+     * Conta Auth já existente e ainda não vinculada ao aluno.
+     * Atualizamos somente os metadados necessários.
      */
     const currentMetadata = authUser.user_metadata ?? {};
 
@@ -450,7 +622,7 @@ Deno.serve(async (request: Request) => {
         },
       });
 
-    if (updateAuthError) {
+    if (updateAuthError || !updatedAuth?.user) {
       console.error('[invite-student] Falha ao atualizar usuário Auth existente:', updateAuthError);
 
       return errorResponse(
@@ -474,9 +646,10 @@ Deno.serve(async (request: Request) => {
       },
     });
   }
+
   /*
    * ----------------------------------------------------------
-   * 9. Cria/atualiza o profile
+   * 10. Cria/atualiza o profile
    * ----------------------------------------------------------
    */
 
@@ -509,10 +682,8 @@ Deno.serve(async (request: Request) => {
     });
 
     /*
-     * Evita deixar um usuário Auth órfão.
-     *
-     * O e-mail já pode ter sido enviado, portanto registramos
-     * a falha antes da limpeza.
+     * Só remove o usuário Auth quando ele foi criado
+     * nesta própria execução.
      */
     if (invitationWasSent) {
       const { error: rollbackError } = await adminClient.auth.admin.deleteUser(authUser.id);
@@ -532,7 +703,7 @@ Deno.serve(async (request: Request) => {
 
   /*
    * ----------------------------------------------------------
-   * 10. Vincula public.students ao auth.users
+   * 11. Vincula public.students ao auth.users
    * ----------------------------------------------------------
    *
    * Esta chamada é deliberadamente feita com teacherClient.
@@ -563,9 +734,6 @@ Deno.serve(async (request: Request) => {
     /*
      * Rollback destrutivo somente quando o usuário Auth
      * foi criado nesta própria execução.
-     *
-     * Se a conta Auth já existia anteriormente, não removemos
-     * nem o profile nem o usuário.
      */
     if (invitationWasSent) {
       const { error: deleteProfileError } = await adminClient
@@ -591,9 +759,10 @@ Deno.serve(async (request: Request) => {
       'O convite foi iniciado, mas não foi possível vincular a conta ao cadastro acadêmico.',
     );
   }
+
   /*
    * ----------------------------------------------------------
-   * 11. Auditoria de sucesso
+   * 12. Auditoria de sucesso
    * ----------------------------------------------------------
    */
 
@@ -612,7 +781,7 @@ Deno.serve(async (request: Request) => {
 
   /*
    * ----------------------------------------------------------
-   * 12. Resposta ao cliente
+   * 13. Resposta ao cliente
    * ----------------------------------------------------------
    */
 

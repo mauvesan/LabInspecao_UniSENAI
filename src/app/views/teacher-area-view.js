@@ -24,6 +24,7 @@ import {
 import { openTeacherAssessmentAudit } from './teacher-assessment-audit-panel.js';
 import { openTeacherAssessmentApplications } from './teacher-assessment-application-panel.js';
 import { getStudentInvitationService } from '../../platform/education/student-invitation-service.js';
+import { getStudentAccessStatusService } from '../../platform/education/student-access-status-service.js';
 
 let teacherNavigationController = null;
 let teacherRenderRevision = 0;
@@ -41,6 +42,7 @@ const uiState = {
   dashboardClassId: '',
   dashboardTerm: '',
   activeSectionId: 'teacher-dashboard',
+  studentAccessStatusById: new Map(),
 };
 
 function escapeHtml(value = '') {
@@ -396,6 +398,16 @@ async function hydrateTeacherProgressDashboard() {
   }
 }
 
+async function hydrateTeacherStudentAccessStatus() {
+  try {
+    const rows = await getStudentAccessStatusService().readAll();
+
+    uiState.studentAccessStatusById = new Map(rows.map((item) => [item.studentId, item]));
+  } catch (error) {
+    console.error('[teacher-area] Não foi possível carregar o estado de acesso dos alunos:', error);
+  }
+}
+
 function renderEducationLoading() {
   return `
     <section class="teacher-platform teacher-platform--loading" data-teacher-platform>
@@ -423,9 +435,12 @@ function renderEducationError(error) {
 
 async function refreshTeacherArea(sectionId = '') {
   try {
-    await loadEducationState({ force: true });
+    await Promise.all([loadEducationState({ force: true }), hydrateTeacherStudentAccessStatus()]);
+
     rerenderTeacherArea(sectionId);
-  } catch {
+  } catch (error) {
+    console.error('[teacher-area] Falha ao atualizar a Área do Professor:', error);
+
     rerenderTeacherArea(sectionId);
   }
 }
@@ -446,8 +461,30 @@ export function renderTeacherArea() {
 
     queueMicrotask(() => {
       loadEducationState()
-        .then(() => rerenderTeacherArea())
-        .catch(() => rerenderTeacherArea());
+        .then(async () => {
+          /*
+           * Primeiro libera a Área do Professor com os dados
+           * educacionais, preservando o fluxo estável existente.
+           */
+          rerenderTeacherArea();
+
+          /*
+           * O estado de acesso é complementar.
+           * Ele não pode bloquear a carga principal da tela.
+           */
+          await hydrateTeacherStudentAccessStatus();
+
+          /*
+           * Só depois atualizamos a interface com os rótulos
+           * de acesso já disponíveis no Map.
+           */
+          rerenderTeacherArea();
+        })
+        .catch((error) => {
+          console.error('[teacher-area] Falha na carga inicial da Área do Professor:', error);
+
+          rerenderTeacherArea();
+        });
     });
 
     return renderEducationLoading();
@@ -796,6 +833,14 @@ export function renderTeacherArea() {
         ? students
             .map((item) => {
               const archived = item.status === 'archived';
+              const access = uiState.studentAccessStatusById.get(item.id);
+              const accessLabel =
+                {
+                  not_provisioned: 'Acesso não criado',
+                  invited: 'Convite enviado',
+                  onboarding_pending: 'Primeiro acesso pendente',
+                  active: 'Acesso ativo',
+                }[access?.accessStatus] || 'Acesso não identificado';
 
               const actions = [
                 `<button
@@ -806,7 +851,12 @@ export function renderTeacherArea() {
                 </button>`,
               ];
 
-              if (!archived && !item.authUserId) {
+              const accessStatus = access?.accessStatus || '';
+
+              if (
+                !archived &&
+                (accessStatus === 'not_provisioned' || (!accessStatus && !item.authUserId))
+              ) {
                 actions.push(
                   `<button
                     type="button"
@@ -814,6 +864,18 @@ export function renderTeacherArea() {
                     data-invite-student="${item.id}"
                   >
                     Enviar convite
+                  </button>`,
+                );
+              }
+
+              if (!archived && accessStatus === 'invited') {
+                actions.push(
+                  `<button
+                    type="button"
+                    class="teacher-button--secondary"
+                    data-resend-student-invitation="${item.id}"
+                  >
+                    Reenviar convite
                   </button>`,
                 );
               }
@@ -845,6 +907,7 @@ export function renderTeacherArea() {
                       ${item.email ? ` · ${escapeHtml(item.email)}` : ''}
                       ·
                       ${archived ? 'Arquivado' : 'Ativo'}
+                      · ${escapeHtml(accessLabel)}
                     </span>
                   </div>
 
@@ -1750,6 +1813,83 @@ document.addEventListener('click', async (event) => {
       } catch (error) {
         alert(
           error instanceof Error ? error.message : 'Não foi possível enviar o convite ao aluno.',
+        );
+
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    } else if (button.dataset.resendStudentInvitation) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const studentId = String(button.dataset.resendStudentInvitation || '').trim();
+
+      if (!studentId) {
+        alert('Não foi possível identificar o aluno para reenvio do convite.');
+        return;
+      }
+
+      const state = getCachedEducationState();
+      const student = state?.students?.find((item) => item.id === studentId);
+      const access = uiState.studentAccessStatusById.get(studentId);
+
+      if (!student) {
+        alert('Não foi possível localizar os dados do aluno.');
+        return;
+      }
+
+      if (student.status !== 'active') {
+        alert('Somente alunos ativos podem receber reenvio de convite.');
+        return;
+      }
+
+      if (access?.accessStatus !== 'invited') {
+        alert('O reenvio só está disponível para alunos com convite ainda não confirmado.');
+        return;
+      }
+
+      if (!student.authUserId) {
+        alert('O aluno ainda não possui uma conta de acesso vinculada.');
+        return;
+      }
+
+      if (!student.email) {
+        alert('O aluno precisa ter um e-mail cadastrado antes do reenvio do convite.');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Reenviar convite de acesso para ${student.name} (${student.email})?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const originalText = button.textContent || 'Reenviar convite';
+
+      button.disabled = true;
+      button.textContent = 'Reenviando convite...';
+
+      try {
+        const result = await getStudentInvitationService().resendStudentInvitation(studentId);
+
+        if (result.status !== 'invite_resent') {
+          throw new Error('O servidor não confirmou o reenvio do convite.');
+        }
+
+        alert('Convite reenviado com sucesso.');
+
+        /*
+         * O reenvio não altera auth_user_id, profile ou vínculo acadêmico.
+         * Portanto não reconstruímos a Área do Professor e preservamos
+         * exatamente a posição atual da tela.
+         */
+        button.disabled = false;
+        button.textContent = originalText;
+      } catch (error) {
+        alert(
+          error instanceof Error ? error.message : 'Não foi possível reenviar o convite ao aluno.',
         );
 
         button.disabled = false;
