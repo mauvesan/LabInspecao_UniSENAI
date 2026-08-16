@@ -42,6 +42,7 @@ const uiState = {
   dashboardClassId: '',
   dashboardTerm: '',
   activeSectionId: 'teacher-dashboard',
+  studentAccessFilter: '',
   studentAccessStatusById: new Map(),
 };
 
@@ -88,6 +89,30 @@ function matches(values, search) {
 
 function actionButtons(actions) {
   return `<div class="teacher-list__actions">${actions.join('')}</div>`;
+}
+
+function studentAccessStatusLabel(status) {
+  return (
+    {
+      not_provisioned: 'Acesso não criado',
+      invited: 'Convite enviado',
+      onboarding_pending: 'Primeiro acesso pendente',
+      active: 'Acesso ativo',
+    }[status] || 'Acesso não identificado'
+  );
+}
+
+function formatStudentAccessDate(value, emptyLabel = 'Não registrado') {
+  if (!value) return emptyLabel;
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? emptyLabel
+    : date.toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      });
 }
 
 function formatRecentDate(value) {
@@ -502,19 +527,58 @@ export function renderTeacherArea() {
   const editingClass = state.classes.find((item) => item.id === uiState.editClassId);
   const editingStudent = state.students.find((item) => item.id === uiState.editStudentId);
 
+  /*
+   * Indicadores operacionais de acesso.
+   *
+   * Contamos somente alunos acadêmicos não arquivados.
+   * A contagem é independente da busca e do filtro atual,
+   * para que o painel permaneça uma visão geral da turma.
+   */
+  const studentAccessCounts = {
+    not_provisioned: 0,
+    invited: 0,
+    onboarding_pending: 0,
+    active: 0,
+  };
+
+  for (const student of state.students) {
+    if (student.status === 'archived') continue;
+
+    const access = uiState.studentAccessStatusById.get(student.id);
+    const accessStatus = access?.accessStatus || (!student.authUserId ? 'not_provisioned' : '');
+
+    if (Object.hasOwn(studentAccessCounts, accessStatus)) {
+      studentAccessCounts[accessStatus] += 1;
+    }
+  }
+
   const classes = state.classes.filter(
     (item) =>
       (uiState.showArchivedClasses || item.status !== 'archived') &&
       matches([item.name, item.term], uiState.classSearch),
   );
-  const students = state.students.filter(
-    (item) =>
+  const students = state.students.filter((item) => {
+    const access = uiState.studentAccessStatusById.get(item.id);
+    const accessStatus = access?.accessStatus || '';
+
+    const matchesAccessFilter =
+      !uiState.studentAccessFilter || accessStatus === uiState.studentAccessFilter;
+
+    return (
       (uiState.showArchivedStudents || item.status !== 'archived') &&
+      matchesAccessFilter &&
       matches(
-        [item.name, item.email, item.enrollment, classNameById(state.classes, item.classId)],
+        [
+          item.name,
+          item.email,
+          item.enrollment,
+          classNameById(state.classes, item.classId),
+          studentAccessStatusLabel(accessStatus),
+        ],
         uiState.studentSearch,
-      ),
-  );
+      )
+    );
+  });
   const assessments = state.assessments.filter(
     (item) =>
       (uiState.showArchivedAssessments || item.status !== 'archived') &&
@@ -747,6 +811,47 @@ export function renderTeacherArea() {
     </div>
   </div>
 
+  <div
+    class="teacher-dashboard__metrics teacher-student-access-metrics"
+    aria-label="Indicadores de acesso dos alunos"
+  >
+    ${[
+      ['not_provisioned', 'Acesso não criado'],
+      ['invited', 'Convite enviado'],
+      ['onboarding_pending', 'Primeiro acesso pendente'],
+      ['active', 'Acesso ativo'],
+    ]
+      .map(([status, label]) => {
+        const selected = uiState.studentAccessFilter === status;
+
+        return `
+          <article class="${selected ? 'is-active' : ''}">
+            <button
+              type="button"
+              data-student-access-indicator="${status}"
+              aria-pressed="${selected ? 'true' : 'false'}"
+              title="${selected ? `Remover filtro: ${label}` : `Filtrar por: ${label}`}"
+              style="
+                width:100%;
+                border:0;
+                background:transparent;
+                color:inherit;
+                text-align:left;
+                cursor:pointer;
+                padding:0;
+                font:inherit;
+              "
+            >
+              <strong>${studentAccessCounts[status]}</strong>
+              <span>${escapeHtml(label)}</span>
+              <small>${selected ? 'Filtro ativo · clique para limpar' : 'Clique para filtrar'}</small>
+            </button>
+          </article>
+        `;
+      })
+      .join('')}
+  </div>
+
   <div class="teacher-toolbar">
     <label>
       Buscar aluno
@@ -754,8 +859,41 @@ export function renderTeacherArea() {
         type="search"
         data-teacher-search="student"
         value="${escapeHtml(uiState.studentSearch)}"
-        placeholder="Nome, matrícula, e-mail ou turma"
+        placeholder="Nome, matrícula, e-mail, turma ou acesso"
       >
+    </label>
+
+    <label>
+      Estado de acesso
+      <select data-student-access-filter>
+        <option value=""${uiState.studentAccessFilter ? '' : ' selected'}>
+          Todos os estados
+        </option>
+        <option
+          value="not_provisioned"
+          ${uiState.studentAccessFilter === 'not_provisioned' ? 'selected' : ''}
+        >
+          Acesso não criado
+        </option>
+        <option
+          value="invited"
+          ${uiState.studentAccessFilter === 'invited' ? 'selected' : ''}
+        >
+          Convite enviado
+        </option>
+        <option
+          value="onboarding_pending"
+          ${uiState.studentAccessFilter === 'onboarding_pending' ? 'selected' : ''}
+        >
+          Primeiro acesso pendente
+        </option>
+        <option
+          value="active"
+          ${uiState.studentAccessFilter === 'active' ? 'selected' : ''}
+        >
+          Acesso ativo
+        </option>
+      </select>
     </label>
 
     <label class="teacher-check">
@@ -834,13 +972,20 @@ export function renderTeacherArea() {
             .map((item) => {
               const archived = item.status === 'archived';
               const access = uiState.studentAccessStatusById.get(item.id);
-              const accessLabel =
-                {
-                  not_provisioned: 'Acesso não criado',
-                  invited: 'Convite enviado',
-                  onboarding_pending: 'Primeiro acesso pendente',
-                  active: 'Acesso ativo',
-                }[access?.accessStatus] || 'Acesso não identificado';
+              const accessStatus = access?.accessStatus || '';
+              const accessLabel = studentAccessStatusLabel(accessStatus);
+
+              const invitedAtLabel = formatStudentAccessDate(access?.invitedAt, 'Não enviado');
+
+              const lastSignInLabel = formatStudentAccessDate(
+                access?.lastSignInAt,
+                'Nunca acessou',
+              );
+
+              const onboardingCompletedLabel = formatStudentAccessDate(
+                access?.onboardingCompletedAt,
+                'Não concluído',
+              );
 
               const actions = [
                 `<button
@@ -850,8 +995,6 @@ export function renderTeacherArea() {
                   Editar / transferir
                 </button>`,
               ];
-
-              const accessStatus = access?.accessStatus || '';
 
               if (
                 !archived &&
@@ -909,6 +1052,17 @@ export function renderTeacherArea() {
                       ${archived ? 'Arquivado' : 'Ativo'}
                       · ${escapeHtml(accessLabel)}
                     </span>
+
+                    <small class="teacher-student-access-meta">
+                      Convite: ${escapeHtml(invitedAtLabel)}
+                      ·
+                      Último acesso: ${escapeHtml(lastSignInLabel)}
+                      ${
+                        accessStatus === 'active'
+                          ? ` · Onboarding: ${escapeHtml(onboardingCompletedLabel)}`
+                          : ''
+                      }
+                    </small>
                   </div>
 
                   ${actionButtons(actions)}
@@ -1303,6 +1457,12 @@ document.addEventListener('change', (event) => {
     return;
   }
 
+  if (event.target.hasAttribute?.('data-student-access-filter')) {
+    uiState.studentAccessFilter = event.target.value;
+    rerenderTeacherArea('teacher-students');
+    return;
+  }
+
   const type = event.target.dataset?.showArchived;
   if (!type) return;
   const key = {
@@ -1349,6 +1509,26 @@ document.addEventListener('click', async (event) => {
       behavior: 'smooth',
     });
 
+    return;
+  }
+
+  const accessIndicator = event.target.closest?.('[data-student-access-indicator]');
+
+  if (accessIndicator) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const status = String(accessIndicator.dataset.studentAccessIndicator || '').trim();
+
+    if (!status) return;
+
+    /*
+     * Clique no mesmo indicador remove o filtro.
+     * Clique em outro indicador troca diretamente o filtro.
+     */
+    uiState.studentAccessFilter = uiState.studentAccessFilter === status ? '' : status;
+
+    rerenderTeacherArea('teacher-students');
     return;
   }
 
