@@ -63,10 +63,8 @@ export function appHeader() {
           <span class="status-chip status-chip--mode">
             <span class="status-dot" aria-hidden="true"></span>
             ${
-  config.education.persistenceProvider === 'supabase'
-    ? 'Supabase remoto'
-    : 'Modo local'
-}
+              config.education.persistenceProvider === 'supabase' ? 'Supabase remoto' : 'Modo local'
+            }
           </span>
 
           ${renderIdentity()}

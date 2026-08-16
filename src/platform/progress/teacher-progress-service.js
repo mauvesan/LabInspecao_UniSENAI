@@ -4,9 +4,8 @@ function percentageAverage(values) {
   if (!values.length) return 0;
 
   return (
-    Math.round(
-      (values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length) * 10,
-    ) / 10
+    Math.round((values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length) * 10) /
+    10
   );
 }
 
@@ -132,13 +131,8 @@ export function buildTeacherProgressSummary({
     metrics: {
       studentsWithProgress: studentsWithProgress.size,
       completedModules: completedRows.length,
-      averageBestPercentage: percentageAverage(
-        filteredRows.map((row) => row.best_percentage),
-      ),
-      attempts: filteredRows.reduce(
-        (sum, row) => sum + Number(row.attempt_count ?? 0),
-        0,
-      ),
+      averageBestPercentage: percentageAverage(filteredRows.map((row) => row.best_percentage)),
+      attempts: filteredRows.reduce((sum, row) => sum + Number(row.attempt_count ?? 0), 0),
     },
     rows,
   };
@@ -176,9 +170,7 @@ export function buildTeacherFormalAssessmentSummary({
      * apenas como fallback para avaliações antigas sem class_id.
      */
     const linkedClassId =
-      assessment?.class_id ||
-      activeMembershipByStudent.get(row.student_id) ||
-      '';
+      assessment?.class_id || activeMembershipByStudent.get(row.student_id) || '';
 
     const linkedClass = classById.get(linkedClassId);
 
@@ -188,9 +180,7 @@ export function buildTeacherFormalAssessmentSummary({
     return true;
   });
 
-  const studentsWithResults = new Set(
-    filteredRows.map((row) => row.student_id),
-  );
+  const studentsWithResults = new Set(filteredRows.map((row) => row.student_id));
 
   const passedRows = filteredRows.filter((row) => row.passed);
 
@@ -200,9 +190,7 @@ export function buildTeacherFormalAssessmentSummary({
       const assessment = assessmentById.get(row.assessment_id);
 
       const linkedClassId =
-        assessment?.class_id ||
-        activeMembershipByStudent.get(row.student_id) ||
-        '';
+        assessment?.class_id || activeMembershipByStudent.get(row.student_id) || '';
 
       const linkedClass = classById.get(linkedClassId);
 
@@ -213,8 +201,7 @@ export function buildTeacherFormalAssessmentSummary({
         classId: linkedClassId,
         className: linkedClass?.name || 'Sem turma',
         assessmentId: row.assessment_id,
-        assessmentTitle:
-          assessment?.title || 'Avaliação não identificada',
+        assessmentTitle: assessment?.title || 'Avaliação não identificada',
         moduleCode: assessment?.module_code || '',
         bestPercentage: Number(row.best_percentage ?? 0),
         passed: Boolean(row.passed),
@@ -223,30 +210,19 @@ export function buildTeacherFormalAssessmentSummary({
       };
     })
     .sort((a, b) => {
-      const byName = a.studentName.localeCompare(
-        b.studentName,
-        'pt-BR',
-      );
+      const byName = a.studentName.localeCompare(b.studentName, 'pt-BR');
 
       if (byName) return byName;
 
-      return a.assessmentTitle.localeCompare(
-        b.assessmentTitle,
-        'pt-BR',
-      );
+      return a.assessmentTitle.localeCompare(b.assessmentTitle, 'pt-BR');
     });
 
   return {
     metrics: {
       studentsWithResults: studentsWithResults.size,
       passedAssessments: passedRows.length,
-      averageBestPercentage: percentageAverage(
-        filteredRows.map((row) => row.best_percentage),
-      ),
-      attempts: filteredRows.reduce(
-        (sum, row) => sum + Number(row.attempt_count ?? 0),
-        0,
-      ),
+      averageBestPercentage: percentageAverage(filteredRows.map((row) => row.best_percentage)),
+      attempts: filteredRows.reduce((sum, row) => sum + Number(row.attempt_count ?? 0), 0),
     },
     rows,
     error: null,
@@ -273,17 +249,11 @@ export class TeacherProgressService {
           'student_id,module_code,best_percentage,completed,first_passed_at,last_attempt_at,attempt_count',
         ),
 
-      this.client
-        .from('students')
-        .select('id,name,enrollment,status'),
+      this.client.from('students').select('id,name,enrollment,status'),
 
-      this.client
-        .from('class_memberships')
-        .select('student_id,class_id,status'),
+      this.client.from('class_memberships').select('student_id,class_id,status'),
 
-      this.client
-        .from('classes')
-        .select('id,name,term,status'),
+      this.client.from('classes').select('id,name,term,status'),
 
       this.client
         .from('assessment_results')
@@ -291,25 +261,17 @@ export class TeacherProgressService {
           'student_id,assessment_id,best_percentage,passed,first_passed_at,last_attempt_at,attempt_count',
         ),
 
-      this.client
-        .from('assessments')
-        .select('id,title,module_code,class_id,status'),
+      this.client.from('assessments').select('id,title,module_code,class_id,status'),
     ]);
 
     /*
      * Estes quatro conjuntos já eram obrigatórios no dashboard
      * anterior. Uma falha aqui continua sendo fatal.
      */
-    for (const result of [
-      progressResult,
-      studentsResult,
-      membershipsResult,
-      classesResult,
-    ]) {
+    for (const result of [progressResult, studentsResult, membershipsResult, classesResult]) {
       if (result.error) {
         const error = new Error(
-          result.error.message ||
-            'Não foi possível consolidar o progresso remoto do professor.',
+          result.error.message || 'Não foi possível consolidar o progresso remoto do professor.',
         );
 
         error.cause = result.error;
@@ -333,8 +295,7 @@ export class TeacherProgressService {
     let formal;
 
     if (assessmentResultsResult.error || assessmentsResult.error) {
-      const sourceError =
-        assessmentResultsResult.error || assessmentsResult.error;
+      const sourceError = assessmentResultsResult.error || assessmentsResult.error;
 
       formal = {
         metrics: {
@@ -345,8 +306,7 @@ export class TeacherProgressService {
         },
         rows: [],
         error:
-          sourceError?.message ||
-          'Não foi possível carregar os resultados das avaliações formais.',
+          sourceError?.message || 'Não foi possível carregar os resultados das avaliações formais.',
       };
     } else {
       formal = buildTeacherFormalAssessmentSummary({

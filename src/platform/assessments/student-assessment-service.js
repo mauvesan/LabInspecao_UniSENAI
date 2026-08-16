@@ -26,14 +26,8 @@ export function mapStudentAssessment(row) {
     id: asText(row.id),
     title: asText(row.title),
     moduleCode,
-    moduleLabel:
-      MODULE_LABELS[moduleCode] ||
-      moduleCode ||
-      'Módulo',
-    classId:
-      row.class_id == null
-        ? null
-        : asText(row.class_id),
+    moduleLabel: MODULE_LABELS[moduleCode] || moduleCode || 'Módulo',
+    classId: row.class_id == null ? null : asText(row.class_id),
     status: asText(row.status),
     createdAt: asText(row.created_at),
     updatedAt: asText(row.updated_at),
@@ -41,9 +35,7 @@ export function mapStudentAssessment(row) {
 }
 
 function wrapFailure(error, fallbackMessage) {
-  const failure = new Error(
-    error?.message || fallbackMessage,
-  );
+  const failure = new Error(error?.message || fallbackMessage);
 
   failure.cause = error;
 
@@ -51,9 +43,7 @@ function wrapFailure(error, fallbackMessage) {
 }
 
 export class StudentAssessmentService {
-  constructor({
-    client = getSupabaseAuthClient(),
-  } = {}) {
+  constructor({ client = getSupabaseAuthClient() } = {}) {
     this.client = client;
   }
 
@@ -65,15 +55,10 @@ export class StudentAssessmentService {
    * por meio de private.resolve_student_assessment_application().
    */
   async listAvailable() {
-    const { data, error } = await this.client.rpc(
-      'list_available_assessments',
-    );
+    const { data, error } = await this.client.rpc('list_available_assessments');
 
     if (error) {
-      throw wrapFailure(
-        error,
-        'Não foi possível carregar as avaliações disponíveis.',
-      );
+      throw wrapFailure(error, 'Não foi possível carregar as avaliações disponíveis.');
     }
 
     return (data || []).map(mapStudentAssessment);
@@ -88,25 +73,15 @@ export class StudentAssessmentService {
    * @param {string} assessmentId
    */
   async getAvailableById(assessmentId) {
-    const id = String(
-      assessmentId || '',
-    ).trim();
+    const id = String(assessmentId || '').trim();
 
     if (!id) {
-      throw new Error(
-        'assessmentId é obrigatório.',
-      );
+      throw new Error('assessmentId é obrigatório.');
     }
 
-    const available =
-      await this.listAvailable();
+    const available = await this.listAvailable();
 
-    return (
-      available.find(
-        (assessment) =>
-          assessment.id === id,
-      ) || null
-    );
+    return available.find((assessment) => assessment.id === id) || null;
   }
 }
 
@@ -114,8 +89,7 @@ let singleton = null;
 
 export function getStudentAssessmentService() {
   if (!singleton) {
-    singleton =
-      new StudentAssessmentService();
+    singleton = new StudentAssessmentService();
   }
 
   return singleton;

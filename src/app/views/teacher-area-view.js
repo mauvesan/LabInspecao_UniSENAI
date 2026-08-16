@@ -25,7 +25,7 @@ import { openTeacherAssessmentAudit } from './teacher-assessment-audit-panel.js'
 import { openTeacherAssessmentApplications } from './teacher-assessment-application-panel.js';
 
 let teacherNavigationController = null;
-let teacherNavigationFrame = 0;
+let teacherRenderRevision = 0;
 
 const uiState = {
   classSearch: '',
@@ -39,6 +39,7 @@ const uiState = {
   editAssessmentId: '',
   dashboardClassId: '',
   dashboardTerm: '',
+  activeSectionId: 'teacher-dashboard',
 };
 
 function escapeHtml(value = '') {
@@ -127,9 +128,7 @@ function renderTeacherProgressTable(summary) {
                 <tr>
                   <td>
                     <strong>${escapeHtml(row.studentName)}</strong>
-                    <small>${escapeHtml(
-                      row.enrollment || 'Sem matrícula',
-                    )}</small>
+                    <small>${escapeHtml(row.enrollment || 'Sem matrícula')}</small>
                   </td>
 
                   <td>${escapeHtml(row.className)}</td>
@@ -143,23 +142,15 @@ function renderTeacherProgressTable(summary) {
                   <td>
                     <span
                       class="teacher-progress-status ${
-                        row.completed
-                          ? 'is-complete'
-                          : 'is-pending'
+                        row.completed ? 'is-complete' : 'is-pending'
                       }"
                     >
-                      ${
-                        row.completed
-                          ? 'Concluído'
-                          : 'Em andamento'
-                      }
+                      ${row.completed ? 'Concluído' : 'Em andamento'}
                     </span>
                   </td>
 
                   <td>
-                    ${escapeHtml(
-                      formatRecentDate(row.lastAttemptAt),
-                    )}
+                    ${escapeHtml(formatRecentDate(row.lastAttemptAt))}
                   </td>
                 </tr>
               `,
@@ -211,9 +202,7 @@ function renderTeacherFormalAssessmentTable(formal) {
                 <tr>
                   <td>
                     <strong>${escapeHtml(row.studentName)}</strong>
-                    <small>${escapeHtml(
-                      row.enrollment || 'Sem matrícula',
-                    )}</small>
+                    <small>${escapeHtml(row.enrollment || 'Sem matrícula')}</small>
                   </td>
 
                   <td>${escapeHtml(row.className)}</td>
@@ -234,24 +223,14 @@ function renderTeacherFormalAssessmentTable(formal) {
 
                   <td>
                     <span
-                      class="teacher-progress-status ${
-                        row.passed
-                          ? 'is-complete'
-                          : 'is-pending'
-                      }"
+                      class="teacher-progress-status ${row.passed ? 'is-complete' : 'is-pending'}"
                     >
-                      ${
-                        row.passed
-                          ? 'Aprovado'
-                          : 'Não aprovado'
-                      }
+                      ${row.passed ? 'Aprovado' : 'Não aprovado'}
                     </span>
                   </td>
 
                   <td>
-                    ${escapeHtml(
-                      formatRecentDate(row.lastAttemptAt),
-                    )}
+                    ${escapeHtml(formatRecentDate(row.lastAttemptAt))}
                   </td>
                 </tr>
               `,
@@ -264,21 +243,24 @@ function renderTeacherFormalAssessmentTable(formal) {
 }
 
 async function hydrateTeacherProgressDashboard() {
-  const container = document.querySelector(
-    '[data-teacher-progress]',
-  );
+  const container = document.querySelector('[data-teacher-progress]');
 
   if (!container) return;
+
+  const previousHeight = container.getBoundingClientRect().height;
+
+  if (previousHeight > 0) {
+    container.style.minHeight = `${previousHeight}px`;
+  }
 
   container.innerHTML =
     '<p class="teacher-progress-loading" role="status">Carregando resultados remotos...</p>';
 
   try {
-    const summary =
-      await getTeacherProgressService().readSummary({
-        classId: uiState.dashboardClassId,
-        term: uiState.dashboardTerm,
-      });
+    const summary = await getTeacherProgressService().readSummary({
+      classId: uiState.dashboardClassId,
+      term: uiState.dashboardTerm,
+    });
 
     const formal = summary.formal || {
       metrics: {
@@ -325,9 +307,7 @@ async function hydrateTeacherProgressDashboard() {
 
           <article>
             <strong>
-              ${summary.metrics.averageBestPercentage.toFixed(
-                1,
-              )}%
+              ${summary.metrics.averageBestPercentage.toFixed(1)}%
             </strong>
             <span>Média das melhores notas</span>
           </article>
@@ -380,9 +360,7 @@ async function hydrateTeacherProgressDashboard() {
 
                   <article>
                     <strong>
-                      ${formal.metrics.averageBestPercentage.toFixed(
-                        1,
-                      )}%
+                      ${formal.metrics.averageBestPercentage.toFixed(1)}%
                     </strong>
                     <span>Média das melhores notas</span>
                   </article>
@@ -410,6 +388,10 @@ async function hydrateTeacherProgressDashboard() {
         )}
       </p>
     `;
+  } finally {
+    requestAnimationFrame(() => {
+      container.style.minHeight = '';
+    });
   }
 }
 
@@ -586,9 +568,7 @@ export function renderTeacherArea() {
 
           <span
             class="teacher-supabase-status${
-              supabaseConfiguration.configured
-                ? ' is-configured'
-                : ''
+              supabaseConfiguration.configured ? ' is-configured' : ''
             }"
             data-supabase-status
           >
@@ -711,15 +691,61 @@ export function renderTeacherArea() {
           <label>Buscar aluno<input type="search" data-teacher-search="student" value="${escapeHtml(uiState.studentSearch)}" placeholder="Nome, matrícula, e-mail ou turma"></label>
           <label class="teacher-check"><input type="checkbox" data-show-archived="student"${uiState.showArchivedStudents ? ' checked' : ''}> Mostrar arquivados</label>
         </div>
-        <form class="teacher-form teacher-form--wide" data-education-form="student">
-          <input type="hidden" name="id" value="${editingStudent?.id || ''}">
-          <label>Nome<input name="name" required value="${escapeHtml(editingStudent?.name || '')}" placeholder="Nome completo"></label>
-          <label>Matrícula<input name="enrollment" value="${escapeHtml(editingStudent?.enrollment || '')}" placeholder="Matrícula"></label>
-          <label>E-mail<input name="email" type="email" value="${escapeHtml(editingStudent?.email || '')}" placeholder="aluno@exemplo.com"></label>
-          <label>Turma<select name="classId">${renderClassOptions(state.classes, editingStudent?.classId || '')}</select></label>
-          <button type="submit">${editingStudent ? 'Salvar alterações' : 'Adicionar aluno'}</button>
-          ${editingStudent ? '<button type="button" class="teacher-button--secondary" data-cancel-edit="student">Cancelar</button>' : ''}
-        </form>
+        <form
+  class="teacher-form teacher-form--wide"
+  data-education-form="student"
+  data-editing-student-id="${editingStudent?.id || ''}"
+>
+  <label>
+    Nome
+    <input
+      name="name"
+      required
+      value="${escapeHtml(editingStudent?.name || '')}"
+      placeholder="Nome completo"
+    >
+  </label>
+
+  <label>
+    Matrícula
+    <input
+      name="enrollment"
+      value="${escapeHtml(editingStudent?.enrollment || '')}"
+      placeholder="Matrícula"
+    >
+  </label>
+
+  <label>
+    E-mail
+    <input
+      name="email"
+      type="email"
+      value="${escapeHtml(editingStudent?.email || '')}"
+      placeholder="aluno@exemplo.com"
+    >
+  </label>
+
+  <label>
+    Turma
+    <select name="classId">
+      ${renderClassOptions(state.classes, editingStudent?.classId || '')}
+    </select>
+  </label>
+
+  <button type="submit">
+    ${editingStudent ? 'Salvar alterações' : 'Adicionar aluno'}
+  </button>
+
+  <button
+    type="button"
+    class="teacher-button--secondary"
+    data-cancel-edit="student"
+    ${editingStudent ? '' : 'disabled aria-hidden="true"'}
+    style="visibility:${editingStudent ? 'visible' : 'hidden'}; pointer-events:${editingStudent ? 'auto' : 'none'};"
+  >
+    Cancelar
+  </button>
+</form>
         <div class="teacher-list">
           ${
             students.length
@@ -809,60 +835,131 @@ function getTeacherStickyOffset() {
   };
 }
 
-function updateTeacherNavigationState() {
-  teacherNavigationFrame = 0;
+function scrollToTeacherSection(sectionId, { behavior = 'auto' } = {}) {
+  const target = document.getElementById(sectionId);
+  if (!target) return;
+
+  uiState.activeSectionId = sectionId;
+  applyTeacherActiveSection();
+
+  const { contentTop } = getTeacherStickyOffset();
+
+  const targetTop = window.scrollY + target.getBoundingClientRect().top - contentTop + 2;
+
+  window.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior,
+  });
+}
+
+function applyTeacherActiveSection() {
   const platform = document.querySelector('[data-teacher-platform]');
   const tabs = platform?.querySelector('[data-teacher-tabs]');
+
   if (!platform || !tabs) return;
-  const offsets = getTeacherStickyOffset();
-  platform.style.setProperty('--teacher-tabs-top', `${offsets.tabsTop}px`);
-  platform.style.setProperty('--teacher-section-offset', `${offsets.contentTop}px`);
-  const sections = [...platform.querySelectorAll('.teacher-panel[id]')];
-  let activeSection = sections[0]?.id;
-  for (const section of sections) {
-    if (section.getBoundingClientRect().top <= offsets.contentTop) activeSection = section.id;
-  }
+
   for (const button of tabs.querySelectorAll('[data-teacher-section]')) {
-    const isActive = button.dataset.teacherSection === activeSection;
+    const isActive = button.dataset.teacherSection === uiState.activeSectionId;
+
     button.classList.toggle('is-active', isActive);
-    if (isActive) button.setAttribute('aria-current', 'true');
-    else button.removeAttribute('aria-current');
+
+    if (isActive) {
+      button.setAttribute('aria-current', 'true');
+    } else {
+      button.removeAttribute('aria-current');
+    }
   }
 }
 
-function scheduleTeacherNavigationUpdate() {
-  if (teacherNavigationFrame) return;
-  teacherNavigationFrame = requestAnimationFrame(updateTeacherNavigationState);
+function updateTeacherNavigationState() {
+  const platform = document.querySelector('[data-teacher-platform]');
+  if (!platform) return;
+
+  const offsets = getTeacherStickyOffset();
+
+  platform.style.setProperty('--teacher-tabs-top', `${offsets.tabsTop}px`);
+
+  platform.style.setProperty('--teacher-section-offset', `${offsets.contentTop}px`);
+
+  // IMPORTANTE:
+  // Não inferir mais a aba ativa pela posição vertical da página.
+  applyTeacherActiveSection();
 }
 
 function initializeTeacherNavigation() {
   const platform = document.querySelector('[data-teacher-platform]');
   if (!platform) return;
+
   teacherNavigationController?.abort();
   teacherNavigationController = new AbortController();
+
   const { signal } = teacherNavigationController;
-  window.addEventListener('scroll', scheduleTeacherNavigationUpdate, { passive: true, signal });
-  window.addEventListener('resize', scheduleTeacherNavigationUpdate, { passive: true, signal });
+
+  // Resize continua sendo relevante para recalcular os offsets
+  // do cabeçalho e das abas.
+  window.addEventListener('resize', updateTeacherNavigationState, {
+    passive: true,
+    signal,
+  });
+
   updateTeacherNavigationState();
 }
 
 function rerenderTeacherArea(sectionId = '') {
   const container = document.querySelector('[data-teacher-platform]');
-  if (!container) return;
-  container.outerHTML = renderTeacherArea();
-  initializeTeacherNavigation();
-  void hydrateTeacherProgressDashboard();
-  if (sectionId) {
-    queueMicrotask(() =>
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    );
-  }
-}
 
-queueMicrotask(() => {
+  if (!container) return;
+
+  const revision = ++teacherRenderRevision;
+
+  if (sectionId) {
+    uiState.activeSectionId = sectionId;
+  }
+
+  // Preserva a altura atual do dashboard antes de destruir o DOM.
+  const previousDashboard = document.getElementById('teacher-dashboard');
+
+  const previousDashboardHeight = previousDashboard?.getBoundingClientRect().height || 0;
+
+  container.outerHTML = renderTeacherArea();
+
+  const nextDashboard = document.getElementById('teacher-dashboard');
+
+  // Evita colapso brusco enquanto os resultados remotos
+  // ainda estão sendo hidratados.
+  if (nextDashboard && previousDashboardHeight > 0) {
+    nextDashboard.style.minHeight = `${previousDashboardHeight}px`;
+  }
+
   initializeTeacherNavigation();
-  void hydrateTeacherProgressDashboard();
-});
+  applyTeacherActiveSection();
+
+  const hydrationPromise = hydrateTeacherProgressDashboard();
+
+  Promise.resolve(hydrationPromise).finally(() => {
+    if (revision !== teacherRenderRevision) return;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (revision !== teacherRenderRevision) return;
+
+        const hydratedDashboard = document.getElementById('teacher-dashboard');
+
+        if (hydratedDashboard) {
+          hydratedDashboard.style.minHeight = '';
+        }
+
+        if (sectionId) {
+          scrollToTeacherSection(sectionId, {
+            behavior: 'auto',
+          });
+        } else {
+          applyTeacherActiveSection();
+        }
+      });
+    });
+  });
+}
 
 function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());
@@ -888,9 +985,25 @@ document.addEventListener('submit', async (event) => {
     }
 
     if (form.dataset.educationForm === 'student') {
-      await runEducationMutation((repository) =>
-        values.id ? repository.updateStudent(values.id, values) : repository.addStudent(values),
-      );
+      const editingStudentId = String(form.dataset.editingStudentId || '').trim();
+
+      if (editingStudentId) {
+        // Segurança: o ID que está sendo editado precisa coincidir
+        // com o estado atual da interface.
+        if (editingStudentId !== uiState.editStudentId) {
+          throw new Error(
+            'O estado de edição do aluno ficou inconsistente. Cancele a edição e tente novamente.',
+          );
+        }
+
+        await runEducationMutation((repository) =>
+          repository.updateStudent(editingStudentId, values),
+        );
+      } else {
+        // Criação nunca reutiliza ID de aluno existente.
+        await runEducationMutation((repository) => repository.addStudent(values));
+      }
+
       uiState.editStudentId = '';
       rerenderTeacherArea('teacher-students');
     }
@@ -989,10 +1102,12 @@ document.addEventListener('change', async (event) => {
 
 document.addEventListener('click', async (event) => {
   const sectionButton = event.target.closest?.('[data-teacher-section]');
+
   if (sectionButton) {
-    document
-      .getElementById(sectionButton.dataset.teacherSection)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToTeacherSection(sectionButton.dataset.teacherSection, {
+      behavior: 'smooth',
+    });
+
     return;
   }
 
@@ -1211,36 +1326,200 @@ document.addEventListener('click', async (event) => {
 
     if (button.dataset.editClass) {
       uiState.editClassId = button.dataset.editClass;
+      uiState.activeSectionId = 'teacher-classes';
       rerenderTeacherArea('teacher-classes');
     } else if (button.dataset.editStudent) {
-      uiState.editStudentId = button.dataset.editStudent;
-      rerenderTeacherArea('teacher-students');
-    } else if (button.dataset.cancelEdit) {
-      const key = {
-        class: 'editClassId',
-        student: 'editStudentId',
-      }[button.dataset.cancelEdit];
-      uiState[key] = '';
-      rerenderTeacherArea();
+      // Editar aluno é uma alteração local do formulário.
+      // Não reconstruir a Área do Professor.
+      event.preventDefault();
+      event.stopPropagation();
+
+      const studentId = String(button.dataset.editStudent || '').trim();
+
+      if (!studentId) {
+        alert('Não foi possível identificar o aluno para edição.');
+        return;
+      }
+
+      const state = getCachedEducationState();
+
+      const student = state?.students?.find((item) => item.id === studentId);
+
+      if (!student) {
+        alert('Não foi possível localizar os dados do aluno.');
+        return;
+      }
+
+      const form = document.querySelector('[data-education-form="student"]');
+
+      if (!form) {
+        alert('Não foi possível localizar o formulário de aluno.');
+        return;
+      }
+
+      uiState.editStudentId = studentId;
+      uiState.activeSectionId = 'teacher-students';
+
+      form.dataset.editingStudentId = studentId;
+
+      const nameInput = form.querySelector('input[name="name"]');
+
+      const enrollmentInput = form.querySelector('input[name="enrollment"]');
+
+      const emailInput = form.querySelector('input[name="email"]');
+
+      const classSelect = form.querySelector('select[name="classId"]');
+
+      const submitButton = form.querySelector('button[type="submit"]');
+
+      if (nameInput) {
+        nameInput.value = student.name || '';
+      }
+
+      if (enrollmentInput) {
+        enrollmentInput.value = student.enrollment || '';
+      }
+
+      if (emailInput) {
+        emailInput.value = student.email || '';
+      }
+
+      if (classSelect) {
+        classSelect.value = student.classId || '';
+      }
+
+      if (submitButton) {
+        submitButton.textContent = 'Salvar alterações';
+      }
+
+      const cancelButton = form.querySelector('[data-cancel-edit="student"]');
+
+      if (cancelButton) {
+        cancelButton.disabled = false;
+        cancelButton.removeAttribute('aria-hidden');
+        cancelButton.style.visibility = 'visible';
+        cancelButton.style.pointerEvents = 'auto';
+      }
+
+      // Mantém semanticamente a aba Alunos ativa.
+      applyTeacherActiveSection();
+
+      // Depois de atualizar o formulário, leva a tela
+      // diretamente para a área de edição.
+      requestAnimationFrame(() => {
+        const { contentTop } = getTeacherStickyOffset();
+
+        const formTop = window.scrollY + form.getBoundingClientRect().top - contentTop - 12;
+
+        window.scrollTo({
+          top: Math.max(0, formTop),
+          behavior: 'smooth',
+        });
+
+        // O foco não deve provocar um segundo deslocamento.
+        nameInput?.focus({
+          preventScroll: true,
+        });
+
+        uiState.activeSectionId = 'teacher-students';
+
+        applyTeacherActiveSection();
+      });
+    } else if (button.dataset.cancelEdit === 'student') {
+      event.preventDefault();
+      event.stopPropagation();
+
+      uiState.editStudentId = '';
+      uiState.activeSectionId = 'teacher-students';
+
+      const form = document.querySelector('[data-education-form="student"]');
+
+      if (!form) return;
+
+      form.dataset.editingStudentId = '';
+      form.reset();
+
+      const nameInput = form.querySelector('input[name="name"]');
+
+      const enrollmentInput = form.querySelector('input[name="enrollment"]');
+
+      const emailInput = form.querySelector('input[name="email"]');
+
+      const classSelect = form.querySelector('select[name="classId"]');
+
+      const submitButton = form.querySelector('button[type="submit"]');
+
+      if (nameInput) {
+        nameInput.value = '';
+      }
+
+      if (enrollmentInput) {
+        enrollmentInput.value = '';
+      }
+
+      if (emailInput) {
+        emailInput.value = '';
+      }
+
+      if (classSelect) {
+        classSelect.value = '';
+      }
+
+      if (submitButton) {
+        submitButton.textContent = 'Adicionar aluno';
+      }
+
+      const preservedScrollY = window.scrollY;
+
+      button.disabled = true;
+      button.setAttribute('aria-hidden', 'true');
+      button.style.visibility = 'hidden';
+      button.style.pointerEvents = 'none';
+
+      // Cancelar não precisa navegar para outro lugar.
+      // Mantém a posição atual do formulário.
+      window.scrollTo({
+        top: preservedScrollY,
+        behavior: 'auto',
+      });
+
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: preservedScrollY,
+          behavior: 'auto',
+        });
+
+        uiState.activeSectionId = 'teacher-students';
+
+        applyTeacherActiveSection();
+      });
+    } else if (button.dataset.cancelEdit === 'class') {
+      uiState.editClassId = '';
+
+      rerenderTeacherArea('teacher-classes');
     } else if (button.dataset.classStatus) {
       await runEducationMutation((repository) =>
         repository.setClassStatus(button.dataset.classStatus, button.dataset.status),
       );
+
       rerenderTeacherArea('teacher-classes');
     } else if (button.dataset.studentStatus) {
       await runEducationMutation((repository) =>
         repository.setStudentStatus(button.dataset.studentStatus, button.dataset.status),
       );
+
       rerenderTeacherArea('teacher-students');
     } else if (button.dataset.assessmentStatus) {
       await runEducationMutation((repository) =>
         repository.setAssessmentStatus(button.dataset.assessmentStatus, button.dataset.status),
       );
+
       rerenderTeacherArea('teacher-assessments');
     } else if (button.dataset.duplicateAssessment) {
       await runEducationMutation((repository) =>
         repository.duplicateAssessment(button.dataset.duplicateAssessment),
       );
+
       rerenderTeacherArea('teacher-assessments');
     }
   } catch (error) {
