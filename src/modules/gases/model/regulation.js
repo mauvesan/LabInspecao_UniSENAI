@@ -2,6 +2,38 @@ import { DATA_CLASSIFICATION, REGULATION_VERSION } from './constants.js';
 
 const SOURCE_URL = 'https://conama.mma.gov.br/?id=599&option=com_sisconama&task=arquivo.download';
 
+export const REGULATION_REFERENCES = Object.freeze([
+  Object.freeze({
+    regulation: 'Resolução CONAMA 418/2009',
+    relationship: 'referência central',
+    scope: 'PCPV/I-M e limites/procedimentos para veículos em uso',
+    status: 'texto oficial consultado; alterada pelas Resoluções 426/2010 e 435/2011',
+    sourceUrl: SOURCE_URL,
+  }),
+  Object.freeze({
+    regulation: 'Resolução CONAMA 426/2010',
+    relationship: 'alteração da Resolução 418/2009',
+    scope: 'prazos dos arts. 5º e 12; não altera as Tabelas 1 e 2 do Anexo I',
+    status: 'alteração correlata considerada',
+    sourceUrl: 'https://conama.mma.gov.br/images/conteudo/LivroConama.pdf',
+  }),
+  Object.freeze({
+    regulation: 'Resolução CONAMA 435/2011',
+    relationship: 'alteração da Resolução 418/2009',
+    scope: 'arts. 20 e 33; não altera as Tabelas 1 e 2 do Anexo I',
+    status: 'alteração correlata considerada',
+    sourceUrl: 'https://conama.mma.gov.br/?id=639&option=com_sisconama&task=arquivo.download',
+  }),
+  Object.freeze({
+    regulation: 'Resolução CONAMA 451/2012',
+    relationship: 'alteração do Anexo I da Resolução 418/2009',
+    scope:
+      'Tabela 3, motociclos e veículos similares; fora dos limites automotivos Tabelas 1 e 2 implementados nesta fase',
+    status: 'correlação verificada e excluída do resolver automotivo',
+    sourceUrl: 'https://conama.mma.gov.br/?id=655&option=com_sisconama&task=arquivo.download',
+  }),
+]);
+
 const PERIODS = [
   {
     min: 0,
@@ -152,5 +184,5 @@ export function resolveRegulation(vehicle) {
         classification: DATA_CLASSIFICATION.NORMATIVE,
       });
   }
-  return { regulationVersion: REGULATION_VERSION, rules };
+  return { regulationVersion: REGULATION_VERSION, rules, references: REGULATION_REFERENCES };
 }
