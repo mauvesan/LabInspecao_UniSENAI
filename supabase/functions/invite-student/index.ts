@@ -536,7 +536,6 @@ Deno.serve(async (request: Request) => {
    * ----------------------------------------------------------
    */
 
-  let authUser = null;
   let invitationWasSent = false;
 
   /*
@@ -561,7 +560,7 @@ Deno.serve(async (request: Request) => {
     );
   }
 
-  authUser = usersPage.users.find((user) => normalizeEmail(user.email) === email) ?? null;
+  let authUser = usersPage.users.find((user) => normalizeEmail(user.email) === email) ?? null;
 
   /*
    * Se ainda não existe usuário Auth, cria via convite.
