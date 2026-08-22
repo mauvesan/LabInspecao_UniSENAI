@@ -5,6 +5,7 @@ import { renderModule } from '../views/module-view.js';
 import { renderCases } from '../views/cases-view.js';
 import { renderReferences } from '../views/references-view.js';
 import { renderTeacherArea } from '../views/teacher-area-view.js';
+import { renderEmissionsModelValidation } from '../views/emissions-model-validation-view.js';
 import { renderAccessDenied } from '../views/access-denied-view.js';
 import { renderStudentAssessmentDetail } from '../views/student-assessment-detail-view.js';
 import { updateNavigation } from '../navigation/navigation-ui.js';
@@ -20,6 +21,7 @@ const routes = {
   '/casos': renderCases,
   '/referencias': renderReferences,
   '/professor': renderTeacherArea,
+  '/professor/validacao-emissoes': renderEmissionsModelValidation,
 };
 
 const ASSESSMENT_ROUTE_PATTERN =

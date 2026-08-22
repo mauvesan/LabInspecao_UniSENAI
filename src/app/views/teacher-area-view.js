@@ -601,6 +601,7 @@ export function renderTeacherArea() {
         <div>
           <p class="teacher-platform__eyebrow">Plataforma educacional</p>
           <h1 id="teacher-area-title">Área do professor</h1>
+          <p><a class="teacher-data-button" href="#/professor/validacao-emissoes">Validação Técnica do Modelo de Emissões</a></p>
           <p>Gestão de turmas, alunos e avaliações com provider educacional configurável.</p>
         </div>
         <div class="teacher-platform__mode-group">

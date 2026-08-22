@@ -1,10 +1,17 @@
 export const USER_ROLES = Object.freeze({
   STUDENT: 'student',
   TEACHER: 'teacher',
+  ADMIN: 'admin',
+  TECHNICAL: 'technical',
 });
 
 const ROUTE_RULES = Object.freeze({
   '/professor': Object.freeze([USER_ROLES.TEACHER]),
+  '/professor/validacao-emissoes': Object.freeze([
+    USER_ROLES.TEACHER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.TECHNICAL,
+  ]),
 });
 
 export function normalizeRole(role) {
