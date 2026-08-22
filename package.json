@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "test:run": "vitest run",
     "smoke": "node tests/smoke.mjs",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:run && npm run smoke && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:run && npm run smoke && npm run build",
+    "validate:emissions": "node scripts/validate-emissions-physics.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
