@@ -29,9 +29,54 @@ describe('student engineering workspace', () => {
     root.remove();
   });
 
+  it('allows vehicle selection and restoration of the original REMAP', () => {
+    const root = document.createElement('main');
+    root.innerHTML = gasesOttoContent();
+    document.body.append(root);
+
+    const cleanup = initializeGasesOttoSimulation({}, root);
+
+    const vehicle = root.querySelector<HTMLSelectElement>('#otto-eng-vehicle');
+    const vehicleInfo = root.querySelector<HTMLElement>('#otto-eng-vehicle-info');
+    const injection = root.querySelector<HTMLInputElement>('#otto-eng-injection');
+    const ignition = root.querySelector<HTMLInputElement>('#otto-eng-ignition');
+    const ethanol = root.querySelector<HTMLInputElement>('#otto-eng-ethanol');
+    const reset = root.querySelector<HTMLButtonElement>('#otto-eng-reset-map');
+
+    expect(vehicle).not.toBeNull();
+    expect(vehicle!.options.length).toBeGreaterThan(1);
+    expect(vehicleInfo).not.toBeNull();
+    expect(reset).not.toBeNull();
+
+    vehicle!.selectedIndex = 0;
+    vehicle!.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(vehicleInfo?.textContent?.trim().length).toBeGreaterThan(0);
+    expect(ethanol!.value).toBe('0');
+
+    injection!.value = '15';
+    injection!.dispatchEvent(new Event('input', { bubbles: true }));
+
+    ignition!.value = '5';
+    ignition!.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(injection!.value).toBe('15');
+    expect(ignition!.value).toBe('5');
+
+    reset!.click();
+
+    expect(injection!.value).toBe('0');
+    expect(ignition!.value).toBe('0');
+
+    cleanup();
+    root.remove();
+  });
+
   it('labels injection as a didactic approximation instead of a measured injection time', () => {
     const html = gasesOttoContent();
-    expect(html).toContain('Correção do comando de injeção');
+    expect(html).toContain('Correção do tempo/quantidade de injeção (REMAP)');
+    expect(html).toContain('Veículo simulado');
+    expect(html).toContain('Restaurar mapa original');
     expect(html).toContain('aproximação didática');
     expect(html).toContain('Fração de ciclos com misfire');
     expect(html).toContain('Estado do catalisador TWC');

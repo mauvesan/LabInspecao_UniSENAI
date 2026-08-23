@@ -1,3 +1,4 @@
+import { VEHICLE_LIBRARY } from './model/index.js';
 import { rangeControl } from '../../components/range-control.js';
 
 import { chartPanel } from '../../components/chart-panel.js';
@@ -977,11 +978,29 @@ export function gasesOttoContent() {
           <div class="simulation-layout otto-engineering-workspace">
             <section class="simulation-controls" aria-label="Controles de engenharia do motor">
               <article class="content-card">
-                <h3>Comando do motor</h3>
+                <h3>Veículo e comando do motor</h3>
+
+                <label class="control-block" for="otto-eng-vehicle">
+                  <span>Veículo simulado</span>
+                  <select id="otto-eng-vehicle">
+                    ${VEHICLE_LIBRARY.map(
+                      (vehicle) => `
+                        <option value="${vehicle.vehicleId}">
+                          ${vehicle.manufacturer} ${vehicle.model} ${vehicle.version} ·
+                          ${vehicle.manufactureYear}/${vehicle.modelYear}
+                        </option>
+                      `,
+                    ).join('')}
+                  </select>
+                </label>
+
+                <div id="otto-eng-vehicle-info" class="status-panel">
+                  Selecione um veículo para visualizar sua configuração tecnológica.
+                </div>
 
                 ${rangeControl({
                   id: 'otto-eng-injection',
-                  label: 'Correção do comando de injeção',
+                  label: 'Correção do tempo/quantidade de injeção (REMAP)',
                   min: -20,
                   max: 20,
                   step: 1,
@@ -989,15 +1008,30 @@ export function gasesOttoContent() {
                   unit: '%',
                 })}
 
+                <p class="help-text">
+                  <strong>REMAP de injeção:</strong>
+                  valores negativos reduzem a quantidade efetiva de combustível;
+                  valores positivos aumentam a quantidade efetiva de combustível.
+                  O valor 0% representa o mapa original.
+                </p>
+
                 ${rangeControl({
                   id: 'otto-eng-ignition',
-                  label: 'Alteração do ponto de ignição',
+                  label: 'Alteração do ponto de ignição (REMAP)',
                   min: -10,
                   max: 10,
                   step: 1,
                   value: 0,
                   unit: '°',
                 })}
+
+                <button
+                  type="button"
+                  id="otto-eng-reset-map"
+                  class="button button--secondary"
+                >
+                  Restaurar mapa original
+                </button>
 
                 ${rangeControl({
                   id: 'otto-eng-ethanol',

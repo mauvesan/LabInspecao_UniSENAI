@@ -775,6 +775,10 @@ export function initializeGasesOttoSimulation(module, root) {
     catalystState: requireElement(root, '#otto-eng-catalyst-state'),
   };
 
+  const engineeringVehicle = requireElement(root, '#otto-eng-vehicle');
+  const engineeringVehicleInfo = requireElement(root, '#otto-eng-vehicle-info');
+  const engineeringResetMap = requireElement(root, '#otto-eng-reset-map');
+
   const engineeringOutputs = {
     injection: findRangeOutput(root, 'otto-eng-injection'),
     ignition: findRangeOutput(root, 'otto-eng-ignition'),
@@ -806,7 +810,11 @@ export function initializeGasesOttoSimulation(module, root) {
   };
 
   function updateEngineeringSimulation() {
-    const vehicle = VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+    const vehicle =
+      VEHICLE_LIBRARY.find(
+        (candidate) => candidate.vehicleId === engineeringVehicle.value,
+      ) ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+
     const injectionCorrectionPct = toNumber(engineeringControls.injection.value, 0);
     const ignitionDeltaDeg = toNumber(engineeringControls.ignition.value, 0);
     const ethanolContent = toNumber(engineeringControls.ethanol.value, 27);
@@ -814,6 +822,13 @@ export function initializeGasesOttoSimulation(module, root) {
     const engineTemperatureC = toNumber(engineeringControls.temperature.value, 90);
     const misfireFraction = toNumber(engineeringControls.misfire.value, 0) / 100;
     const samplingAirFraction = toNumber(engineeringControls.samplingAir.value, 0) / 100;
+
+    engineeringVehicleInfo.textContent =
+      `${vehicle.manufacturer} ${vehicle.model} ${vehicle.version} · ` +
+      `${vehicle.manufactureYear}/${vehicle.modelYear} · ` +
+      `${vehicle.fuel} · ${vehicle.fuelingSystem} · ` +
+      `${vehicle.catalyst === 'twc' ? 'TWC' : 'sem TWC'} · ` +
+      `${vehicle.closedLoop ? 'malha fechada' : 'malha aberta'}`;
 
     setText(engineeringOutputs.injection, `${formatNumber(injectionCorrectionPct, 0, 0)} %`);
     setText(engineeringOutputs.ignition, `${formatNumber(ignitionDeltaDeg, 0, 0)} °`);
@@ -1173,6 +1188,30 @@ export function initializeGasesOttoSimulation(module, root) {
 
     setText(simulationStatus, statusMessage);
   }
+
+  listen(engineeringVehicle, 'change', () => {
+    const vehicle =
+      VEHICLE_LIBRARY.find(
+        (candidate) => candidate.vehicleId === engineeringVehicle.value,
+      ) ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+
+    // O combustível-base acompanha o veículo selecionado.
+    engineeringControls.ethanol.value = String(vehicle.ethanolContent ?? 27);
+
+    // Para veículos com TWC, inicia-se pelo estado eficiente.
+    // Veículos sem TWC usam o estado ineficiente como aproximação
+    // operacional do modelo, sem afirmar a existência física do TWC.
+    engineeringControls.catalystState.value =
+      vehicle.catalyst === 'twc' ? 'efficient' : 'inefficient';
+
+    updateEngineeringSimulation();
+  });
+
+  listen(engineeringResetMap, 'click', () => {
+    engineeringControls.injection.value = '0';
+    engineeringControls.ignition.value = '0';
+    updateEngineeringSimulation();
+  });
 
   Object.values(engineeringControls).forEach((control) => {
     listen(control, 'input', updateEngineeringSimulation);
