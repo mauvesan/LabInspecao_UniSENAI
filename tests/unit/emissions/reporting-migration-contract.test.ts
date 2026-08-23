@@ -1,10 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 const sql = readFileSync(
-  new URL(
-    '../../../supabase/migrations/20260822233000_emissions_reporting_analytics.sql',
-    import.meta.url,
-  ),
+  resolve(process.cwd(), 'supabase/migrations/20260822233000_emissions_reporting_analytics.sql'),
   'utf8',
 );
 describe('emissions reporting analytics migration', () => {
