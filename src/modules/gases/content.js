@@ -4,6 +4,7 @@ import { chartPanel } from '../../components/chart-panel.js';
 
 import { quickCases } from '../../components/quick-cases.js';
 import { analyzerPanel } from './analyzer-view.js';
+import { diagnosticsPanel } from './diagnostics-view.js';
 
 /**
  * Conteúdo do módulo Analisador de Gases — Ciclo Otto.
@@ -420,6 +421,8 @@ export function gasesOttoContent() {
           data-otto-panel="measurement"
         >
           ${analyzerPanel()}
+
+    ${diagnosticsPanel()}
           <div class="simulation-layout otto-simulation-workspace">
             <section
               class="simulation-controls otto-control-panel"

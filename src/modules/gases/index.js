@@ -5,6 +5,7 @@ import { gasesOttoContent } from './content.js';
 import { initializeGasesOttoSimulation } from './simulation.js';
 import { initializeGasesDecision } from './decision.js';
 import { initializeGasesAnalyzer } from './analyzer-interface.js';
+import { initializeGasesDiagnostics } from './diagnostics-interface.js';
 import './decision.css';
 import './analyzer.css';
 
@@ -25,6 +26,7 @@ export default {
     registerCleanup(initializeSectionNavigation(root));
     registerCleanup(initializeGasesOttoSimulation(this, root));
     registerCleanup(initializeGasesAnalyzer(root));
+    registerCleanup(initializeGasesDiagnostics(root));
     registerCleanup(initializeGasesDecision(root));
 
     const quizContainer = root.querySelector('#module-quiz');
