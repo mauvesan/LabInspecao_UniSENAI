@@ -4,6 +4,9 @@ import {
   createAnalyzerStateMachine,
 } from './analyzer-state-machine.js';
 import { createAnalyzerDynamics, holdAverage, isStableSample } from './analyzer-model.js';
+import { createEmissionsReportHtml, evaluateEmissionHolds } from './reporting.js';
+import { resolveRegulation } from './model/regulation.js';
+import { VEHICLE_LIBRARY } from './model/index.js';
 
 const HOLD_STATES = new Set([ANALYZER_STATES.HOLD_IDLE, ANALYZER_STATES.HOLD_HIGH_RPM]);
 const STABILIZING_STATES = new Set([
@@ -71,6 +74,7 @@ export function initializeGasesAnalyzer(root) {
 
   const startButton = panel.querySelector('[data-analyzer-action="start"]');
   const resetButton = panel.querySelector('[data-analyzer-action="reset"]');
+  const reportButton = panel.querySelector('[data-analyzer-action="report"]');
   const stateElement = panel.querySelector('[data-analyzer-state]');
   const stateLabel = panel.querySelector('[data-analyzer-state-label]');
   const timeElement = panel.querySelector('[data-analyzer-time]');
@@ -107,7 +111,26 @@ export function initializeGasesAnalyzer(root) {
   let timer = null;
   let previousState = ANALYZER_STATES.OFF;
   const holds = { idle: null, high: null };
-  const scenario = { idleRpm: 850, highRpm: 2500, engineTemperatureC: 90 };
+  const vehicle = VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+  const scenario = { vehicle, idleRpm: 850, highRpm: 2500, engineTemperatureC: 90 };
+
+  function openReport() {
+    if (!holds.idle || !holds.high) return;
+    const regulation = resolveRegulation(vehicle);
+    const evaluation = evaluateEmissionHolds({ holds, rules: regulation.rules });
+    const html = createEmissionsReportHtml({
+      vehicle,
+      history,
+      holds,
+      regulation: 'Resolução CONAMA nº 418/2009',
+      result: evaluation.status,
+    });
+    const reportWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!reportWindow) return;
+    reportWindow.document.open();
+    reportWindow.document.write(html);
+    reportWindow.document.close();
+  }
 
   function render(sample, snapshot) {
     stateElement.textContent = snapshot.state;
@@ -168,7 +191,10 @@ export function initializeGasesAnalyzer(root) {
     }
     previousState = snapshot.state;
     render(sample, snapshot);
-    if (snapshot.complete && !snapshot.running) stopTimer();
+    if (snapshot.complete && !snapshot.running) {
+      stopTimer();
+      reportButton.disabled = !(holds.idle && holds.high);
+    }
   }
 
   function start() {
@@ -179,6 +205,7 @@ export function initializeGasesAnalyzer(root) {
     phaseHistory = [];
     holds.idle = null;
     holds.high = null;
+    reportButton.disabled = true;
     previousState = machine.start().state;
     render(dynamics.getSample(), machine.getSnapshot());
     timer = window.setInterval(step, 120);
@@ -190,6 +217,7 @@ export function initializeGasesAnalyzer(root) {
     dynamics.reset();
     history = [];
     phaseHistory = [];
+    reportButton.disabled = true;
     previousState = ANALYZER_STATES.OFF;
     holdElements.idle[0].textContent = 'Aguardando';
     holdElements.idle[1].textContent = '—';
@@ -200,11 +228,13 @@ export function initializeGasesAnalyzer(root) {
 
   startButton.addEventListener('click', start);
   resetButton.addEventListener('click', reset);
+  reportButton.addEventListener('click', openReport);
   reset();
 
   return () => {
     stopTimer();
     startButton.removeEventListener('click', start);
     resetButton.removeEventListener('click', reset);
+    reportButton.removeEventListener('click', openReport);
   };
 }

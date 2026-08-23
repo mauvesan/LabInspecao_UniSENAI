@@ -10,6 +10,7 @@ export function analyzerPanel() {
         <div class="otto-analyzer__actions">
           <button class="button" type="button" data-analyzer-action="start">Iniciar ensaio</button>
           <button class="button button--secondary" type="button" data-analyzer-action="reset">Reiniciar</button>
+          <button class="button button--secondary" type="button" data-analyzer-action="report" disabled>Relatório / PDF</button>
         </div>
       </header>
 

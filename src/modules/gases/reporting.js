@@ -1,0 +1,332 @@
+const DISCLAIMER =
+  'SIMULAÇÃO DIDÁTICA — SEM VALIDADE PARA INSPEÇÃO, CERTIFICAÇÃO OU LICENCIAMENTO VEICULAR.';
+
+function esc(value) {
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+function num(v, d = 2) {
+  return Number.isFinite(Number(v))
+    ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d })
+    : '—';
+}
+function median(values) {
+  const a = values.filter(Number.isFinite).sort((x, y) => x - y);
+  if (!a.length) return 0;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
+function std(values) {
+  const a = values.filter(Number.isFinite);
+  if (a.length < 2) return 0;
+  const mean = a.reduce((s, v) => s + v, 0) / a.length;
+  return Math.sqrt(a.reduce((s, v) => s + (v - mean) ** 2, 0) / (a.length - 1));
+}
+
+/** @param {{results?: any[], attempts?: any[], students?: any[], diagnostics?: any}} [input] */
+export function buildEmissionsAnalytics({
+  results = [],
+  attempts = [],
+  students = [],
+  diagnostics = {},
+} = {}) {
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const scores = results.map((r) => Number(r.best_score)).filter(Number.isFinite);
+  const rows = results
+    .map((r) => ({
+      studentId: r.student_id,
+      studentName: studentById.get(r.student_id)?.name || 'Aluno não identificado',
+      attempts: Number(r.total_attempt_count || 0),
+      firstScore: r.first_score == null ? null : Number(r.first_score),
+      bestScore: r.best_score == null ? null : Number(r.best_score),
+      lastScore: r.last_score == null ? null : Number(r.last_score),
+      status: Number(r.valid_attempt_count || 0) > 0 ? 'Concluído' : 'Sem tentativa válida',
+    }))
+    .sort((a, b) => a.studentName.localeCompare(b.studentName, 'pt-BR'));
+  const validAttempts = attempts.filter((a) => a.valid !== false);
+  const diagnosisCounts = new Map(),
+    errorCounts = new Map(),
+    evidenceMisses = new Map();
+  for (const a of validAttempts) {
+    const sub = a.submission_json || {};
+    const key =
+      a.score_breakdown?.diagnosisPrincipalCorrect === false
+        ? 'incorreto'
+        : sub.primaryDiagnosis || 'não informado';
+    diagnosisCounts.set(key, (diagnosisCounts.get(key) || 0) + 1);
+    if (a.score_breakdown?.diagnosisPrincipalCorrect === false) {
+      const d = sub.primaryDiagnosis || 'não informado';
+      errorCounts.set(d, (errorCounts.get(d) || 0) + 1);
+    }
+    for (const ev of a.score_breakdown?.missingEvidence || [])
+      evidenceMisses.set(ev, (evidenceMisses.get(ev) || 0) + 1);
+  }
+  const distribution = [0, 20, 40, 60, 80, 100]
+    .slice(0, -1)
+    .map((min, i) => ({
+      range: `${min}–${[19, 39, 59, 79, 100][i]}`,
+      count: scores.filter((s) => s >= min && s <= (i === 4 ? 100 : min + 19.999)).length,
+    }));
+  const enrolled = students.length || rows.length;
+  const completed = new Set(
+    results.filter((r) => Number(r.valid_attempt_count || 0) > 0).map((r) => r.student_id),
+  ).size;
+  const serverErrors = diagnostics.diagnostic_errors || diagnostics.diagnosticErrors;
+  const serverEvidence = diagnostics.evidence_ignored || diagnostics.evidenceIgnored;
+  const faultAccuracy = diagnostics.fault_accuracy || diagnostics.faultAccuracy || [];
+  return {
+    rows,
+    metrics: {
+      students: enrolled,
+      completed,
+      completionRate: enrolled ? (completed / enrolled) * 100 : 0,
+      mean: scores.length ? scores.reduce((s, v) => s + v, 0) / scores.length : 0,
+      median: median(scores),
+      min: scores.length ? Math.min(...scores) : 0,
+      max: scores.length ? Math.max(...scores) : 0,
+      stdDev: std(scores),
+      meanAttempts: rows.length ? rows.reduce((s, r) => s + r.attempts, 0) / rows.length : 0,
+    },
+    distribution,
+    diagnosisCounts: [...diagnosisCounts]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count),
+    faultAccuracy,
+    diagnosticErrors:
+      serverErrors ||
+      [...errorCounts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+    evidenceIgnored:
+      serverEvidence ||
+      [...evidenceMisses]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count),
+  };
+}
+
+export function createCsvSummary(analytics) {
+  const q = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
+  return [
+    'Aluno,Tentativas,1ª Nota,Melhor Nota,Última Nota,Status',
+    ...analytics.rows.map((r) =>
+      [
+        r.studentName,
+        r.attempts,
+        r.firstScore ?? '',
+        r.bestScore ?? '',
+        r.lastScore ?? '',
+        r.status,
+      ]
+        .map(q)
+        .join(','),
+    ),
+  ].join('\r\n');
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const b of bytes) {
+    crc ^= b;
+    for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+function u16(v) {
+  return Uint8Array.of(v & 255, (v >>> 8) & 255);
+}
+function u32(v) {
+  return Uint8Array.of(v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255);
+}
+function join(parts) {
+  const len = parts.reduce((s, p) => s + p.length, 0),
+    out = new Uint8Array(len);
+  let o = 0;
+  for (const p of parts) {
+    out.set(p, o);
+    o += p.length;
+  }
+  return out;
+}
+function zipStore(files) {
+  const enc = new TextEncoder(),
+    locals = [],
+    centrals = [];
+  let offset = 0;
+  for (const [name, text] of Object.entries(files)) {
+    const n = enc.encode(name),
+      d = enc.encode(text),
+      crc = crc32(d);
+    const local = join([
+      u32(0x04034b50),
+      u16(20),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(crc),
+      u32(d.length),
+      u32(d.length),
+      u16(n.length),
+      u16(0),
+      n,
+      d,
+    ]);
+    locals.push(local);
+    const central = join([
+      u32(0x02014b50),
+      u16(20),
+      u16(20),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(crc),
+      u32(d.length),
+      u32(d.length),
+      u16(n.length),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(0),
+      u32(offset),
+      n,
+    ]);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const cd = join(centrals);
+  return join([
+    ...locals,
+    cd,
+    u32(0x06054b50),
+    u16(0),
+    u16(0),
+    u16(centrals.length),
+    u16(centrals.length),
+    u32(cd.length),
+    u32(offset),
+    u16(0),
+  ]);
+}
+function cell(v, r, c) {
+  const ref = `${String.fromCharCode(65 + c)}${r}`;
+  if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`;
+  return `<c r="${ref}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`;
+}
+function sheet(rows) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((row, i) => `<row r="${i + 1}">${row.map((v, c) => cell(v, i + 1, c)).join('')}</row>`).join('')}</sheetData></worksheet>`;
+}
+/** @param {{analytics: any, attempts?: any[]}} input */
+export function createXlsxExport({ analytics, attempts = [] }) {
+  const summary = [
+    ['Aluno', 'Tentativas', '1ª Nota', 'Melhor Nota', 'Última Nota', 'Status'],
+    ...analytics.rows.map((r) => [
+      r.studentName,
+      r.attempts,
+      r.firstScore ?? '',
+      r.bestScore ?? '',
+      r.lastScore ?? '',
+      r.status,
+    ]),
+  ];
+  const attemptRows = [
+    ['Tentativa', 'Aluno ID', 'Validade', 'Nota', 'Data', 'Diagnóstico', 'Seed'],
+    ...attempts.map((a) => [
+      a.attempt_number,
+      a.student_id,
+      a.valid ? 'Válida' : 'Inválida',
+      Number(a.score || 0),
+      a.attempted_at || '',
+      a.submission_json?.primaryDiagnosis || '',
+      String(a.seed ?? ''),
+    ]),
+  ];
+  const m = analytics.metrics;
+  const stats = [
+    ['Indicador', 'Valor'],
+    ['Número de alunos', m.students],
+    ['Concluintes', m.completed],
+    ['Taxa de conclusão (%)', m.completionRate],
+    ['Média', m.mean],
+    ['Mediana', m.median],
+    ['Mínimo', m.min],
+    ['Máximo', m.max],
+    ['Desvio-padrão', m.stdDev],
+    ['Média de tentativas', m.meanAttempts],
+    [],
+    ['Distribuição', 'Quantidade'],
+    ...analytics.distribution.map((x) => [x.range, x.count]),
+    [],
+    ['Erros diagnósticos', 'Quantidade'],
+    ...analytics.diagnosticErrors.map((x) => [x.name, x.count]),
+    [],
+    ['Evidências ignoradas', 'Quantidade'],
+    ...analytics.evidenceIgnored.map((x) => [x.name, x.count]),
+  ];
+  const files = {
+    '[Content_Types].xml':
+      '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+    '_rels/.rels':
+      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+    'xl/workbook.xml':
+      '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Resumo" sheetId="1" r:id="rId1"/><sheet name="Tentativas" sheetId="2" r:id="rId2"/><sheet name="Estatísticas" sheetId="3" r:id="rId3"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels':
+      '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/></Relationships>',
+    'xl/worksheets/sheet1.xml': sheet(summary),
+    'xl/worksheets/sheet2.xml': sheet(attemptRows),
+    'xl/worksheets/sheet3.xml': sheet(stats),
+  };
+  return zipStore(files);
+}
+
+function svgSeries(history, accessor, min, max) {
+  if (!history?.length) return '';
+  const range = Math.max(1e-9, max - min);
+  return history
+    .map(
+      (p, i) =>
+        `${i ? 'L' : 'M'} ${(10 + (i / Math.max(1, history.length - 1)) * 580).toFixed(1)} ${(140 - ((Math.max(min, Math.min(max, Number(accessor(p)) || min)) - min) / range) * 125).toFixed(1)}`,
+    )
+    .join(' ');
+}
+function chart(title, paths) {
+  return `<section class="chart"><h3>${esc(title)}</h3><svg viewBox="0 0 600 150"><path class="axis" d="M10 10V140H590"/>${paths.map((p, i) => `<path class="s${i + 1}" d="${p}"/>`).join('')}</svg></section>`;
+}
+
+/** @param {{holds?: any, rules?: any[]}} [input] */
+export function evaluateEmissionHolds({ holds = {}, rules = [] } = {}) {
+  const stages = [holds.idle, holds.high];
+  if (stages.some((h) => !h || h.validSample === false))
+    return { status: 'ENSAIO INVÁLIDO', reasons: ['Amostra inválida ou Hold ausente.'] };
+  const reasons = [];
+  const coRule = rules.find((r) => r.parameter === 'coCorrected');
+  const hcRule = rules.find((r) => r.parameter === 'hcCorrected');
+  const dilutionRule = rules.find((r) => r.parameter === 'dilutionFactor');
+  stages.forEach((h, i) => {
+    const name = i ? 'rotação elevada' : 'marcha lenta';
+    if (coRule && Number(h.coCorrected) > Number(coRule.value))
+      reasons.push(`CO corrigido acima do limite em ${name}.`);
+    if (hcRule && Number(h.hcCorrected) > Number(hcRule.value))
+      reasons.push(`HC corrigido acima do limite em ${name}.`);
+    if (dilutionRule && Number(h.dilutionFactor) > Number(dilutionRule.value))
+      reasons.push(`Diluição inválida em ${name}.`);
+  });
+  return { status: reasons.length ? 'REPROVADO' : 'APROVADO', reasons };
+}
+
+/** @param {{vehicle?: any, history?: any[], holds?: any, regulation?: string, result?: string}} [input] */
+export function createEmissionsReportHtml({
+  vehicle = {},
+  history = [],
+  holds = {},
+  regulation = 'Resolução CONAMA nº 418/2009',
+  result = 'ENSAIO INVÁLIDO',
+} = {}) {
+  const row = (name, h) =>
+    `<tr><th>${name}</th><td>${num(h?.rpm, 0)}</td><td>${num(h?.temperature, 1)}</td><td>${num(h?.co)}</td><td>${num(h?.coCorrected)}</td><td>${num(h?.co2)}</td><td>${num(h?.hc, 0)}</td><td>${num(h?.hcCorrected, 0)}</td><td>${num(h?.o2)}</td><td>${num(h?.modelLambda, 3)}</td><td>${num(h?.lambda, 3)}</td><td>${num(h?.dilutionFactor, 3)}</td><td>${num(h?.nox, 0)}</td></tr>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Emissões — Simulação Didática</title><style>body{font:14px Arial;margin:28px;color:#17202a}header{border-bottom:3px solid #b5121b}.warn{font-weight:700;border:2px solid #b5121b;padding:10px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #bbb;padding:5px;text-align:center}.chart{break-inside:avoid}svg{width:100%;height:150px;border:1px solid #ddd}.axis{stroke:#777;fill:none}.s1,.s2{fill:none;stroke:#111;stroke-width:2}.s2{stroke-dasharray:5 4}@media print{button{display:none}}</style></head><body><header><strong>LabInspeção / UniSENAI</strong><h1>RELATÓRIO DE ANÁLISE DE EMISSÕES VEICULARES — SIMULAÇÃO DIDÁTICA</h1></header><p class="warn">${DISCLAIMER}</p><h2>Veículo simulado</h2><p><b>Fabricante:</b> ${esc(vehicle.manufacturer || vehicle.fabricante || 'Simulado')} · <b>Modelo:</b> ${esc(vehicle.model || vehicle.modelo || '—')} · <b>Ano:</b> ${esc(vehicle.year || vehicle.modelYear || '—')} · <b>Combustível:</b> ${esc(vehicle.fuel || '—')} · <b>Placa:</b> ${esc(vehicle.plate || 'PLACA SIMULADA')}</p><h2>Resultados retidos no Hold</h2><table><thead><tr><th>Etapa</th><th>rpm</th><th>°C</th><th>CO med.</th><th>CO corr.</th><th>CO₂</th><th>HC med.</th><th>HC corr.</th><th>O₂</th><th>λ modelo</th><th>λ gases</th><th>Diluição</th><th>NOx*</th></tr></thead><tbody>${row('Marcha lenta', holds.idle)}${row('Rotação elevada', holds.high)}</tbody></table><p>* NOx: Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p><p><b>Referência normativa:</b> ${esc(regulation)} · <b>Resultado:</b> ${esc(result)}</p><h2>Séries temporais</h2>${chart('RPM × tempo', [svgSeries(history, (p) => p.rpm, 0, 3500)])}${chart('CO e HC × tempo', [svgSeries(history, (p) => p.co, 0, 5), svgSeries(history, (p) => p.hc / 400, 0, 5)])}${chart('CO₂ e O₂ × tempo', [svgSeries(history, (p) => p.co2, 0, 21), svgSeries(history, (p) => p.o2, 0, 21)])}${chart('Lambda × tempo', [svgSeries(history, (p) => p.lambda, 0.8, 1.2)])}<p>As séries temporais representam a resposta dinâmica do ensaio. A avaliação normativa utiliza exclusivamente valores retidos em Hold válidos.</p><button onclick="print()">Imprimir / Salvar em PDF</button></body></html>`;
+}
+
+export { DISCLAIMER };
