@@ -13,6 +13,7 @@ export function calculateTwc({
   lambda,
   catalystTemperatureC,
   catalystState = 'efficient',
+  catalystEfficiencyScale = 1,
   calibration,
 }) {
   const p = calibration.parameters;
@@ -29,7 +30,8 @@ export function calculateTwc({
     1,
   );
   const reductionAvailability = clamp(lambdaWindow + 0.08 * Math.max(0, 1 - lambda), 0, 1);
-  const common = stateFactor * thermal;
+  const effectiveStateFactor = clamp(stateFactor * catalystEfficiencyScale, 0, 1);
+  const common = effectiveStateFactor * thermal;
   const efficiencies = {
     co: clamp(common * oxidationAvailability * 0.97, 0, 0.99),
     hc: clamp(common * oxidationAvailability * 0.94, 0, 0.98),
@@ -41,6 +43,8 @@ export function calculateTwc({
   return {
     catalystTemperatureC,
     state: catalystState,
+    efficiencyScale: catalystEfficiencyScale,
+    effectiveStateFactor,
     thermalActivity: thermal,
     lambdaWindow,
     efficiencies,

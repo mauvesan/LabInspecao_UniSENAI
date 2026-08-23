@@ -37,6 +37,7 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
     lambda: lambdaModel,
     catalystTemperatureC,
     catalystState,
+    catalystEfficiencyScale: input.catalystEfficiencyScale ?? 1,
     calibration,
   });
   const sampling = applySamplingDilution(twc.gases, input.samplingAirFraction ?? 0);
