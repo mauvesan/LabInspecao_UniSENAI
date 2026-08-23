@@ -4,7 +4,9 @@ import quiz from './quiz.json';
 import { gasesOttoContent } from './content.js';
 import { initializeGasesOttoSimulation } from './simulation.js';
 import { initializeGasesDecision } from './decision.js';
+import { initializeGasesAnalyzer } from './analyzer-interface.js';
 import './decision.css';
+import './analyzer.css';
 
 import { createQuiz } from '../../components/quiz.js';
 import { initializeSectionNavigation } from '../../app/navigation/section-navigation.js';
@@ -22,6 +24,7 @@ export default {
 
     registerCleanup(initializeSectionNavigation(root));
     registerCleanup(initializeGasesOttoSimulation(this, root));
+    registerCleanup(initializeGasesAnalyzer(root));
     registerCleanup(initializeGasesDecision(root));
 
     const quizContainer = root.querySelector('#module-quiz');

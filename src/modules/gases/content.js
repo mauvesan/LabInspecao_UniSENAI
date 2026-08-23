@@ -3,6 +3,7 @@ import { rangeControl } from '../../components/range-control.js';
 import { chartPanel } from '../../components/chart-panel.js';
 
 import { quickCases } from '../../components/quick-cases.js';
+import { analyzerPanel } from './analyzer-view.js';
 
 /**
  * Conteúdo do módulo Analisador de Gases — Ciclo Otto.
@@ -418,6 +419,7 @@ export function gasesOttoContent() {
           aria-labelledby="otto-tab-measurement"
           data-otto-panel="measurement"
         >
+          ${analyzerPanel()}
           <div class="simulation-layout otto-simulation-workspace">
             <section
               class="simulation-controls otto-control-panel"
