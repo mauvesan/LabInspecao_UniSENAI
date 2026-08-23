@@ -63,12 +63,10 @@ export function buildEmissionsAnalytics({
     for (const ev of a.score_breakdown?.missingEvidence || [])
       evidenceMisses.set(ev, (evidenceMisses.get(ev) || 0) + 1);
   }
-  const distribution = [0, 20, 40, 60, 80, 100]
-    .slice(0, -1)
-    .map((min, i) => ({
-      range: `${min}–${[19, 39, 59, 79, 100][i]}`,
-      count: scores.filter((s) => s >= min && s <= (i === 4 ? 100 : min + 19.999)).length,
-    }));
+  const distribution = [0, 20, 40, 60, 80, 100].slice(0, -1).map((min, i) => ({
+    range: `${min}–${[19, 39, 59, 79, 100][i]}`,
+    count: scores.filter((s) => s >= min && s <= (i === 4 ? 100 : min + 19.999)).length,
+  }));
   const enrolled = students.length || rows.length;
   const completed = new Set(
     results.filter((r) => Number(r.valid_attempt_count || 0) > 0).map((r) => r.student_id),
@@ -316,17 +314,24 @@ export function evaluateEmissionHolds({ holds = {}, rules = [] } = {}) {
   return { status: reasons.length ? 'REPROVADO' : 'APROVADO', reasons };
 }
 
-/** @param {{vehicle?: any, history?: any[], holds?: any, regulation?: string, result?: string}} [input] */
+/** @param {{vehicle?: any, history?: any[], holds?: any, regulation?: string, rules?: any[], result?: string, reasons?: string[]}} [input] */
 export function createEmissionsReportHtml({
   vehicle = {},
   history = [],
   holds = {},
   regulation = 'Resolução CONAMA nº 418/2009',
+  rules = [],
   result = 'ENSAIO INVÁLIDO',
+  reasons = [],
 } = {}) {
   const row = (name, h) =>
     `<tr><th>${name}</th><td>${num(h?.rpm, 0)}</td><td>${num(h?.temperature, 1)}</td><td>${num(h?.co)}</td><td>${num(h?.coCorrected)}</td><td>${num(h?.co2)}</td><td>${num(h?.hc, 0)}</td><td>${num(h?.hcCorrected, 0)}</td><td>${num(h?.o2)}</td><td>${num(h?.modelLambda, 3)}</td><td>${num(h?.lambda, 3)}</td><td>${num(h?.dilutionFactor, 3)}</td><td>${num(h?.nox, 0)}</td></tr>`;
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Emissões — Simulação Didática</title><style>body{font:14px Arial;margin:28px;color:#17202a}header{border-bottom:3px solid #b5121b}.warn{font-weight:700;border:2px solid #b5121b;padding:10px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #bbb;padding:5px;text-align:center}.chart{break-inside:avoid}svg{width:100%;height:150px;border:1px solid #ddd}.axis{stroke:#777;fill:none}.s1,.s2{fill:none;stroke:#111;stroke-width:2}.s2{stroke-dasharray:5 4}@media print{button{display:none}}</style></head><body><header><strong>LabInspeção / UniSENAI</strong><h1>RELATÓRIO DE ANÁLISE DE EMISSÕES VEICULARES — SIMULAÇÃO DIDÁTICA</h1></header><p class="warn">${DISCLAIMER}</p><h2>Veículo simulado</h2><p><b>Fabricante:</b> ${esc(vehicle.manufacturer || vehicle.fabricante || 'Simulado')} · <b>Modelo:</b> ${esc(vehicle.model || vehicle.modelo || '—')} · <b>Ano:</b> ${esc(vehicle.year || vehicle.modelYear || '—')} · <b>Combustível:</b> ${esc(vehicle.fuel || '—')} · <b>Placa:</b> ${esc(vehicle.plate || 'PLACA SIMULADA')}</p><h2>Resultados retidos no Hold</h2><table><thead><tr><th>Etapa</th><th>rpm</th><th>°C</th><th>CO med.</th><th>CO corr.</th><th>CO₂</th><th>HC med.</th><th>HC corr.</th><th>O₂</th><th>λ modelo</th><th>λ gases</th><th>Diluição</th><th>NOx*</th></tr></thead><tbody>${row('Marcha lenta', holds.idle)}${row('Rotação elevada', holds.high)}</tbody></table><p>* NOx: Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p><p><b>Referência normativa:</b> ${esc(regulation)} · <b>Resultado:</b> ${esc(result)}</p><h2>Séries temporais</h2>${chart('RPM × tempo', [svgSeries(history, (p) => p.rpm, 0, 3500)])}${chart('CO e HC × tempo', [svgSeries(history, (p) => p.co, 0, 5), svgSeries(history, (p) => p.hc / 400, 0, 5)])}${chart('CO₂ e O₂ × tempo', [svgSeries(history, (p) => p.co2, 0, 21), svgSeries(history, (p) => p.o2, 0, 21)])}${chart('Lambda × tempo', [svgSeries(history, (p) => p.lambda, 0.8, 1.2)])}<p>As séries temporais representam a resposta dinâmica do ensaio. A avaliação normativa utiliza exclusivamente valores retidos em Hold válidos.</p><button onclick="print()">Imprimir / Salvar em PDF</button></body></html>`;
+  const coLimit = rules.find((r) => r.parameter === 'coCorrected');
+  const hcLimit = rules.find((r) => r.parameter === 'hcCorrected');
+  const dilutionLimit = rules.find((r) => r.parameter === 'dilutionFactor');
+  const phases = [...new Set(history.map((item) => item.state).filter(Boolean))].join(' → ');
+  const limits = `CO corrigido ≤ ${num(coLimit?.value)} % vol. · HC corrigido ≤ ${num(hcLimit?.value, 0)} ppm · Fator de diluição ≤ ${num(dilutionLimit?.value, 1)}`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Emissões — Simulação Didática</title><style>body{font:14px Arial;margin:28px;color:#17202a}header{border-bottom:3px solid #b5121b}.warn{font-weight:700;border:2px solid #b5121b;padding:10px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #bbb;padding:5px;text-align:center}.chart{break-inside:avoid}svg{width:100%;height:150px;border:1px solid #ddd}.axis{stroke:#777;fill:none}.s1,.s2{fill:none;stroke:#111;stroke-width:2}.s2{stroke-dasharray:5 4}@media print{button{display:none}}</style></head><body><header><strong>LabInspeção / UniSENAI</strong><h1>RELATÓRIO DE ANÁLISE DE EMISSÕES VEICULARES — SIMULAÇÃO DIDÁTICA</h1></header><p class="warn">${DISCLAIMER}</p><h2>Veículo simulado</h2><p><b>Fabricante:</b> ${esc(vehicle.manufacturer || vehicle.fabricante || 'Simulado')} · <b>Modelo:</b> ${esc(vehicle.model || vehicle.modelo || '—')} · <b>Ano:</b> ${esc(vehicle.year || vehicle.modelYear || '—')} · <b>Combustível:</b> ${esc(vehicle.fuel || '—')} · <b>Placa:</b> ${esc(vehicle.plate || 'PLACA SIMULADA')}</p><h2>Resultados retidos no Hold</h2><table><thead><tr><th>Etapa</th><th>rpm</th><th>°C</th><th>CO med.</th><th>CO corr.</th><th>CO₂</th><th>HC med.</th><th>HC corr.</th><th>O₂</th><th>λ modelo</th><th>λ gases</th><th>Diluição</th><th>NOx*</th></tr></thead><tbody>${row('Marcha lenta', holds.idle)}${row('Rotação elevada', holds.high)}</tbody></table><p>* NOx: Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p><p><b>Limites aplicáveis:</b> ${esc(limits)}</p><p><b>Referência normativa:</b> ${esc(regulation)} · <b>Resultado:</b> ${esc(result)}</p>${reasons.length ? `<p><b>Razões:</b> ${reasons.map(esc).join(' · ')}</p>` : ''}<h2>Séries temporais</h2><p><b>Etapas registradas:</b> ${esc(phases || '—')}</p>${chart('RPM × tempo', [svgSeries(history, (p) => p.rpm, 0, 3500)])}${chart('CO e HC × tempo', [svgSeries(history, (p) => p.co, 0, 5), svgSeries(history, (p) => p.hc / 400, 0, 5)])}${chart('CO₂ e O₂ × tempo', [svgSeries(history, (p) => p.co2, 0, 21), svgSeries(history, (p) => p.o2, 0, 21)])}${chart('Lambda × tempo', [svgSeries(history, (p) => p.lambda, 0.8, 1.2)])}<p>As séries temporais representam a resposta dinâmica do ensaio. A avaliação normativa utiliza exclusivamente valores retidos em Hold válidos.</p><button onclick="print()">Imprimir / Salvar em PDF</button></body></html>`;
 }
 
 export { DISCLAIMER };

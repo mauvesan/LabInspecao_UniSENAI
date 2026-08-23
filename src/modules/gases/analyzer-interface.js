@@ -123,7 +123,9 @@ export function initializeGasesAnalyzer(root) {
       history,
       holds,
       regulation: 'Resolução CONAMA nº 418/2009',
+      rules: regulation.rules,
       result: evaluation.status,
+      reasons: evaluation.reasons,
     });
     const reportWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!reportWindow) return;
