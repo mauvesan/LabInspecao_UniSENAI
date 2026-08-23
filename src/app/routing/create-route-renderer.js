@@ -7,6 +7,7 @@ import { renderReferences } from '../views/references-view.js';
 import { renderTeacherArea } from '../views/teacher-area-view.js';
 import { renderEmissionsModelValidation } from '../views/emissions-model-validation-view.js';
 import { renderEmissionsTeacherLibrary } from '../views/emissions-teacher-library-view.js';
+import { renderEmissionsReports } from '../views/emissions-reports-view.js';
 import { renderAccessDenied } from '../views/access-denied-view.js';
 import { renderStudentAssessmentDetail } from '../views/student-assessment-detail-view.js';
 import { updateNavigation } from '../navigation/navigation-ui.js';
@@ -24,6 +25,7 @@ const routes = {
   '/professor': renderTeacherArea,
   '/professor/validacao-emissoes': renderEmissionsModelValidation,
   '/professor/emissoes-bibliotecas': renderEmissionsTeacherLibrary,
+  '/professor/emissoes-relatorios': renderEmissionsReports,
 };
 
 const ASSESSMENT_ROUTE_PATTERN =

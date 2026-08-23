@@ -17,6 +17,11 @@ const ROUTE_RULES = Object.freeze({
     USER_ROLES.ADMIN,
     USER_ROLES.TECHNICAL,
   ]),
+  '/professor/emissoes-relatorios': Object.freeze([
+    USER_ROLES.TEACHER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.TECHNICAL,
+  ]),
 });
 
 export function normalizeRole(role) {
