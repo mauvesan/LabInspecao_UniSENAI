@@ -963,132 +963,150 @@ export function gasesOttoContent() {
           data-otto-panel="engineering"
           hidden
         >
-          <div class="content-grid">
-            <article class="content-card">
-              <h3>Combustão completa</h3>
+          <div class="otto-engineering-intro content-card">
+            <span class="otto-results-eyebrow">Modo Engenharia</span>
+            <h3>Causas físicas → combustão → emissões</h3>
+            <p>
+              Altere parâmetros causais do motor e observe as consequências calculadas pelo
+              modelo. Os gases não são ajustados diretamente neste modo. A correção de injeção
+              representa, como <strong>aproximação didática</strong>, a variação relativa do
+              comando/tempo efetivo de injeção em relação ao mapa original.
+            </p>
+          </div>
 
-              <p>
-                Em condições ideais, o carbono do combustível é
-                convertido principalmente em CO₂ e o hidrogênio em
-                vapor de água.
-              </p>
+          <div class="simulation-layout otto-engineering-workspace">
+            <section class="simulation-controls" aria-label="Controles de engenharia do motor">
+              <article class="content-card">
+                <h3>Comando do motor</h3>
 
-              <div class="formula">
-                combustível + O₂
-                →
-                CO₂ + H₂O + energia
+                ${rangeControl({
+                  id: 'otto-eng-injection',
+                  label: 'Correção do comando de injeção',
+                  min: -20,
+                  max: 20,
+                  step: 1,
+                  value: 0,
+                  unit: '%',
+                })}
+
+                ${rangeControl({
+                  id: 'otto-eng-ignition',
+                  label: 'Alteração do ponto de ignição',
+                  min: -10,
+                  max: 10,
+                  step: 1,
+                  value: 0,
+                  unit: '°',
+                })}
+
+                ${rangeControl({
+                  id: 'otto-eng-ethanol',
+                  label: 'Teor volumétrico de etanol',
+                  min: 0,
+                  max: 100,
+                  step: 1,
+                  value: 27,
+                  unit: '%',
+                })}
+
+                <p class="help-text">
+                  Valores fora das composições comerciais usuais são tratados como
+                  <strong>composição experimental/didática</strong>.
+                </p>
+              </article>
+
+              <article class="content-card">
+                <h3>Condição operacional</h3>
+
+                ${rangeControl({
+                  id: 'otto-eng-rpm',
+                  label: 'Rotação do motor',
+                  min: 600,
+                  max: 3500,
+                  step: 50,
+                  value: 850,
+                  unit: 'rpm',
+                })}
+
+                ${rangeControl({
+                  id: 'otto-eng-temperature',
+                  label: 'Temperatura do motor',
+                  min: 20,
+                  max: 110,
+                  step: 1,
+                  value: 90,
+                  unit: '°C',
+                })}
+
+                ${rangeControl({
+                  id: 'otto-eng-misfire',
+                  label: 'Fração de ciclos com misfire',
+                  min: 0,
+                  max: 15,
+                  step: 1,
+                  value: 0,
+                  unit: '%',
+                })}
+
+                ${rangeControl({
+                  id: 'otto-eng-sampling-air',
+                  label: 'Entrada de ar na amostragem',
+                  min: 0,
+                  max: 30,
+                  step: 1,
+                  value: 0,
+                  unit: '%',
+                })}
+
+                <label class="control-block" for="otto-eng-catalyst-state">
+                  <span>Estado do catalisador TWC</span>
+                  <select id="otto-eng-catalyst-state">
+                    <option value="efficient" selected>Eficiente</option>
+                    <option value="partiallyDegraded">Parcialmente degradado</option>
+                    <option value="severelyDegraded">Severamente degradado</option>
+                    <option value="inefficient">Ineficiente</option>
+                  </select>
+                </label>
+              </article>
+            </section>
+
+            <section class="otto-engineering-results" aria-live="polite">
+              <article class="content-card">
+                <h3>Cadeia causal calculada</h3>
+                <div class="otto-engineering-flow" aria-label="Cadeia causal do modelo">
+                  <span>Combustível / E%</span><b>→</b><span>AFR esteq.</span><b>→</b>
+                  <span>AFR real</span><b>→</b><span>λ modelo</span><b>→</b>
+                  <span>Combustão</span><b>→</b><span>TWC</span><b>→</b><span>Medição</span>
+                </div>
+              </article>
+
+              <div class="metric-grid">
+                <article class="metric-card"><span>AFR estequiométrica</span><strong id="otto-eng-afr-stoich">—</strong><small>kg ar/kg combustível</small></article>
+                <article class="metric-card"><span>AFR real</span><strong id="otto-eng-afr-real">—</strong><small>resultado do comando de injeção</small></article>
+                <article class="metric-card"><span>λ modelo</span><strong id="otto-eng-lambda-model">—</strong><small>AFR real ÷ AFR esteq.</small></article>
+                <article class="metric-card"><span>λ pelos gases</span><strong id="otto-eng-lambda-gases">—</strong><small>Brettschneider</small></article>
+                <article class="metric-card"><span>CO bruto</span><strong id="otto-eng-raw-co">—</strong><small>antes do TWC</small></article>
+                <article class="metric-card"><span>HC bruto</span><strong id="otto-eng-raw-hc">—</strong><small>antes do TWC</small></article>
+                <article class="metric-card"><span>O₂ bruto</span><strong id="otto-eng-raw-o2">—</strong><small>antes do TWC</small></article>
+                <article class="metric-card"><span>NOx bruto*</span><strong id="otto-eng-raw-nox">—</strong><small>parâmetro didático</small></article>
+                <article class="metric-card"><span>Eficiência TWC — CO</span><strong id="otto-eng-twc-co">—</strong><small>conversão calculada</small></article>
+                <article class="metric-card"><span>Eficiência TWC — HC</span><strong id="otto-eng-twc-hc">—</strong><small>conversão calculada</small></article>
+                <article class="metric-card"><span>Eficiência TWC — NOx</span><strong id="otto-eng-twc-nox">—</strong><small>conversão calculada</small></article>
+                <article class="metric-card"><span>Fator de diluição</span><strong id="otto-eng-dilution">—</strong><small>amostra</small></article>
+                <article class="metric-card metric-card--measured"><span>CO medido</span><strong id="otto-eng-co-measured">—</strong><small>pós-TWC + amostragem</small></article>
+                <article class="metric-card metric-card--corrected"><span>CO corrigido</span><strong id="otto-eng-co-corrected">—</strong><small>correção da amostra</small></article>
+                <article class="metric-card metric-card--measured"><span>HC medido</span><strong id="otto-eng-hc-measured">—</strong><small>pós-TWC + amostragem</small></article>
+                <article class="metric-card metric-card--corrected"><span>HC corrigido</span><strong id="otto-eng-hc-corrected">—</strong><small>correção da amostra</small></article>
+                <article class="metric-card"><span>CO₂ medido</span><strong id="otto-eng-co2">—</strong><small>escapamento</small></article>
+                <article class="metric-card"><span>O₂ medido</span><strong id="otto-eng-o2">—</strong><small>escapamento</small></article>
+                <article class="metric-card"><span>NOx complementar*</span><strong id="otto-eng-nox">—</strong><small>não medido pelo analisador de 4 gases</small></article>
               </div>
 
-              <p>
-                Na prática, a combustão ocorre em condições
-                transitórias e apresenta produtos adicionais.
-              </p>
-            </article>
-
-            <article class="content-card">
-              <h3>Formação de CO</h3>
-
-              <p>
-                O monóxido de carbono aumenta quando não há oxigênio
-                suficiente, quando a mistura não se homogeneíza
-                adequadamente ou quando a oxidação no catalisador é
-                insuficiente.
-              </p>
-
-              <div class="formula">
-                2 C + O₂ → 2 CO
+              <div id="otto-engineering-status" class="status-panel">
+                Cenário normal: altere uma causa e acompanhe a propagação física até a medição.
               </div>
-            </article>
-
-            <article class="content-card">
-              <h3>Formação de HC</h3>
-
-              <p>
-                Hidrocarbonetos aparecem quando parte do combustível
-                não participa integralmente da combustão.
-              </p>
-
-              <ul>
-                <li>falhas de ignição;</li>
-                <li>extinção da chama junto às paredes;</li>
-                <li>mistura excessivamente rica ou pobre;</li>
-                <li>problemas de vedação;</li>
-                <li>combustível retido em volumes de folga.</li>
-              </ul>
-            </article>
-
-            <article class="content-card">
-              <h3>Oxigênio residual</h3>
-
-              <p>
-                O aumento de O₂ pode indicar mistura pobre, entrada
-                falsa de ar, vazamento no escapamento ou falha de
-                combustão. Por isso, deve ser interpretado junto com
-                HC, CO₂ e lambda.
-              </p>
-            </article>
-
-            <article class="content-card">
-              <h3>Catalisador de três vias</h3>
-
-              <p>
-                O catalisador atua simultaneamente na oxidação de CO e
-                HC e na redução de óxidos de nitrogênio quando a
-                mistura permanece próxima de lambda igual a um.
-              </p>
-
-              <ul>
-                <li>oxidação de CO para CO₂;</li>
-                <li>oxidação de HC para CO₂ e H₂O;</li>
-                <li>redução de NOx para N₂.</li>
-              </ul>
-            </article>
-
-            <article class="content-card">
-              <h3>Janela de conversão</h3>
-
-              <p>
-                A eficiência simultânea das reações do catalisador de
-                três vias depende do controle preciso da mistura nas
-                proximidades da condição estequiométrica.
-              </p>
-
-              <div class="formula">
-                λ ≈ 1
-              </div>
-
-              <p>
-                Misturas persistentemente ricas ou pobres reduzem a
-                eficiência global do pós-tratamento.
-              </p>
-            </article>
-
-            <article class="content-card">
-              <h3>Óxidos de nitrogênio</h3>
-
-              <p>
-                Embora muitos analisadores usados em inspeções
-                convencionais não meçam NOx, sua formação é relevante
-                para compreender o controle de emissões.
-              </p>
-
-              <p>
-                Temperaturas elevadas de combustão e disponibilidade
-                de oxigênio favorecem a formação de óxidos de
-                nitrogênio.
-              </p>
-            </article>
-
-            <article class="content-card">
-              <h3>Limitação do diagnóstico</h3>
-
-              <p>
-                Leituras semelhantes podem ter causas diferentes.
-                Uma conclusão técnica requer correlação com dados do
-                veículo, inspeção visual, diagnóstico eletrônico e
-                procedimentos adicionais.
-              </p>
-            </article>
+              <p class="help-text">* Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p>
+            </section>
           </div>
         </section>
       </div>

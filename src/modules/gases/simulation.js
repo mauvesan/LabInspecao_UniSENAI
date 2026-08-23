@@ -1,3 +1,5 @@
+import { VEHICLE_LIBRARY, runEmissionsModel } from './model/index.js';
+
 /**
  * Simulador — Analisador de Gases do Ciclo Otto.
  *
@@ -762,6 +764,110 @@ export function initializeGasesOttoSimulation(module, root) {
     explanation: requireElement(root, '#otto-fuel-explanation'),
   };
 
+  const engineeringControls = {
+    injection: findRangeInput(root, 'otto-eng-injection'),
+    ignition: findRangeInput(root, 'otto-eng-ignition'),
+    ethanol: findRangeInput(root, 'otto-eng-ethanol'),
+    rpm: findRangeInput(root, 'otto-eng-rpm'),
+    temperature: findRangeInput(root, 'otto-eng-temperature'),
+    misfire: findRangeInput(root, 'otto-eng-misfire'),
+    samplingAir: findRangeInput(root, 'otto-eng-sampling-air'),
+    catalystState: requireElement(root, '#otto-eng-catalyst-state'),
+  };
+
+  const engineeringOutputs = {
+    injection: findRangeOutput(root, 'otto-eng-injection'),
+    ignition: findRangeOutput(root, 'otto-eng-ignition'),
+    ethanol: findRangeOutput(root, 'otto-eng-ethanol'),
+    rpm: findRangeOutput(root, 'otto-eng-rpm'),
+    temperature: findRangeOutput(root, 'otto-eng-temperature'),
+    misfire: findRangeOutput(root, 'otto-eng-misfire'),
+    samplingAir: findRangeOutput(root, 'otto-eng-sampling-air'),
+    afrStoich: requireElement(root, '#otto-eng-afr-stoich'),
+    afrReal: requireElement(root, '#otto-eng-afr-real'),
+    lambdaModel: requireElement(root, '#otto-eng-lambda-model'),
+    lambdaGases: requireElement(root, '#otto-eng-lambda-gases'),
+    rawCo: requireElement(root, '#otto-eng-raw-co'),
+    rawHc: requireElement(root, '#otto-eng-raw-hc'),
+    rawO2: requireElement(root, '#otto-eng-raw-o2'),
+    rawNox: requireElement(root, '#otto-eng-raw-nox'),
+    twcCo: requireElement(root, '#otto-eng-twc-co'),
+    twcHc: requireElement(root, '#otto-eng-twc-hc'),
+    twcNox: requireElement(root, '#otto-eng-twc-nox'),
+    dilution: requireElement(root, '#otto-eng-dilution'),
+    coMeasured: requireElement(root, '#otto-eng-co-measured'),
+    coCorrected: requireElement(root, '#otto-eng-co-corrected'),
+    hcMeasured: requireElement(root, '#otto-eng-hc-measured'),
+    hcCorrected: requireElement(root, '#otto-eng-hc-corrected'),
+    co2: requireElement(root, '#otto-eng-co2'),
+    o2: requireElement(root, '#otto-eng-o2'),
+    nox: requireElement(root, '#otto-eng-nox'),
+    status: requireElement(root, '#otto-engineering-status'),
+  };
+
+  function updateEngineeringSimulation() {
+    const vehicle = VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+    const injectionCorrectionPct = toNumber(engineeringControls.injection.value, 0);
+    const ignitionDeltaDeg = toNumber(engineeringControls.ignition.value, 0);
+    const ethanolContent = toNumber(engineeringControls.ethanol.value, 27);
+    const rpm = toNumber(engineeringControls.rpm.value, 850);
+    const engineTemperatureC = toNumber(engineeringControls.temperature.value, 90);
+    const misfireFraction = toNumber(engineeringControls.misfire.value, 0) / 100;
+    const samplingAirFraction = toNumber(engineeringControls.samplingAir.value, 0) / 100;
+
+    setText(engineeringOutputs.injection, `${formatNumber(injectionCorrectionPct, 0, 0)} %`);
+    setText(engineeringOutputs.ignition, `${formatNumber(ignitionDeltaDeg, 0, 0)} °`);
+    setText(engineeringOutputs.ethanol, `${formatNumber(ethanolContent, 0, 0)} %`);
+    setText(engineeringOutputs.rpm, `${formatNumber(rpm, 0, 0)} rpm`);
+    setText(engineeringOutputs.temperature, `${formatNumber(engineTemperatureC, 0, 0)} °C`);
+    setText(engineeringOutputs.misfire, `${formatNumber(misfireFraction * 100, 0, 0)} %`);
+    setText(engineeringOutputs.samplingAir, `${formatNumber(samplingAirFraction * 100, 0, 0)} %`);
+
+    const result = runEmissionsModel({
+      vehicle,
+      ethanolContent,
+      rpm,
+      engineTemperatureC,
+      injectionCorrectionPct,
+      ignitionDeltaDeg,
+      catalystState: engineeringControls.catalystState.value,
+      misfireFraction,
+      samplingAirFraction,
+    });
+
+    setText(engineeringOutputs.afrStoich, formatNumber(result.fuel.afrStoich, 2, 2));
+    setText(engineeringOutputs.afrReal, formatNumber(result.engine.realAfr, 2, 2));
+    setText(engineeringOutputs.lambdaModel, formatNumber(result.engine.lambdaModel, 3, 3));
+    setText(engineeringOutputs.lambdaGases, formatNumber(result.measurement.lambdaGases, 3, 3));
+    setText(engineeringOutputs.rawCo, `${formatNumber(result.rawEmissions.co, 2, 2)}%`);
+    setText(engineeringOutputs.rawHc, `${formatNumber(result.rawEmissions.hc, 0, 0)} ppm`);
+    setText(engineeringOutputs.rawO2, `${formatNumber(result.rawEmissions.o2, 2, 2)}%`);
+    setText(engineeringOutputs.rawNox, `${formatNumber(result.rawEmissions.nox, 0, 0)} ppm`);
+    setText(engineeringOutputs.twcCo, `${formatNumber(result.catalyst.efficiencies.co * 100, 1, 1)}%`);
+    setText(engineeringOutputs.twcHc, `${formatNumber(result.catalyst.efficiencies.hc * 100, 1, 1)}%`);
+    setText(engineeringOutputs.twcNox, `${formatNumber(result.catalyst.efficiencies.nox * 100, 1, 1)}%`);
+    setText(engineeringOutputs.dilution, formatNumber(result.measurement.dilutionFactor, 2, 2));
+    setText(engineeringOutputs.coMeasured, `${formatNumber(result.measurement.coMeasured, 2, 2)}%`);
+    setText(engineeringOutputs.coCorrected, `${formatNumber(result.measurement.coCorrected, 2, 2)}%`);
+    setText(engineeringOutputs.hcMeasured, `${formatNumber(result.measurement.hcMeasured, 0, 0)} ppm`);
+    setText(engineeringOutputs.hcCorrected, `${formatNumber(result.measurement.hcCorrected, 0, 0)} ppm`);
+    setText(engineeringOutputs.co2, `${formatNumber(result.measurement.co2, 2, 2)}%`);
+    setText(engineeringOutputs.o2, `${formatNumber(result.measurement.o2, 2, 2)}%`);
+    setText(engineeringOutputs.nox, `${formatNumber(result.measurement.noxDidactic, 0, 0)} ppm`);
+
+    const mixture =
+      result.engine.lambdaModel < 0.98
+        ? 'Mistura rica calculada'
+        : result.engine.lambdaModel > 1.02
+          ? 'Mistura pobre calculada'
+          : 'Mistura próxima da estequiometria';
+    const sample = result.measurement.validSample ? 'amostra válida' : 'amostra excessivamente diluída';
+    setText(
+      engineeringOutputs.status,
+      `${mixture} · ${sample} · injeção ${injectionCorrectionPct >= 0 ? '+' : ''}${formatNumber(injectionCorrectionPct, 0, 0)}% · ignição ${ignitionDeltaDeg >= 0 ? '+' : ''}${formatNumber(ignitionDeltaDeg, 0, 0)}°`,
+    );
+  }
+
   const chartContainer =
     root.querySelector('#otto-gases-chart') ||
     root.querySelector('[data-chart-id="otto-gases-chart"]');
@@ -1067,6 +1173,13 @@ export function initializeGasesOttoSimulation(module, root) {
 
     setText(simulationStatus, statusMessage);
   }
+
+  Object.values(engineeringControls).forEach((control) => {
+    listen(control, 'input', updateEngineeringSimulation);
+    listen(control, 'change', updateEngineeringSimulation);
+  });
+
+  updateEngineeringSimulation();
 
   tabButtons.forEach((button, index) => {
     listen(button, 'click', () => activateTab(button.dataset.ottoTab));

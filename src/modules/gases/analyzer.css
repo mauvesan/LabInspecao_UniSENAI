@@ -316,3 +316,39 @@
     grid-template-columns: 1fr;
   }
 }
+
+.otto-engineering-intro {
+  margin-bottom: 1rem;
+}
+.otto-engineering-workspace {
+  align-items: start;
+}
+.otto-engineering-results {
+  min-width: 0;
+}
+.otto-engineering-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+.otto-engineering-flow span {
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted, #eef3f8);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.otto-engineering-flow b {
+  color: var(--color-text-muted, #52606d);
+}
+#otto-eng-catalyst-state {
+  width: 100%;
+  margin-top: 0.5rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.55rem;
+  background: var(--color-surface, #fff);
+  padding: 0.45rem 0.6rem;
+}
