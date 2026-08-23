@@ -9,6 +9,7 @@ import {
   createAnalyzerDynamics,
   firstOrderStep,
   holdAverage,
+  holdTransitionSnapshot,
   isStableSample,
   sampleTargetForState,
 } from '../../../src/modules/gases/analyzer-model.js';
@@ -93,6 +94,35 @@ describe('stabilization and hold', () => {
       { co: 1.1, co2: 9, hc: 900, o2: 6, lambda: 1.25 },
     ];
     expect(isStableSample(history)).toBe(false);
+  });
+
+  it('retains idle and high-rpm Hold samples before the next phase starts', () => {
+    const idleHistory = [
+      { co: 0.1, co2: 14.2, hc: 50, o2: 0.3, lambda: 1, rpm: 845, temperature: 90 },
+      { co: 0.1, co2: 14.2, hc: 52, o2: 0.3, lambda: 1, rpm: 850, temperature: 90 },
+      { co: 0.1, co2: 14.2, hc: 51, o2: 0.3, lambda: 1, rpm: 855, temperature: 90 },
+    ];
+    const highHistory = [
+      { co: 0.08, co2: 14.4, hc: 45, o2: 0.25, lambda: 1, rpm: 2480, temperature: 92 },
+      { co: 0.08, co2: 14.4, hc: 44, o2: 0.25, lambda: 1, rpm: 2500, temperature: 92 },
+      { co: 0.08, co2: 14.4, hc: 46, o2: 0.25, lambda: 1, rpm: 2520, temperature: 92 },
+    ];
+
+    const idle = holdTransitionSnapshot(
+      ANALYZER_STATES.HOLD_IDLE,
+      ANALYZER_STATES.TRANSITION_HIGH_RPM,
+      idleHistory,
+    );
+    const high = holdTransitionSnapshot(
+      ANALYZER_STATES.HOLD_HIGH_RPM,
+      ANALYZER_STATES.PURGING,
+      highHistory,
+    );
+
+    expect(idle?.key).toBe('idle');
+    expect(idle?.hold.rpm).toBeCloseTo(850);
+    expect(high?.key).toBe('high');
+    expect(high?.hold.rpm).toBeCloseTo(2500);
   });
 
   it('holds an average of retained samples', () => {

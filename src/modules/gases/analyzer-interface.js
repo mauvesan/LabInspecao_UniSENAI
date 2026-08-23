@@ -3,7 +3,7 @@ import {
   STATE_LABELS,
   createAnalyzerStateMachine,
 } from './analyzer-state-machine.js';
-import { createAnalyzerDynamics, holdAverage, isStableSample } from './analyzer-model.js';
+import { createAnalyzerDynamics, holdTransitionSnapshot, isStableSample } from './analyzer-model.js';
 import { createEmissionsReportHtml, evaluateEmissionHolds } from './reporting.js';
 import { resolveRegulation } from './model/regulation.js';
 import { VEHICLE_LIBRARY } from './model/index.js';
@@ -167,13 +167,6 @@ export function initializeGasesAnalyzer(root) {
     ]);
   }
 
-  function captureHold(key) {
-    const hold = holdAverage(phaseHistory, 3);
-    holds[key] = hold;
-    holdElements[key][0].textContent = `${format(hold.rpm, 0)} rpm · λ ${format(hold.lambda, 3)}`;
-    holdElements[key][1].textContent =
-      `CO ${format(hold.co)}% · HC ${format(hold.hc, 0)} ppm · CO₂ ${format(hold.co2)}% · O₂ ${format(hold.o2)}%`;
-  }
 
   function stopTimer() {
     if (timer !== null) window.clearInterval(timer);
@@ -182,15 +175,28 @@ export function initializeGasesAnalyzer(root) {
 
   function step() {
     const snapshot = machine.tick(1);
-    if (snapshot.state !== previousState) phaseHistory = [];
+    const stateChanged = snapshot.state !== previousState;
+
+    // O Hold deve ser calculado com as amostras do estado que acabou de terminar.
+    // Se phaseHistory for zerado antes desta captura, HOLD_IDLE herda o primeiro
+    // ponto da transição para alta rotação e HOLD_HIGH_RPM herda o primeiro ponto
+    // da purga, produzindo respectivamente ~2500 rpm e 0 rpm nos snapshots.
+    if (stateChanged && HOLD_STATES.has(previousState)) {
+      const retained = holdTransitionSnapshot(previousState, snapshot.state, phaseHistory, 3);
+      if (retained) {
+        holds[retained.key] = retained.hold;
+        holdElements[retained.key][0].textContent =
+          `${format(retained.hold.rpm, 0)} rpm · λ ${format(retained.hold.lambda, 3)}`;
+        holdElements[retained.key][1].textContent =
+          `CO ${format(retained.hold.co)}% · HC ${format(retained.hold.hc, 0)} ppm · CO₂ ${format(retained.hold.co2)}% · O₂ ${format(retained.hold.o2)}%`;
+      }
+    }
+    if (stateChanged) phaseHistory = [];
+
     const sample = dynamics.step({ state: snapshot.state, deltaSeconds: 1, scenario });
     const point = { ...sample, time: snapshot.totalElapsed, state: snapshot.state };
     history.push(point);
     phaseHistory.push(point);
-
-    if (HOLD_STATES.has(previousState) && snapshot.state !== previousState) {
-      captureHold(previousState === ANALYZER_STATES.HOLD_IDLE ? 'idle' : 'high');
-    }
     previousState = snapshot.state;
     render(sample, snapshot);
     if (snapshot.complete && !snapshot.running) {

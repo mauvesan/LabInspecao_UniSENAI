@@ -128,6 +128,17 @@ export function isStableSample(history, tolerances = {}) {
   });
 }
 
+export function holdTransitionSnapshot(previousState, nextState, phaseHistory, count = 3) {
+  if (previousState === nextState) return null;
+  if (previousState === ANALYZER_STATES.HOLD_IDLE) {
+    return { key: 'idle', hold: holdAverage(phaseHistory, count) };
+  }
+  if (previousState === ANALYZER_STATES.HOLD_HIGH_RPM) {
+    return { key: 'high', hold: holdAverage(phaseHistory, count) };
+  }
+  return null;
+}
+
 /** @returns {Record<string, number | boolean>} */
 export function holdAverage(history, count = 3) {
   const samples = history.slice(-Math.max(1, count));
