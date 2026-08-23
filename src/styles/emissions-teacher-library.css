@@ -1,0 +1,40 @@
+.emissions-library__tabs,
+.teacher-data-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.emissions-library__tabs button,
+.teacher-data-actions button,
+.emissions-library button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+}
+.teacher-card {
+  padding: 0.85rem;
+  margin: 0.6rem 0;
+  border: 1px solid var(--color-border, #d7dee7);
+  border-radius: 0.65rem;
+}
+.teacher-card button {
+  margin-left: 0.5rem;
+}
+.emissions-calibration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+.emissions-calibration-grid label {
+  display: grid;
+  gap: 0.3rem;
+}
+.emissions-library pre {
+  white-space: pre-wrap;
+  max-height: 22rem;
+  overflow: auto;
+}
