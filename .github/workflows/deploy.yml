@@ -39,7 +39,7 @@ jobs:
       - name: Build
         env:
           VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          VITE_APP_VERSION: 4.0.0-alpha.1
+          VITE_APP_VERSION: 4.0.0
           VITE_ONLINE_ENABLED: ${{ vars.VITE_ONLINE_ENABLED }}
           VITE_APPS_SCRIPT_URL: ${{ vars.VITE_APPS_SCRIPT_URL }}
           VITE_ACCESS_TOKEN: ${{ secrets.VITE_ACCESS_TOKEN }}
