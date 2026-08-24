@@ -14,6 +14,203 @@ export function analyzerPanel() {
         </div>
       </header>
 
+      <section class="otto-analyzer__setup" aria-label="Configuração do veículo e REMAP">
+        <header>
+          <span class="otto-results-eyebrow">Configuração do ensaio</span>
+          <h4>Veículo e REMAP</h4>
+          <p>
+            Selecione o veículo e altere o mapa didático antes de iniciar.
+            A configuração é mantida durante todo o ciclo de medição.
+          </p>
+        </header>
+
+        <div class="otto-analyzer__setup-grid">
+          <label>
+            <span>Veículo simulado</span>
+            <select data-analyzer-config="vehicle"></select>
+          </label>
+
+          <div>
+            <span>Tecnologia</span>
+            <strong data-analyzer-vehicle-summary>—</strong>
+            <small data-analyzer-vehicle-detail>—</small>
+          </div>
+
+          <label>
+            <span data-analyzer-config-label="fueling">
+              Correção da quantidade de injeção (REMAP)
+            </span>
+            <input
+              type="range"
+              min="-20"
+              max="20"
+              step="1"
+              value="0"
+              data-analyzer-config="injection"
+            >
+            <strong data-analyzer-config-value="injection">0%</strong>
+            <small data-analyzer-config-help="fueling">
+              Aproximação didática da alteração da quantidade efetiva de combustível.
+            </small>
+          </label>
+
+          <label>
+            <span data-analyzer-config-label="ignition">
+              Alteração do ponto de ignição (REMAP)
+            </span>
+            <input
+              type="range"
+              min="-10"
+              max="10"
+              step="1"
+              value="0"
+              data-analyzer-config="ignition"
+            >
+            <strong data-analyzer-config-value="ignition">0°</strong>
+            <small data-analyzer-config-help="ignition">
+              Positivo = avanço · negativo = atraso.
+            </small>
+          </label>
+        </div>
+
+        <div class="otto-analyzer__setup-actions">
+          <button
+            class="button button--secondary"
+            type="button"
+            data-analyzer-action="restore-map"
+          >
+            Restaurar mapa original
+          </button>
+          <strong data-analyzer-map-status>Mapa original</strong>
+        </div>
+      </section>
+
+      <section
+        class="otto-analyzer__complementary"
+        aria-label="Modelo físico complementar"
+      >
+        <header class="otto-analyzer__complementary-header">
+          <span class="otto-results-eyebrow">Modelo físico complementar</span>
+          <h4>Combustão, emissões e pós-tratamento</h4>
+          <p>
+            Acompanhe a cadeia física desde a combustão e as emissões brutas
+            até a conversão pelo TWC e as concentrações após o catalisador.
+          </p>
+        </header>
+
+        <div class="otto-analyzer__physics-groups">
+          <section class="otto-analyzer__physics-group">
+            <header>
+              <strong>1. Combustão</strong>
+              <small>Condição termodinâmica calculada pelo modelo.</small>
+            </header>
+
+            <div class="otto-analyzer__physics-grid">
+              <article class="otto-analyzer__display">
+                <span>Eficiência de combustão</span>
+                <strong data-analyzer-complementary="efficiency">—</strong>
+                <small>estimativa do modelo</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>EGT estimada</span>
+                <strong data-analyzer-complementary="egt">—</strong>
+                <small>temperatura dos gases de escape</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="otto-analyzer__physics-group">
+            <header>
+              <strong>2. Antes do TWC</strong>
+              <small>Emissões brutas calculadas na saída do motor.</small>
+            </header>
+
+            <div class="otto-analyzer__physics-grid">
+              <article class="otto-analyzer__display">
+                <span>CO bruto</span>
+                <strong data-analyzer-complementary="raw-co">—</strong>
+                <small>antes do catalisador</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>HC bruto</span>
+                <strong data-analyzer-complementary="raw-hc">—</strong>
+                <small>antes do catalisador</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>NOx bruto*</span>
+                <strong data-analyzer-complementary="raw-nox">—</strong>
+                <small>antes do catalisador</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="otto-analyzer__physics-group">
+            <header>
+              <strong>3. Conversão catalítica</strong>
+              <small>Eficiências calculadas para o catalisador de três vias.</small>
+            </header>
+
+            <div class="otto-analyzer__physics-grid">
+              <article class="otto-analyzer__display">
+                <span>Eficiência TWC — CO</span>
+                <strong data-analyzer-complementary="twc-co">—</strong>
+                <small>oxidação de CO</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>Eficiência TWC — HC</span>
+                <strong data-analyzer-complementary="twc-hc">—</strong>
+                <small>oxidação de HC</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>Eficiência TWC — NOx*</span>
+                <strong data-analyzer-complementary="twc-nox">—</strong>
+                <small>redução de NOx</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="otto-analyzer__physics-group">
+            <header>
+              <strong>4. Após o TWC</strong>
+              <small>Concentrações calculadas depois do catalisador.</small>
+            </header>
+
+            <div class="otto-analyzer__physics-grid">
+              <article class="otto-analyzer__display">
+                <span>CO pós-TWC</span>
+                <strong data-analyzer-complementary="post-co">—</strong>
+                <small>concentração após o catalisador</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>HC pós-TWC</span>
+                <strong data-analyzer-complementary="post-hc">—</strong>
+                <small>concentração após o catalisador</small>
+              </article>
+
+              <article class="otto-analyzer__display">
+                <span>NOx pós-TWC*</span>
+                <strong data-analyzer-complementary="post-nox">—</strong>
+                <small>concentração estimada após o catalisador</small>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <p class="help-text">
+          * NOx é uma grandeza complementar calculada pelo modelo físico.
+          CO e HC pós-TWC correspondem às espécies também observadas pelo
+          analisador de quatro gases. O NOx pós-TWC representa a concentração
+          estimada no mesmo ponto físico, mas não é medido pelo analisador
+          convencional de quatro gases.
+        </p>
+      </section>
+
       <div class="otto-analyzer__status-grid">
         <article class="otto-analyzer__display">
           <span>Estado</span>

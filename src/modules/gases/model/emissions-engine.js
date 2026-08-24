@@ -1,6 +1,6 @@
 import { DEFAULT_CALIBRATION, MODEL_VERSION } from './constants.js';
 import { calculateFuelBlend, calculateModelLambda, clamp } from './fuel-model.js';
-import { resolveVehicleTechnology } from './vehicle-technology.js';
+import { resolveVehicleOperatingProfile, resolveVehicleTechnology } from './vehicle-technology.js';
 import { calculateCombustion } from './combustion-model.js';
 import { calculateTwc } from './twc-model.js';
 import { applySamplingDilution, calculateDilutionCorrection } from './sampling-model.js';
@@ -10,11 +10,17 @@ import { resolveRegulation } from './regulation.js';
 export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
   const vehicle = { ...input.vehicle };
   const fuel = calculateFuelBlend(input.ethanolContent ?? vehicle.ethanolContent ?? 27);
-  const injectionCorrectionPct = clamp(input.injectionCorrectionPct ?? 0, -20, 20);
-  const targetLambda = clamp(input.baseLambda ?? 1, 0.7, 1.3);
-  const realAfr = (fuel.afrStoich * targetLambda) / (1 + injectionCorrectionPct / 100);
-  const lambdaModel = calculateModelLambda(realAfr, fuel.afrStoich);
+
   const technology = resolveVehicleTechnology(vehicle);
+  const operatingProfile = resolveVehicleOperatingProfile(vehicle);
+
+  const injectionCorrectionPct = clamp(input.injectionCorrectionPct ?? 0, -20, 20);
+
+  const targetLambda = clamp(input.baseLambda ?? operatingProfile.baseLambda, 0.7, 1.3);
+
+  const realAfr = (fuel.afrStoich * targetLambda) / (1 + injectionCorrectionPct / 100);
+
+  const lambdaModel = calculateModelLambda(realAfr, fuel.afrStoich);
   const engineTemperatureC = Number(input.engineTemperatureC ?? 90);
   const rpm = Number(input.rpm ?? 2500);
   const ignitionDeltaDeg = clamp(input.ignitionDeltaDeg ?? 0, -10, 10);
@@ -24,11 +30,26 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
     engineTemperatureC,
     ignitionDeltaDeg,
     misfireFraction: input.misfireFraction ?? 0,
+    technologyProfile: operatingProfile,
     calibration,
   });
+  /*
+   * A temperatura do catalisador passa a ser derivada da EGT
+   * estimada pelo modelo de combustão.
+   *
+   * Isso preserva uma cadeia causal mais coerente:
+   *
+   * ponto de ignição
+   * → fase da combustão
+   * → temperatura dos gases de escape
+   * → temperatura do catalisador
+   * → eficiência do TWC.
+   *
+   * input.catalystTemperatureC continua tendo precedência quando
+   * um cenário didático desejar impor explicitamente essa condição.
+   */
   const catalystTemperatureC = Number(
-    input.catalystTemperatureC ??
-      clamp(80 + engineTemperatureC * 5.2 + Math.max(0, -ignitionDeltaDeg) * 9, 80, 850),
+    input.catalystTemperatureC ?? clamp(combustion.exhaustTemperatureC - 40, 80, 850),
   );
   const catalystState =
     technology.catalyst === 'none' ? 'none' : (input.catalystState ?? 'efficient');
@@ -58,6 +79,7 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
     },
     vehicle,
     technology,
+    operatingProfile,
     fuel,
     engine: {
       rpm,
@@ -72,6 +94,8 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
       efficiency: combustion.combustionEfficiency,
       stability: combustion.stability,
       effectiveMisfireFraction: combustion.effectiveMisfireFraction,
+      exhaustTemperatureC: combustion.exhaustTemperatureC,
+      ignitionEffects: combustion.ignitionEffects,
     },
     catalyst: twc,
     sampling,

@@ -492,7 +492,7 @@ export function gasesOttoContent() {
                   label: 'Hidrocarbonetos — HC',
                   min: 0,
                   max: 2000,
-                  step: 10,
+                  step: 1,
                   value: 70,
                   unit: 'ppm',
                 })}
@@ -1110,7 +1110,7 @@ export function gasesOttoContent() {
                 <div class="otto-engineering-flow" aria-label="Cadeia causal do modelo">
                   <span>Combustível / E%</span><b>→</b><span>AFR esteq.</span><b>→</b>
                   <span>AFR real</span><b>→</b><span>λ modelo</span><b>→</b>
-                  <span>Combustão</span><b>→</b><span>TWC</span><b>→</b><span>Medição</span>
+                  <span>Combustão / EGT</span><b>→</b><span>Emissões brutas</span><b>→</b><span>TWC</span><b>→</b><span>Medição</span>
                 </div>
               </article>
 
@@ -1119,6 +1119,8 @@ export function gasesOttoContent() {
                 <article class="metric-card"><span>AFR real</span><strong id="otto-eng-afr-real">—</strong><small>resultado do comando de injeção</small></article>
                 <article class="metric-card"><span>λ modelo</span><strong id="otto-eng-lambda-model">—</strong><small>AFR real ÷ AFR esteq.</small></article>
                 <article class="metric-card"><span>λ pelos gases</span><strong id="otto-eng-lambda-gases">—</strong><small>Brettschneider</small></article>
+                <article class="metric-card"><span>Eficiência de combustão</span><strong id="otto-eng-combustion-efficiency">—</strong><small>estimativa do modelo físico</small></article>
+                <article class="metric-card"><span>EGT estimada</span><strong id="otto-eng-egt">—</strong><small>temperatura dos gases de escape</small></article>
                 <article class="metric-card"><span>CO bruto</span><strong id="otto-eng-raw-co">—</strong><small>antes do TWC</small></article>
                 <article class="metric-card"><span>HC bruto</span><strong id="otto-eng-raw-hc">—</strong><small>antes do TWC</small></article>
                 <article class="metric-card"><span>O₂ bruto</span><strong id="otto-eng-raw-o2">—</strong><small>antes do TWC</small></article>
@@ -1133,7 +1135,7 @@ export function gasesOttoContent() {
                 <article class="metric-card metric-card--corrected"><span>HC corrigido</span><strong id="otto-eng-hc-corrected">—</strong><small>correção da amostra</small></article>
                 <article class="metric-card"><span>CO₂ medido</span><strong id="otto-eng-co2">—</strong><small>escapamento</small></article>
                 <article class="metric-card"><span>O₂ medido</span><strong id="otto-eng-o2">—</strong><small>escapamento</small></article>
-                <article class="metric-card"><span>NOx complementar*</span><strong id="otto-eng-nox">—</strong><small>não medido pelo analisador de 4 gases</small></article>
+                <article class="metric-card"><span>NOx pós-TWC*</span><strong id="otto-eng-nox">—</strong><small>estimativa após conversão catalítica</small></article>
               </div>
 
               <div id="otto-engineering-status" class="status-panel">
