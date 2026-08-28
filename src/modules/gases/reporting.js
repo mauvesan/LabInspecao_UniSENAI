@@ -279,18 +279,181 @@ export function createXlsxExport({ analytics, attempts = [] }) {
   return zipStore(files);
 }
 
-function svgSeries(history, accessor, min, max) {
+function maxObserved(history, accessor, floorValue, step) {
+  const observed = (history || []).map((item) => Number(accessor(item))).filter(Number.isFinite);
+
+  const maximum = observed.length ? Math.max(...observed) : 0;
+
+  return Math.max(floorValue, Math.ceil((maximum * 1.1) / step) * step);
+}
+
+function reportSeriesPath(history, accessor, axis, maxTime) {
   if (!history?.length) return '';
-  const range = Math.max(1e-9, max - min);
-  return history
-    .map(
-      (p, i) =>
-        `${i ? 'L' : 'M'} ${(10 + (i / Math.max(1, history.length - 1)) * 580).toFixed(1)} ${(140 - ((Math.max(min, Math.min(max, Number(accessor(p)) || min)) - min) / range) * 125).toFixed(1)}`,
-    )
+
+  const width = 600;
+  const height = 220;
+  const left = 52;
+  const right = 52;
+  const top = 32;
+  const bottom = 38;
+
+  const plotRight = width - right;
+  const plotBottom = height - bottom;
+
+  const range = Math.max(1e-9, axis.max - axis.min);
+  const points = [];
+
+  history.forEach((item, index) => {
+    const raw = Number(accessor(item));
+
+    if (!Number.isFinite(raw)) {
+      return;
+    }
+
+    const time = Number.isFinite(Number(item.time)) ? Number(item.time) : index;
+
+    const x = left + (Math.max(0, Math.min(maxTime, time)) / maxTime) * (plotRight - left);
+
+    const value = Math.max(axis.min, Math.min(axis.max, raw));
+
+    const y = plotBottom - ((value - axis.min) / range) * (plotBottom - top);
+
+    points.push({ x, y });
+  });
+
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
     .join(' ');
 }
-function chart(title, paths) {
-  return `<section class="chart"><h3>${esc(title)}</h3><svg viewBox="0 0 600 150"><path class="axis" d="M10 10V140H590"/>${paths.map((p, i) => `<path class="s${i + 1}" d="${p}"/>`).join('')}</svg></section>`;
+
+function reportTick(value, digits = 0) {
+  return Number(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function chart(
+  title,
+  { history = [], series = [], leftAxis, rightAxis = null, xLabel = 'Tempo (s)' },
+) {
+  const width = 600;
+  const height = 220;
+  const left = 52;
+  const right = 52;
+  const top = 32;
+  const bottom = 38;
+
+  const plotRight = width - right;
+  const plotBottom = height - bottom;
+
+  const latestTime = history.length
+    ? Number(history[history.length - 1]?.time) || history.length - 1
+    : 0;
+
+  const maxTime = Math.max(10, latestTime);
+
+  const xDivisions = 5;
+  const yDivisions = 4;
+
+  const grid = [];
+  const labels = [];
+
+  for (let index = 0; index <= xDivisions; index += 1) {
+    const ratio = index / xDivisions;
+    const value = maxTime * ratio;
+    const x = left + ratio * (plotRight - left);
+
+    grid.push(`<line x1="${x}" y1="${top}" x2="${x}" y2="${plotBottom}" class="grid"/>`);
+
+    labels.push(
+      `<text x="${x}" y="${plotBottom + 17}" text-anchor="middle" class="tick">${esc(reportTick(value, 0))}</text>`,
+    );
+  }
+
+  for (let index = 0; index <= yDivisions; index += 1) {
+    const ratio = index / yDivisions;
+
+    const leftValue = leftAxis.min + (leftAxis.max - leftAxis.min) * ratio;
+
+    const y = plotBottom - ratio * (plotBottom - top);
+
+    grid.push(`<line x1="${left}" y1="${y}" x2="${plotRight}" y2="${y}" class="grid"/>`);
+
+    labels.push(
+      `<text x="${left - 7}" y="${y + 3}" text-anchor="end" class="tick">${esc(
+        reportTick(leftValue, leftAxis.digits ?? 0),
+      )}</text>`,
+    );
+
+    if (rightAxis) {
+      const rightValue = rightAxis.min + (rightAxis.max - rightAxis.min) * ratio;
+
+      labels.push(
+        `<text x="${plotRight + 7}" y="${y + 3}" text-anchor="start" class="tick">${esc(
+          reportTick(rightValue, rightAxis.digits ?? 0),
+        )}</text>`,
+      );
+    }
+  }
+
+  const axes = [
+    `<line x1="${left}" y1="${top}" x2="${left}" y2="${plotBottom}" class="axis"/>`,
+    `<line x1="${left}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="axis"/>`,
+  ];
+
+  if (rightAxis) {
+    axes.push(
+      `<line x1="${plotRight}" y1="${top}" x2="${plotRight}" y2="${plotBottom}" class="axis"/>`,
+    );
+  }
+
+  const paths = series
+    .map((definition, index) => {
+      const axis = definition.axis === 'right' && rightAxis ? rightAxis : leftAxis;
+
+      return `<path class="s${index + 1}" d="${reportSeriesPath(
+        history,
+        definition.accessor,
+        axis,
+        maxTime,
+      )}"/>`;
+    })
+    .join('');
+
+  const legend = series
+    .filter((definition) => definition.label)
+    .map(
+      (definition, index) =>
+        `<g transform="translate(${left + index * 120},18)">
+          <line x1="0" y1="0" x2="24" y2="0" class="s${index + 1}"/>
+          <text x="30" y="4" class="legend-text">${esc(definition.label)}</text>
+        </g>`,
+    )
+    .join('');
+
+  const axisTitles = [
+    `<text x="${left}" y="12" text-anchor="start" class="axis-title">${esc(leftAxis.label)}</text>`,
+    `<text x="${(left + plotRight) / 2}" y="${height - 5}" text-anchor="middle" class="axis-title">${esc(xLabel)}</text>`,
+  ];
+
+  if (rightAxis) {
+    axisTitles.push(
+      `<text x="${plotRight}" y="12" text-anchor="end" class="axis-title">${esc(rightAxis.label)}</text>`,
+    );
+  }
+
+  return `<section class="chart">
+    <h3>${esc(title)}</h3>
+    <svg viewBox="0 0 ${width} ${height}">
+      ${grid.join('')}
+      ${axes.join('')}
+      ${labels.join('')}
+      ${axisTitles.join('')}
+      ${paths}
+      ${legend}
+    </svg>
+  </section>`;
 }
 
 /** @param {{holds?: any, rules?: any[]}} [input] */
@@ -331,7 +494,82 @@ export function createEmissionsReportHtml({
   const dilutionLimit = rules.find((r) => r.parameter === 'dilutionFactor');
   const phases = [...new Set(history.map((item) => item.state).filter(Boolean))].join(' → ');
   const limits = `CO corrigido ≤ ${num(coLimit?.value)} % vol. · HC corrigido ≤ ${num(hcLimit?.value, 0)} ppm · Fator de diluição ≤ ${num(dilutionLimit?.value, 1)}`;
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Emissões — Simulação Didática</title><style>body{font:14px Arial;margin:28px;color:#17202a}header{border-bottom:3px solid #b5121b}.warn{font-weight:700;border:2px solid #b5121b;padding:10px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #bbb;padding:5px;text-align:center}.chart{break-inside:avoid}svg{width:100%;height:150px;border:1px solid #ddd}.axis{stroke:#777;fill:none}.s1,.s2{fill:none;stroke:#111;stroke-width:2}.s2{stroke-dasharray:5 4}@media print{button{display:none}}</style></head><body><header><strong>LabInspeção / UniSENAI</strong><h1>RELATÓRIO DE ANÁLISE DE EMISSÕES VEICULARES — SIMULAÇÃO DIDÁTICA</h1></header><p class="warn">${DISCLAIMER}</p><h2>Veículo simulado</h2><p><b>Fabricante:</b> ${esc(vehicle.manufacturer || vehicle.fabricante || 'Simulado')} · <b>Modelo:</b> ${esc(vehicle.model || vehicle.modelo || '—')} · <b>Ano:</b> ${esc(vehicle.year || vehicle.modelYear || '—')} · <b>Combustível:</b> ${esc(vehicle.fuel || '—')} · <b>Placa:</b> ${esc(vehicle.plate || 'PLACA SIMULADA')}</p><h2>Valores retidos no Hold</h2><table><thead><tr><th>Etapa</th><th>rpm</th><th>°C</th><th>CO med.</th><th>CO corr.</th><th>CO₂</th><th>HC med.</th><th>HC corr.</th><th>O₂</th><th>λ modelo</th><th>λ gases</th><th>Diluição</th><th>NOx*</th></tr></thead><tbody>${row('Marcha lenta', holds.idle)}${row('Rotação elevada', holds.high)}</tbody></table><p>* NOx: Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p><p><b>Limites aplicáveis:</b> ${esc(limits)}</p><p><b>Referência normativa:</b> ${esc(regulation)} · <b>Resultado:</b> ${esc(result)}</p>${reasons.length ? `<p><b>Razões:</b> ${reasons.map(esc).join(' · ')}</p>` : ''}<h2>Séries temporais</h2><p><b>Etapas registradas:</b> ${esc(phases || '—')}</p>${chart('RPM × tempo', [svgSeries(history, (p) => p.rpm, 0, 3500)])}${chart('CO e HC × tempo', [svgSeries(history, (p) => p.co, 0, 5), svgSeries(history, (p) => p.hc / 400, 0, 5)])}${chart('CO₂ e O₂ × tempo', [svgSeries(history, (p) => p.co2, 0, 21), svgSeries(history, (p) => p.o2, 0, 21)])}${chart('Lambda × tempo', [svgSeries(history, (p) => p.lambda, 0.8, 1.2)])}<p>As séries temporais representam a resposta dinâmica do ensaio. A avaliação normativa utiliza exclusivamente valores retidos em Hold válidos.</p><button onclick="print()">Imprimir / Salvar em PDF</button></body></html>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Emissões — Simulação Didática</title><style>body{font:14px Arial;margin:28px;color:#17202a}header{border-bottom:3px solid #b5121b}.warn{font-weight:700;border:2px solid #b5121b;padding:10px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #bbb;padding:5px;text-align:center}.chart{break-inside:avoid}svg{width:100%;height:220px;border:1px solid #ddd}.axis{stroke:#777;stroke-width:1.2;fill:none}.grid{stroke:#e2e2e2;stroke-width:1}.tick{font:10px Arial;fill:#444}.axis-title{font:10px Arial;font-weight:700;fill:#333}.legend-text{font:10px Arial;fill:#222}.s1,.s2{fill:none;stroke:#111;stroke-width:2}.s2{stroke-dasharray:5 4}@media print{button{display:none}}</style></head><body><header><strong>LabInspeção / UniSENAI</strong><h1>RELATÓRIO DE ANÁLISE DE EMISSÕES VEICULARES — SIMULAÇÃO DIDÁTICA</h1></header><p class="warn">${DISCLAIMER}</p><h2>Veículo simulado</h2><p><b>Fabricante:</b> ${esc(vehicle.manufacturer || vehicle.fabricante || 'Simulado')} · <b>Modelo:</b> ${esc(vehicle.model || vehicle.modelo || '—')} · <b>Ano:</b> ${esc(vehicle.year || vehicle.modelYear || '—')} · <b>Combustível:</b> ${esc(vehicle.fuel || '—')} · <b>Placa:</b> ${esc(vehicle.plate || 'PLACA SIMULADA')}</p><h2>Valores retidos no Hold</h2><table><thead><tr><th>Etapa</th><th>rpm</th><th>°C</th><th>CO med.</th><th>CO corr.</th><th>CO₂</th><th>HC med.</th><th>HC corr.</th><th>O₂</th><th>λ modelo</th><th>λ gases</th><th>Diluição</th><th>NOx*</th></tr></thead><tbody>${row('Marcha lenta', holds.idle)}${row('Rotação elevada', holds.high)}</tbody></table><p>* NOx: Parâmetro Didático Complementar — não medido pelo analisador de 4 gases.</p><p><b>Limites aplicáveis:</b> ${esc(limits)}</p><p><b>Referência normativa:</b> ${esc(regulation)} · <b>Resultado:</b> ${esc(result)}</p>${reasons.length ? `<p><b>Razões:</b> ${reasons.map(esc).join(' · ')}</p>` : ''}<h2>Séries temporais</h2><p><b>Etapas registradas:</b> ${esc(phases || '—')}</p>${chart(
+    'RPM \u00d7 tempo',
+    {
+      history,
+      leftAxis: {
+        min: 0,
+        max: 3500,
+        digits: 0,
+        label: 'Rota\u00e7\u00e3o (rpm)',
+      },
+      series: [
+        {
+          label: 'RPM',
+          accessor: (p) => p.rpm,
+        },
+      ],
+    },
+  )}${chart('CO e HC \u00d7 tempo', {
+    history,
+    leftAxis: {
+      min: 0,
+      max: maxObserved(history, (p) => p.co, 5, 0.5),
+      digits: 1,
+      label: 'CO (% vol.)',
+    },
+    rightAxis: {
+      min: 0,
+      max: maxObserved(history, (p) => p.hc, 500, 250),
+      digits: 0,
+      label: 'HC (ppm)',
+    },
+    series: [
+      {
+        label: 'CO',
+        accessor: (p) => p.co,
+        axis: 'left',
+      },
+      {
+        label: 'HC',
+        accessor: (p) => p.hc,
+        axis: 'right',
+      },
+    ],
+  })}${chart('CO\u2082 e O\u2082 \u00d7 tempo', {
+    history,
+    leftAxis: {
+      min: 0,
+      max: 21,
+      digits: 0,
+      label: 'Concentra\u00e7\u00e3o (% vol.)',
+    },
+    series: [
+      {
+        label: 'CO\u2082',
+        accessor: (p) => p.co2,
+      },
+      {
+        label: 'O\u2082',
+        accessor: (p) => p.o2,
+      },
+    ],
+  })}${chart('Lambda \u00d7 tempo', {
+    history,
+    leftAxis: {
+      min: 0.8,
+      max: 1.2,
+      digits: 2,
+      label: '\u03bb',
+    },
+    series: [
+      {
+        label: '\u03bb gases',
+        accessor: (p) => p.lambda,
+      },
+    ],
+  })}<p>As séries temporais representam a resposta dinâmica do ensaio. A avaliação normativa utiliza exclusivamente valores retidos em Hold válidos.</p><button onclick="print()">Imprimir / Salvar em PDF</button></body></html>`;
 }
 
 export { DISCLAIMER };

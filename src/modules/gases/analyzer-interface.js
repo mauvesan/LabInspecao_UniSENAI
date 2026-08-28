@@ -354,6 +354,38 @@ function renderChart(svg, { values, series, leftAxis, rightAxis = null, xLabel =
 
     svg.append(path);
   });
+
+  const legendItems = series.filter((definition) => definition.label);
+
+  if (legendItems.length) {
+    const legendY = top + 12;
+    const itemWidth = 110;
+
+    legendItems.forEach((definition, index) => {
+      const legendX = left + index * itemWidth;
+
+      const sampleLine = document.createElementNS(ns, 'line');
+
+      sampleLine.setAttribute('x1', String(legendX));
+      sampleLine.setAttribute('y1', String(legendY));
+      sampleLine.setAttribute('x2', String(legendX + 24));
+      sampleLine.setAttribute('y2', String(legendY));
+
+      sampleLine.setAttribute('class', `otto-analyzer-chart__series series-${index + 1}`);
+
+      svg.append(sampleLine);
+
+      svg.append(
+        createSvgText(ns, {
+          x: legendX + 30,
+          y: legendY + 4,
+          text: definition.label,
+          anchor: 'start',
+          className: 'otto-analyzer-chart__legend-label',
+        }),
+      );
+    });
+  }
 }
 
 function renderTimeline(container, currentState) {
@@ -1150,11 +1182,14 @@ export function initializeGasesAnalyzer(root) {
       reasons: evaluation.reasons,
     });
 
-    const reportWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const reportWindow = window.open('', '_blank');
 
     if (!reportWindow) {
+      console.warn('Unable to open report window. Check the browser popup settings.');
       return;
     }
+
+    reportWindow.opener = null;
 
     reportWindow.document.open();
 
@@ -1222,17 +1257,25 @@ export function initializeGasesAnalyzer(root) {
 
       series: [
         {
+          label: 'RPM',
           accessor: (item) => item.rpm,
         },
       ],
     });
+
+    const observedCoMax = Math.max(
+      0,
+      ...displayHistory.map((item) => Number(item.co)).filter(Number.isFinite),
+    );
+
+    const coAxisMax = Math.max(5, Math.ceil((observedCoMax * 1.1) / 0.5) * 0.5);
 
     renderChart(chartElements['co-hc'], {
       values: displayHistory,
 
       leftAxis: {
         min: 0,
-        max: 5,
+        max: coAxisMax,
         digits: 1,
         label: 'CO (%)',
       },
@@ -1246,10 +1289,12 @@ export function initializeGasesAnalyzer(root) {
 
       series: [
         {
+          label: 'CO',
           accessor: (item) => item.co,
           axis: 'left',
         },
         {
+          label: 'HC',
           accessor: (item) => item.hc,
           axis: 'right',
         },
@@ -1268,9 +1313,11 @@ export function initializeGasesAnalyzer(root) {
 
       series: [
         {
+          label: 'CO₂',
           accessor: (item) => item.co2,
         },
         {
+          label: 'O₂',
           accessor: (item) => item.o2,
         },
       ],
@@ -1288,6 +1335,7 @@ export function initializeGasesAnalyzer(root) {
 
       series: [
         {
+          label: 'λ gases',
           accessor: (item) => item.lambda,
         },
       ],

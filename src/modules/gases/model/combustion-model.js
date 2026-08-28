@@ -28,6 +28,16 @@ export function calculateCombustion({
   const coldPenalty = clamp((80 - engineTemperatureC) / 55, 0, 1);
 
   /*
+   * Efeito moderado de regime em baixa rotação.
+   *
+   * 2500 rpm é tratado como ponto de referência da calibração
+   * já validada. À medida que a rotação se aproxima da marcha
+   * lenta, introduzimos uma pequena penalização de qualidade
+   * da combustão sem alterar diretamente o lambda comandado.
+   */
+  const idleRegime = clamp((2500 - rpm) / 1650, 0, 1);
+
+  /*
    * ignitionDeltaDeg representa a variação em relação ao mapa original,
    * e não o avanço absoluto em relação ao PMS.
    *
@@ -77,7 +87,7 @@ export function calculateCombustion({
   const ignitionEfficiencyFactor = 1 - 0.045 * retardNorm ** 1.35 - 0.025 * advanceNorm ** 1.7;
 
   const combustionEfficiency = clamp(
-    (0.985 * stability - 0.08 * rich - 0.04 * lean) *
+    (0.985 * stability - 0.08 * rich - 0.04 * lean - 0.008 * idleRegime) *
       ignitionEfficiencyFactor *
       combustionEfficiencyScale,
     0.45,
@@ -118,7 +128,8 @@ export function calculateCombustion({
   const leanCo2Floor = 11.4 * (0.96 + 0.04 * combustionEfficiency) * (1 - 0.25 * effectiveMisfire);
 
   const co2 = clamp(
-    baseCo2 * (1 - extremeLean) + Math.max(baseCo2, leanCo2Floor) * extremeLean,
+    (baseCo2 * (1 - extremeLean) + Math.max(baseCo2, leanCo2Floor) * extremeLean) *
+      (1 - 0.018 * idleRegime),
     2.5,
     15.8,
   );
@@ -135,7 +146,8 @@ export function calculateCombustion({
     baseCoPct +
       p.richCoGain * 34 * rich ** 0.95 +
       2.0 * coldPenalty +
-      3.0 * effectiveMisfire * rich,
+      3.0 * effectiveMisfire * rich +
+      0.12 * idleRegime * (0.35 + 0.65 * rich),
     0.01,
     12,
   );
@@ -146,7 +158,11 @@ export function calculateCombustion({
    * =========================================================
    */
   const o2 = clamp(
-    0.18 + p.leanO2Gain * 18 * lean + 12 * effectiveMisfire + 1.2 * coldPenalty,
+    0.18 +
+      p.leanO2Gain * 18 * lean +
+      12 * effectiveMisfire +
+      1.2 * coldPenalty +
+      0.015 * idleRegime,
     0.02,
     20.5,
   );
@@ -167,7 +183,8 @@ export function calculateCombustion({
     (baseHcPpm +
       1600 * (rich ** 1.6 + 0.5 * lean ** 1.8) +
       p.hcMisfireGain * 9000 * effectiveMisfire +
-      650 * coldPenalty) *
+      650 * coldPenalty +
+      22 * idleRegime) *
       ignitionHcFactor,
     20,
     12000,
