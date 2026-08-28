@@ -21,9 +21,12 @@ export function calculateCombustion({
   const combustionEfficiencyScale = Number(technologyProfile?.combustionEfficiencyScale ?? 1);
 
   const l = clamp(lambda, 0.65, 1.45);
+
   const rich = Math.max(0, 1 - l);
   const lean = Math.max(0, l - 1);
+
   const coldPenalty = clamp((80 - engineTemperatureC) / 55, 0, 1);
+
   /*
    * ignitionDeltaDeg representa a variação em relação ao mapa original,
    * e não o avanço absoluto em relação ao PMS.
@@ -37,11 +40,20 @@ export function calculateCombustion({
   const retardNorm = clamp(ignitionRetardDeg / 10, 0, 1);
   const advanceNorm = clamp(ignitionAdvanceDeg / 10, 0, 1);
 
-  const excessLeanMisfire = clamp((l - 1.12) / 0.22, 0, 1);
+  /*
+   * Instabilidade por mistura excessivamente pobre ou rica.
+   *
+   * A região pobre permanece estável até aproximadamente λ = 1,18.
+   * Acima desse ponto, o misfire cresce progressivamente.
+   *
+   * O ganho foi mantido moderado para evitar que a divergência entre
+   * λ modelo e λ gases seja dominada prematuramente pelo misfire.
+   */
+  const excessLeanMisfire = clamp((l - 1.18) / 0.22, 0, 1);
   const excessRichMisfire = clamp((0.82 - l) / 0.17, 0, 1);
 
   const effectiveMisfire = clamp(
-    misfireFraction + 0.2 * excessLeanMisfire + 0.12 * excessRichMisfire,
+    misfireFraction + 0.12 * excessLeanMisfire + 0.12 * excessRichMisfire,
     0,
     0.65,
   );
@@ -72,25 +84,78 @@ export function calculateCombustion({
     0.995,
   );
 
-  const co2 = clamp(
+  /*
+   * =========================================================
+   * CO2
+   * =========================================================
+   *
+   * A correlação gaussiana original reproduz adequadamente a
+   * região próxima de λ = 1, porém reduz excessivamente o CO2
+   * quando a mistura se torna muito pobre.
+   *
+   * Até aproximadamente λ = 1,18, preserva-se integralmente
+   * a correlação original.
+   *
+   * Acima desse ponto, uma transição progressiva impede que o
+   * CO2 caia para valores incompatíveis com o balanço observado
+   * pelos gases e com o λ calculado por Brettschneider.
+   */
+  const extremeLean = clamp((l - 1.18) / 0.07, 0, 1);
+
+  const baseCo2 =
     14.7 *
-      gaussian(l, 1, 0.23) *
-      (0.72 + 0.28 * combustionEfficiency) *
-      (1 - 0.7 * effectiveMisfire),
+    gaussian(l, 1, 0.23) *
+    (0.72 + 0.28 * combustionEfficiency) *
+    (1 - 0.7 * effectiveMisfire);
+
+  /*
+   * Patamar didático para a região excessivamente pobre.
+   *
+   * O valor não força igualdade entre λ modelo e λ gases.
+   * Ele apenas evita a queda excessiva produzida pela função
+   * gaussiana simétrica no extremo pobre.
+   */
+  const leanCo2Floor = 11.4 * (0.96 + 0.04 * combustionEfficiency) * (1 - 0.25 * effectiveMisfire);
+
+  const co2 = clamp(
+    baseCo2 * (1 - extremeLean) + Math.max(baseCo2, leanCo2Floor) * extremeLean,
     2.5,
     15.8,
   );
+
+  /*
+   * =========================================================
+   * CO
+   * =========================================================
+   *
+   * A curva rica foi calibrada para preservar coerência entre
+   * λ modelo e λ inferido pelos gases em enriquecimentos elevados.
+   */
   const co = clamp(
-    baseCoPct + p.richCoGain * 42 * rich ** 2.1 + 2.0 * coldPenalty + 3.0 * effectiveMisfire * rich,
+    baseCoPct +
+      p.richCoGain * 34 * rich ** 0.95 +
+      2.0 * coldPenalty +
+      3.0 * effectiveMisfire * rich,
     0.01,
     12,
   );
+
+  /*
+   * =========================================================
+   * O2
+   * =========================================================
+   */
   const o2 = clamp(
     0.18 + p.leanO2Gain * 18 * lean + 12 * effectiveMisfire + 1.2 * coldPenalty,
     0.02,
     20.5,
   );
+
   /*
+   * =========================================================
+   * HC
+   * =========================================================
+   *
    * HC recebe efeito explícito do ponto de ignição.
    *
    * Atraso acentuado aumenta HC de modo mais pronunciado;
@@ -107,6 +172,12 @@ export function calculateCombustion({
     20,
     12000,
   );
+
+  /*
+   * =========================================================
+   * NOx
+   * =========================================================
+   */
   const noxThermal = p.noxPeakGain * 2400 * gaussian(l, 1.055, 0.09);
 
   const temperatureFactor = clamp((engineTemperatureC - 40) / 60, 0.15, 1.15);
@@ -133,10 +204,13 @@ export function calculateCombustion({
   );
 
   /*
-   * Temperatura estimada dos gases de escape — EGT.
+   * =========================================================
+   * TEMPERATURA DOS GASES DE ESCAPE — EGT
+   * =========================================================
    *
    * O atraso desloca parte da liberação de energia para mais tarde,
    * aumentando a energia que deixa o cilindro pelo escape.
+   *
    * O avanço reduz moderadamente essa temperatura.
    */
   const baseExhaustTemperatureC = clamp(
@@ -156,6 +230,7 @@ export function calculateCombustion({
     stability,
     effectiveMisfireFraction: effectiveMisfire,
     exhaustTemperatureC,
+
     ignitionEffects: {
       retardNorm,
       advanceNorm,
@@ -163,6 +238,13 @@ export function calculateCombustion({
       ignitionHcFactor,
       ignitionNoxFactor,
     },
-    gases: { co, co2, hc, o2, nox },
+
+    gases: {
+      co,
+      co2,
+      hc,
+      o2,
+      nox,
+    },
   };
 }

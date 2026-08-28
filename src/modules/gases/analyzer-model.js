@@ -1,5 +1,11 @@
 import { ANALYZER_STATES } from './analyzer-state-machine.js';
-import { VEHICLE_LIBRARY, runEmissionsModel } from './model/index.js';
+import {
+  VEHICLE_LIBRARY,
+  calculateFuelTrimStep,
+  createFuelTrimState,
+  resolveVehicleTechnology,
+  runEmissionsModel,
+} from './model/index.js';
 
 export const AMBIENT_SAMPLE = Object.freeze({
   co: 0,
@@ -33,7 +39,7 @@ export function firstOrderStep(current, target, deltaSeconds, tauSeconds) {
   return current + (target - current) * alpha;
 }
 
-export function sampleTargetForState(state, scenario = {}) {
+export function sampleTargetForState(state, scenario = {}, fuelTrimPct = 0) {
   if (!EXHAUST_STATES.has(state)) return { ...AMBIENT_SAMPLE };
   const vehicle = scenario.vehicle ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
   const highRpm = HIGH_RPM_STATES.has(state);
@@ -44,6 +50,7 @@ export function sampleTargetForState(state, scenario = {}) {
     engineTemperatureC: scenario.engineTemperatureC ?? 90,
     baseLambda: highRpm ? (scenario.highRpmLambda ?? 1) : (scenario.idleLambda ?? 1),
     injectionCorrectionPct: scenario.injectionCorrectionPct ?? 0,
+    fuelTrimPct,
     ignitionDeltaDeg: scenario.ignitionDeltaDeg ?? 0,
     catalystState: scenario.catalystState ?? 'efficient',
     misfireFraction: scenario.misfireFraction ?? 0,
@@ -62,6 +69,8 @@ export function sampleTargetForState(state, scenario = {}) {
     hcCorrected: result.measurement.hcCorrected,
     nox: result.measurement.noxDidactic,
     modelLambda: result.engine.lambdaModel,
+    appliedFuelTrimPct: result.engine.fuelTrimPct,
+    effectiveFuelCorrectionPct: result.engine.effectiveFuelCorrectionPct,
     validSample: result.measurement.validSample,
   };
 }
@@ -69,17 +78,140 @@ export function sampleTargetForState(state, scenario = {}) {
 export function createAnalyzerDynamics({ responseTauSeconds = 1.6, purgeTauSeconds = 1.2 } = {}) {
   let sample = { ...AMBIENT_SAMPLE, rpm: 0, temperature: 20 };
 
+  /*
+   * Memória adaptativa da ECU.
+   * Ela pertence à dinâmica temporal do ensaio, não ao motor
+   * físico instantâneo runEmissionsModel().
+   */
+  let fuelTrimState = createFuelTrimState();
+
+  let fuelTrimSnapshot = {
+    applicable: false,
+    controlMode: 'OPEN_LOOP',
+    stftPct: 0,
+    ltftPct: 0,
+    totalTrimPct: 0,
+    lambdaError: Number.NaN,
+    saturated: false,
+  };
+
   return {
     reset() {
       sample = { ...AMBIENT_SAMPLE, rpm: 0, temperature: 20 };
+      fuelTrimState = createFuelTrimState();
+
+      fuelTrimSnapshot = {
+        applicable: false,
+        controlMode: 'OPEN_LOOP',
+        stftPct: 0,
+        ltftPct: 0,
+        totalTrimPct: 0,
+        lambdaError: Number.NaN,
+        saturated: false,
+      };
+
       return { ...sample };
     },
     getSample() {
       return { ...sample };
     },
     step({ state, deltaSeconds, scenario }) {
-      const target = sampleTargetForState(state, scenario);
       const purging = state === ANALYZER_STATES.PURGING;
+      const exhaustActive = EXHAUST_STATES.has(state);
+
+      let target;
+
+      if (exhaustActive) {
+        const vehicle = scenario?.vehicle ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+
+        const technology = resolveVehicleTechnology(vehicle);
+
+        /*
+         * Feedback do passo anterior:
+         *
+         * o lambda percebido resulta do STFT + LTFT anteriormente
+         * aplicados. Isso fecha a malha sem usar o lambda do
+         * analisador como entrada direta da ECU.
+         */
+        const previousTotalTrimPct = fuelTrimState.stftPct + fuelTrimState.ltftPct;
+
+        /*
+         * Cenário utilizado exclusivamente pela estratégia adaptativa.
+         *
+         * O REMAP representa alteração intencional do baseline da ECU
+         * e não deve ser interpretado como erro pelo STFT/LTFT.
+         */
+        const controllerScenario = {
+          ...scenario,
+
+          injectionCorrectionPct: 0,
+
+          idleLambda: scenario.controllerLambdaBias ?? scenario.idleLambda ?? 1,
+
+          highRpmLambda: scenario.controllerLambdaBias ?? scenario.highRpmLambda ?? 1,
+        };
+
+        /*
+         * Feedback da malha adaptativa:
+         * perturbação física + adaptação anterior, sem REMAP.
+         */
+        const feedbackTarget = sampleTargetForState(
+          state,
+          controllerScenario,
+          previousTotalTrimPct,
+        );
+
+        fuelTrimSnapshot = calculateFuelTrimStep({
+          lambda: feedbackTarget.modelLambda,
+          closedLoop: technology.closedLoop,
+          lambdaSensorEquipped: technology.lambdaSensor,
+          previousState: fuelTrimState,
+          deltaSeconds,
+        });
+
+        fuelTrimState = {
+          stftPct: fuelTrimSnapshot.stftPct,
+          ltftPct: fuelTrimSnapshot.ltftPct,
+        };
+
+        /*
+         * Condição física real antes da correção adaptativa.
+         * Aqui o REMAP permanece ativo.
+         */
+        const preCorrectionTarget = sampleTargetForState(state, scenario, 0);
+
+        /*
+         * Condição física real após STFT/LTFT.
+         */
+        target = sampleTargetForState(state, scenario, fuelTrimSnapshot.totalTrimPct);
+
+        target.fuelTrimApplicable = fuelTrimSnapshot.applicable;
+        target.fuelTrimControlMode = fuelTrimSnapshot.controlMode;
+        target.stftPct = fuelTrimSnapshot.stftPct;
+        target.ltftPct = fuelTrimSnapshot.ltftPct;
+        target.totalTrimPct = fuelTrimSnapshot.totalTrimPct;
+
+        target.lambdaPreCorrection = preCorrectionTarget.modelLambda;
+
+        target.lambdaError = fuelTrimSnapshot.lambdaError;
+        target.fuelTrimSaturated = fuelTrimSnapshot.saturated;
+      } else {
+        target = sampleTargetForState(state, scenario);
+
+        /*
+         * Fora da janela de escapamento o controlador não aprende,
+         * mas a memória LTFT permanece preservada.
+         */
+        target.fuelTrimApplicable = false;
+        target.fuelTrimControlMode = 'INACTIVE';
+        target.stftPct = fuelTrimState.stftPct;
+        target.ltftPct = fuelTrimState.ltftPct;
+        target.totalTrimPct = 0;
+        target.lambdaPreCorrection = Number.NaN;
+        target.lambdaError = Number.NaN;
+        target.fuelTrimSaturated = false;
+      }
+
       const tau = purging ? purgeTauSeconds : responseTauSeconds;
       for (const key of ['co', 'co2', 'hc', 'o2']) {
         sample[key] = firstOrderStep(sample[key] ?? 0, target[key] ?? 0, deltaSeconds, tau);
@@ -100,6 +232,16 @@ export function createAnalyzerDynamics({ responseTauSeconds = 1.6, purgeTauSecon
         'hcCorrected',
         'nox',
         'modelLambda',
+        'appliedFuelTrimPct',
+        'effectiveFuelCorrectionPct',
+        'fuelTrimApplicable',
+        'fuelTrimControlMode',
+        'stftPct',
+        'ltftPct',
+        'totalTrimPct',
+        'lambdaPreCorrection',
+        'lambdaError',
+        'fuelTrimSaturated',
         'validSample',
       ]) {
         if (target[key] !== undefined) sample[key] = target[key];

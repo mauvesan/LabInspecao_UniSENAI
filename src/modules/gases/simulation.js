@@ -1,18 +1,18 @@
-﻿import { VEHICLE_LIBRARY, runEmissionsModel } from './model/index.js';
+import { VEHICLE_LIBRARY, runEmissionsModel } from './model/index.js';
 
 /**
- * Simulador â€” Analisador de Gases do Ciclo Otto.
+ * Simulador — Analisador de Gases do Ciclo Otto.
  *
- * ImplementaÃ§Ã£o autocontida responsÃ¡vel por:
+ * Implementação autocontida responsável por:
  * - abas do simulador;
- * - controles de mediÃ§Ã£o;
- * - seleÃ§Ã£o de combustÃ­vel e teor de etanol;
- * - cÃ¡lculo didÃ¡tico da AFR estequiomÃ©trica;
- * - casos rÃ¡pidos;
- * - classificaÃ§Ã£o das leituras;
- * - diagnÃ³stico provÃ¡vel;
- * - cartÃµes de resultado;
- * - grÃ¡fico SVG responsivo;
+ * - controles de medição;
+ * - seleção de combustível e teor de etanol;
+ * - cálculo didático da AFR estequiométrica;
+ * - casos rápidos;
+ * - classificação das leituras;
+ * - diagnóstico provável;
+ * - cartões de resultado;
+ * - gráfico SVG responsivo;
  * - desmontagem segura dos eventos.
  */
 
@@ -43,14 +43,21 @@ const QUICK_CASES = Object.freeze({
   normal: {
     label: 'Resultado OK',
     description:
-      'CondiÃ§Ã£o normal de referÃªncia para o veÃ­culo e a tecnologia atualmente selecionados.',
-    values: null,
-    technologyAware: true,
+      'Motor aquecido, mistura próxima da estequiometria e catalisador operando adequadamente.',
+    values: {
+      rpm: 2500,
+      temperature: 90,
+      co: 0.2,
+      co2: 14.2,
+      hc: 70,
+      o2: 0.4,
+      lambda: 1,
+    },
   },
 
   'high-co': {
     label: 'CO elevado',
-    description: 'Excesso de combustÃ­vel em relaÃ§Ã£o Ã  massa de ar disponÃ­vel.',
+    description: 'Excesso de combustível em relação à massa de ar disponível.',
     values: {
       rpm: 2500,
       temperature: 90,
@@ -65,7 +72,7 @@ const QUICK_CASES = Object.freeze({
   'high-hc': {
     label: 'HC elevado',
     description:
-      'CombustÃ­vel nÃ£o queimado em grande quantidade, compatÃ­vel com falha de combustÃ£o.',
+      'Combustível não queimado em grande quantidade, compatível com falha de combustão.',
     values: {
       rpm: 1800,
       temperature: 88,
@@ -79,7 +86,7 @@ const QUICK_CASES = Object.freeze({
 
   'high-lambda': {
     label: 'Lambda elevado',
-    description: 'Mistura pobre ou presenÃ§a de ar adicional.',
+    description: 'Mistura pobre ou presença de ar adicional.',
     values: {
       rpm: 2500,
       temperature: 90,
@@ -93,7 +100,7 @@ const QUICK_CASES = Object.freeze({
 
   'low-lambda': {
     label: 'Lambda baixo',
-    description: 'Mistura rica, com excesso de combustÃ­vel ou deficiÃªncia de ar.',
+    description: 'Mistura rica, com excesso de combustível ou deficiência de ar.',
     values: {
       rpm: 2500,
       temperature: 90,
@@ -106,8 +113,8 @@ const QUICK_CASES = Object.freeze({
   },
 
   catalyst: {
-    label: 'Baixa eficiÃªncia do catalisador',
-    description: 'Lambda prÃ³ximo de um, mas CO e HC permanecem elevados.',
+    label: 'Baixa eficiência do catalisador',
+    description: 'Lambda próximo de um, mas CO e HC permanecem elevados.',
     values: {
       rpm: 2500,
       temperature: 92,
@@ -122,7 +129,7 @@ const QUICK_CASES = Object.freeze({
   'false-air': {
     label: 'Entrada falsa de ar',
     description:
-      'OxigÃªnio residual elevado por entrada de ar na admissÃ£o, escapamento ou linha de amostragem.',
+      'Oxigênio residual elevado por entrada de ar na admissão, escapamento ou linha de amostragem.',
     values: {
       rpm: 2200,
       temperature: 90,
@@ -134,129 +141,215 @@ const QUICK_CASES = Object.freeze({
     },
   },
 });
+const QUICK_CASE_PHYSICAL_PERTURBATIONS = Object.freeze({
+  normal: Object.freeze({
+    caseId: 'normal',
+    label: 'Resultado OK',
+    lambdaBias: 1,
+    controllerLambdaBias: 1,
+    misfireFraction: 0,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
 
+  'high-co': Object.freeze({
+    caseId: 'high-co',
+    label: 'CO elevado',
+    /*
+     * Tendência rica antes da atuação adaptativa.
+     * A ECU deverá retirar combustível.
+     */
+    lambdaBias: 0.9,
+    controllerLambdaBias: 0.9,
+    misfireFraction: 0,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
+
+  'high-hc': Object.freeze({
+    caseId: 'high-hc',
+    label: 'HC elevado',
+    /*
+     * Falha de combustão. O O2 residual pode produzir lambda
+     * aparente elevado, mas não deve ser interpretado pela ECU
+     * como uma simples mistura 18% pobre.
+     */
+    lambdaBias: 1,
+    controllerLambdaBias: 1.02,
+    misfireFraction: 0.12,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
+
+  'high-lambda': Object.freeze({
+    caseId: 'high-lambda',
+    label: 'Lambda elevado',
+    lambdaBias: 1.12,
+    controllerLambdaBias: 1.12,
+    misfireFraction: 0,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
+
+  'low-lambda': Object.freeze({
+    caseId: 'low-lambda',
+    label: 'Lambda baixo',
+    lambdaBias: 0.9,
+    controllerLambdaBias: 0.9,
+    misfireFraction: 0,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
+
+  catalyst: Object.freeze({
+    caseId: 'catalyst',
+    label: 'Baixa eficiência do catalisador',
+    /*
+     * Defeito pós-combustão: não deve provocar Fuel Trim.
+     */
+    lambdaBias: 1,
+    controllerLambdaBias: 1,
+    misfireFraction: 0,
+    catalystState: 'degraded',
+    samplingAirFraction: 0,
+  }),
+
+  'false-air': Object.freeze({
+    caseId: 'false-air',
+    label: 'Entrada falsa de ar',
+    /*
+     * Para este quick case a causa adotada será ar não medido
+     * na admissão, justamente para demonstrar a adaptação da ECU.
+     */
+    lambdaBias: 1.12,
+    controllerLambdaBias: 1.12,
+    misfireFraction: 0,
+    catalystState: null,
+    samplingAirFraction: 0,
+  }),
+});
 const DIAGNOSES = Object.freeze({
   normal: {
-    title: 'CombustÃ£o prÃ³xima da condiÃ§Ã£o esperada',
+    title: 'Combustão próxima da condição esperada',
     condition: 'Adequada',
     summary:
-      'As leituras apresentam correlaÃ§Ã£o compatÃ­vel com motor aquecido, mistura prÃ³xima da estequiometria e conversÃ£o catalÃ­tica satisfatÃ³ria.',
+      'As leituras apresentam correlação compatível com motor aquecido, mistura próxima da estequiometria e conversão catalítica satisfatória.',
     causes: [
-      'Sistema de alimentaÃ§Ã£o operando sem indÃ­cios relevantes de anomalia.',
-      'Controle eletrÃ´nico mantendo a mistura prÃ³xima de lambda igual a um.',
-      'Sistema de igniÃ§Ã£o sem evidÃªncia significativa de falha.',
-      'Catalisador com indÃ­cios de conversÃ£o adequada.',
+      'Sistema de alimentação operando sem indícios relevantes de anomalia.',
+      'Controle eletrônico mantendo a mistura próxima de lambda igual a um.',
+      'Sistema de ignição sem evidência significativa de falha.',
+      'Catalisador com indícios de conversão adequada.',
     ],
     checks: [
-      'Confirmar a estabilidade da rotaÃ§Ã£o e das leituras.',
+      'Confirmar a estabilidade da rotação e das leituras.',
       'Confirmar o aquecimento do motor e do catalisador.',
-      'Comparar os resultados com os limites aplicÃ¡veis ao veÃ­culo.',
+      'Comparar os resultados com os limites aplicáveis ao veículo.',
     ],
     level: 'normal',
   },
   rich: {
-    title: 'Mistura rica provÃ¡vel',
+    title: 'Mistura rica provável',
     condition: 'Mistura rica',
     summary:
-      'O conjunto das leituras indica excesso de combustÃ­vel em relaÃ§Ã£o Ã  massa de ar disponÃ­vel.',
+      'O conjunto das leituras indica excesso de combustível em relação à massa de ar disponível.',
     causes: [
-      'PressÃ£o de combustÃ­vel elevada ou injetor com vazamento.',
-      'RestriÃ§Ã£o no sistema de admissÃ£o.',
-      'Sensor de temperatura ou sensor de oxigÃªnio com indicaÃ§Ã£o incorreta.',
+      'Pressão de combustível elevada ou injetor com vazamento.',
+      'Restrição no sistema de admissão.',
+      'Sensor de temperatura ou sensor de oxigênio com indicação incorreta.',
       'Comando excessivo de enriquecimento pela unidade de controle.',
     ],
     checks: [
-      'Medir pressÃ£o e estanqueidade do sistema de combustÃ­vel.',
-      'Analisar correÃ§Ãµes de combustÃ­vel e tempos de injeÃ§Ã£o.',
+      'Medir pressão e estanqueidade do sistema de combustível.',
+      'Analisar correções de combustível e tempos de injeção.',
       'Verificar filtro de ar, injetores e sensores de mistura.',
     ],
     level: 'critical',
   },
   lean: {
-    title: 'Mistura pobre provÃ¡vel',
+    title: 'Mistura pobre provável',
     condition: 'Mistura pobre',
-    summary: 'As leituras indicam excesso de ar ou fornecimento insuficiente de combustÃ­vel.',
+    summary: 'As leituras indicam excesso de ar ou fornecimento insuficiente de combustível.',
     causes: [
-      'PressÃ£o ou vazÃ£o de combustÃ­vel insuficiente.',
-      'Injetores parcialmente obstruÃ­dos.',
-      'Entrada de ar nÃ£o medida na admissÃ£o.',
-      'Sensor MAF ou MAP com indicaÃ§Ã£o incorreta.',
+      'Pressão ou vazão de combustível insuficiente.',
+      'Injetores parcialmente obstruídos.',
+      'Entrada de ar não medida na admissão.',
+      'Sensor MAF ou MAP com indicação incorreta.',
     ],
     checks: [
-      'Medir pressÃ£o e vazÃ£o de combustÃ­vel.',
-      'Inspecionar mangueiras, juntas e coletor de admissÃ£o.',
-      'Analisar correÃ§Ãµes de combustÃ­vel e sinais de MAF/MAP.',
+      'Medir pressão e vazão de combustível.',
+      'Inspecionar mangueiras, juntas e coletor de admissão.',
+      'Analisar correções de combustível e sinais de MAF/MAP.',
     ],
     level: 'warning',
   },
   misfire: {
-    title: 'Falha de igniÃ§Ã£o ou combustÃ£o provÃ¡vel',
-    condition: 'Falha de igniÃ§Ã£o',
+    title: 'Falha de ignição ou combustão provável',
+    condition: 'Falha de ignição',
     summary:
-      'HC e Oâ‚‚ elevados, acompanhados de COâ‚‚ reduzido, sÃ£o compatÃ­veis com combustÃ£o ausente ou incompleta em um ou mais cilindros.',
+      'HC e O₂ elevados, acompanhados de CO₂ reduzido, são compatíveis com combustão ausente ou incompleta em um ou mais cilindros.',
     causes: [
-      'Falha em vela, bobina, cabo ou circuito de igniÃ§Ã£o.',
-      'Injetor sem funcionamento ou com vazÃ£o inadequada.',
-      'Baixa compressÃ£o, perda de vedaÃ§Ã£o ou sincronismo incorreto.',
+      'Falha em vela, bobina, cabo ou circuito de ignição.',
+      'Injetor sem funcionamento ou com vazão inadequada.',
+      'Baixa compressão, perda de vedação ou sincronismo incorreto.',
       'Mistura excessivamente rica ou pobre em um cilindro.',
     ],
     checks: [
-      'Consultar cÃ³digos e contadores de falha de combustÃ£o.',
-      'Avaliar igniÃ§Ã£o, injetores e equilÃ­brio dos cilindros.',
-      'Executar teste de compressÃ£o ou estanqueidade.',
+      'Consultar códigos e contadores de falha de combustão.',
+      'Avaliar ignição, injetores e equilíbrio dos cilindros.',
+      'Executar teste de compressão ou estanqueidade.',
     ],
     level: 'critical',
   },
   catalyst: {
-    title: 'PossÃ­vel baixa eficiÃªncia catalÃ­tica',
+    title: 'Possível baixa eficiência catalítica',
     condition: 'Catalisador',
     summary:
-      'Com motor aquecido e lambda prÃ³ximo de um, CO e HC elevados sugerem conversÃ£o insuficiente no catalisador.',
+      'Com motor aquecido e lambda próximo de um, CO e HC elevados sugerem conversão insuficiente no catalisador.',
     causes: [
       'Catalisador envelhecido, contaminado ou termicamente degradado.',
       'Temperatura insuficiente no interior do catalisador.',
-      'EmissÃµes brutas acima da capacidade de conversÃ£o.',
-      'Danos internos ou contaminaÃ§Ã£o por Ã³leo ou fluido de arrefecimento.',
+      'Emissões brutas acima da capacidade de conversão.',
+      'Danos internos ou contaminação por óleo ou fluido de arrefecimento.',
     ],
     checks: [
-      'Confirmar a temperatura de operaÃ§Ã£o do catalisador.',
+      'Confirmar a temperatura de operação do catalisador.',
       'Analisar os sinais das sondas anterior e posterior.',
-      'Eliminar falhas de mistura e igniÃ§Ã£o antes de condenar o componente.',
+      'Eliminar falhas de mistura e ignição antes de condenar o componente.',
     ],
     level: 'warning',
   },
   'false-air': {
-    title: 'Entrada falsa de ar ou diluiÃ§Ã£o da amostra',
+    title: 'Entrada falsa de ar ou diluição da amostra',
     condition: 'Entrada de ar',
     summary:
-      'Oâ‚‚ elevado, lambda alto e CO muito baixo podem decorrer de ar adicional na admissÃ£o, no escapamento ou na linha de amostragem.',
+      'O₂ elevado, lambda alto e CO muito baixo podem decorrer de ar adicional na admissão, no escapamento ou na linha de amostragem.',
     causes: [
-      'Vazamento no coletor ou nas mangueiras de admissÃ£o.',
+      'Vazamento no coletor ou nas mangueiras de admissão.',
       'Vazamento no escapamento antes do ponto de coleta.',
       'Sonda do analisador mal posicionada.',
-      'Mangueira ou conexÃ£o do analisador admitindo ar atmosfÃ©rico.',
+      'Mangueira ou conexão do analisador admitindo ar atmosférico.',
     ],
     checks: [
-      'Testar a estanqueidade da admissÃ£o e do escapamento.',
+      'Testar a estanqueidade da admissão e do escapamento.',
       'Verificar PCV, servo-freio, juntas e mangueiras.',
-      'Confirmar a inserÃ§Ã£o da sonda e a integridade da linha de amostragem.',
+      'Confirmar a inserção da sonda e a integridade da linha de amostragem.',
     ],
     level: 'warning',
   },
   cold: {
-    title: 'CondiÃ§Ã£o de ensaio inadequada: motor frio',
+    title: 'Condição de ensaio inadequada: motor frio',
     condition: 'Motor frio',
     summary:
-      'A temperatura informada Ã© insuficiente para uma interpretaÃ§Ã£o confiÃ¡vel do sistema de combustÃ£o e do catalisador.',
+      'A temperatura informada é insuficiente para uma interpretação confiável do sistema de combustão e do catalisador.',
     causes: [
       'Motor ainda em fase de aquecimento.',
-      'Catalisador abaixo da temperatura efetiva de conversÃ£o.',
-      'EstratÃ©gia de enriquecimento de partida ainda ativa.',
+      'Catalisador abaixo da temperatura efetiva de conversão.',
+      'Estratégia de enriquecimento de partida ainda ativa.',
     ],
     checks: [
-      'Aquecer o motor atÃ© a temperatura normal de operaÃ§Ã£o.',
-      'Confirmar o acionamento da vÃ¡lvula termostÃ¡tica.',
-      'Repetir a mediÃ§Ã£o apÃ³s estabilizaÃ§Ã£o tÃ©rmica.',
+      'Aquecer o motor até a temperatura normal de operação.',
+      'Confirmar o acionamento da válvula termostática.',
+      'Repetir a medição após estabilização térmica.',
     ],
     level: 'attention',
   },
@@ -300,7 +393,7 @@ function setList(element, items) {
 
 function requireElement(root, selector) {
   const element = root.querySelector(selector);
-  if (!element) throw new Error(`Elemento obrigatÃ³rio nÃ£o encontrado: ${selector}`);
+  if (!element) throw new Error(`Elemento obrigatório não encontrado: ${selector}`);
   return element;
 }
 
@@ -360,277 +453,55 @@ function calculateDilutionCorrection(state) {
 function getMixtureState(lambda) {
   if (lambda < 0.97) return 'Mistura rica';
   if (lambda > 1.03) return 'Mistura pobre';
-  return 'PrÃ³xima da estequiometria';
+  return 'Próxima da estequiometria';
 }
 
-function resolveDiagnosticBaseline(state) {
-  const vehicle = VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === state?.vehicleId);
-
-  const generation = vehicle?.technologyGeneration ?? '';
-
-  /*
-   * ReferÃªncias didÃ¡ticas de condiÃ§Ã£o saudÃ¡vel.
-   *
-   * IMPORTANTE:
-   * estes valores NÃƒO sÃ£o limites legais ou normativos.
-   * Representam a condiÃ§Ã£o de referÃªncia produzida pelo
-   * modelo fÃ­sico para cada geraÃ§Ã£o tecnolÃ³gica.
-   */
-  if (generation === 'carbureted-no-catalyst') {
-    return {
-      id: 'carbureted-no-catalyst',
-      label: 'carburado sem catalisador',
-      catalystExpected: false,
-
-      co: {
-        normalMax: 1.15,
-        attentionMax: 2.0,
-        warningMax: 4.0,
-      },
-
-      hc: {
-        normalMax: 340,
-        attentionMax: 500,
-        warningMax: 900,
-      },
-
-      co2: {
-        normalMin: 12.5,
-        attentionMin: 11.0,
-        warningMin: 8.0,
-      },
-
-      o2: {
-        normalMax: 0.8,
-        attentionMax: 2.0,
-        warningMax: 4.0,
-      },
-
-      lambda: {
-        normalMin: 0.94,
-        normalMax: 1.02,
-        attentionMin: 0.9,
-        attentionMax: 1.08,
-      },
-    };
-  }
-
-  if (generation === 'efi-twc-closed-loop') {
-    return {
-      id: 'efi-twc-closed-loop',
-      label: 'injeÃ§Ã£o eletrÃ´nica com TWC',
-      catalystExpected: true,
-
-      co: {
-        normalMax: 0.1,
-        attentionMax: 0.5,
-        warningMax: 1.0,
-      },
-
-      hc: {
-        normalMax: 80,
-        attentionMax: 180,
-        warningMax: 350,
-      },
-
-      co2: {
-        normalMin: 12.5,
-        attentionMin: 11.0,
-        warningMin: 8.0,
-      },
-
-      o2: {
-        normalMax: 0.5,
-        attentionMax: 2.0,
-        warningMax: 4.0,
-      },
-
-      lambda: {
-        normalMin: 0.97,
-        normalMax: 1.03,
-        attentionMin: 0.9,
-        attentionMax: 1.1,
-      },
-    };
-  }
-
-  if (generation === 'first-generation-flex-twc') {
-    return {
-      id: 'first-generation-flex-twc',
-      label: 'flex com TWC',
-      catalystExpected: true,
-
-      co: {
-        normalMax: 0.08,
-        attentionMax: 0.4,
-        warningMax: 1.0,
-      },
-
-      hc: {
-        normalMax: 60,
-        attentionMax: 150,
-        warningMax: 300,
-      },
-
-      co2: {
-        normalMin: 12.5,
-        attentionMin: 11.0,
-        warningMin: 8.0,
-      },
-
-      o2: {
-        normalMax: 0.5,
-        attentionMax: 2.0,
-        warningMax: 4.0,
-      },
-
-      lambda: {
-        normalMin: 0.97,
-        normalMax: 1.03,
-        attentionMin: 0.9,
-        attentionMax: 1.1,
-      },
-    };
-  }
-
-  /*
-   * Default: geraÃ§Ã£o moderna / veÃ­culo nÃ£o identificado.
-   */
-  return {
-    id: 'modern-flex-closed-loop',
-    label: 'injeÃ§Ã£o eletrÃ´nica moderna com TWC',
-    catalystExpected: true,
-
-    co: {
-      normalMax: 0.05,
-      attentionMax: 0.3,
-      warningMax: 1.0,
-    },
-
-    hc: {
-      normalMax: 50,
-      attentionMax: 120,
-      warningMax: 250,
-    },
-
-    co2: {
-      normalMin: 12.5,
-      attentionMin: 11.0,
-      warningMin: 8.0,
-    },
-
-    o2: {
-      normalMax: 0.5,
-      attentionMax: 2.0,
-      warningMax: 4.0,
-    },
-
-    lambda: {
-      normalMin: 0.97,
-      normalMax: 1.03,
-      attentionMin: 0.9,
-      attentionMax: 1.1,
-    },
+function classifyMetric(metric, value) {
+  const classifiers = {
+    co: () =>
+      value <= 0.5
+        ? ['normal', 'Baixo']
+        : value <= 1
+          ? ['attention', 'Elevado']
+          : value <= 3
+            ? ['warning', 'Alto']
+            : ['critical', 'Muito alto'],
+    co2: () =>
+      value >= 12.5 && value <= 16
+        ? ['normal', 'Esperado']
+        : value >= 11
+          ? ['attention', 'Reduzido']
+          : value >= 8
+            ? ['warning', 'Baixo']
+            : ['critical', 'Muito baixo'],
+    hc: () =>
+      value <= 100
+        ? ['normal', 'Baixo']
+        : value <= 250
+          ? ['attention', 'Moderado']
+          : value <= 500
+            ? ['warning', 'Elevado']
+            : ['critical', 'Muito alto'],
+    o2: () =>
+      value <= 0.5
+        ? ['normal', 'Baixo']
+        : value <= 2
+          ? ['attention', 'Moderado']
+          : value <= 4
+            ? ['warning', 'Elevado']
+            : ['critical', 'Muito alto'],
+    lambda: () =>
+      value >= 0.97 && value <= 1.03
+        ? ['normal', 'Estequiométrico']
+        : value >= 0.9 && value <= 1.1
+          ? ['attention', value < 1 ? 'Rico' : 'Pobre']
+          : ['warning', value < 1 ? 'Muito rico' : 'Muito pobre'],
   };
-}
-
-function classifyMetric(metric, value, state = null) {
-  const baseline = resolveDiagnosticBaseline(state);
-
-  if (metric === 'co') {
-    if (value <= baseline.co.normalMax) {
-      return { level: 'normal', label: 'Esperado para a tecnologia' };
-    }
-
-    if (value <= baseline.co.attentionMax) {
-      return { level: 'attention', label: 'Elevado' };
-    }
-
-    if (value <= baseline.co.warningMax) {
-      return { level: 'warning', label: 'Alto' };
-    }
-
-    return { level: 'critical', label: 'Muito alto' };
-  }
-
-  if (metric === 'hc') {
-    if (value <= baseline.hc.normalMax) {
-      return { level: 'normal', label: 'Esperado para a tecnologia' };
-    }
-
-    if (value <= baseline.hc.attentionMax) {
-      return { level: 'attention', label: 'Moderado' };
-    }
-
-    if (value <= baseline.hc.warningMax) {
-      return { level: 'warning', label: 'Elevado' };
-    }
-
-    return { level: 'critical', label: 'Muito alto' };
-  }
-
-  if (metric === 'co2') {
-    if (value >= baseline.co2.normalMin) {
-      return { level: 'normal', label: 'Esperado' };
-    }
-
-    if (value >= baseline.co2.attentionMin) {
-      return { level: 'attention', label: 'Reduzido' };
-    }
-
-    if (value >= baseline.co2.warningMin) {
-      return { level: 'warning', label: 'Baixo' };
-    }
-
-    return { level: 'critical', label: 'Muito baixo' };
-  }
-
-  if (metric === 'o2') {
-    if (value <= baseline.o2.normalMax) {
-      return { level: 'normal', label: 'Esperado' };
-    }
-
-    if (value <= baseline.o2.attentionMax) {
-      return { level: 'attention', label: 'Moderado' };
-    }
-
-    if (value <= baseline.o2.warningMax) {
-      return { level: 'warning', label: 'Elevado' };
-    }
-
-    return { level: 'critical', label: 'Muito alto' };
-  }
-
-  if (metric === 'lambda') {
-    if (value >= baseline.lambda.normalMin && value <= baseline.lambda.normalMax) {
-      return {
-        level: 'normal',
-        label: 'Esperado para a tecnologia',
-      };
-    }
-
-    if (value >= baseline.lambda.attentionMin && value <= baseline.lambda.attentionMax) {
-      return {
-        level: 'attention',
-        label: value < 1 ? 'Rico' : 'Pobre',
-      };
-    }
-
-    return {
-      level: 'warning',
-      label: value < 1 ? 'Muito rico' : 'Muito pobre',
-    };
-  }
-
-  return {
-    level: 'normal',
-    label: 'Esperado',
-  };
+  const [level, label] = classifiers[metric]();
+  return { level, label };
 }
 
 function scoreDiagnoses(state) {
-  const baseline = resolveDiagnosticBaseline(state);
-
   const scores = {
     normal: 0,
     rich: 0,
@@ -640,121 +511,62 @@ function scoreDiagnoses(state) {
     'false-air': 0,
   };
 
-  const lambdaNormal =
-    state.lambda >= baseline.lambda.normalMin && state.lambda <= baseline.lambda.normalMax;
+  if (state.lambda >= 0.97 && state.lambda <= 1.03) scores.normal += 3;
+  if (state.co <= 0.5) scores.normal += 2;
+  if (state.co2 >= 12.5) scores.normal += 2;
+  if (state.hc <= 100) scores.normal += 2;
+  if (state.o2 <= 0.5) scores.normal += 2;
 
-  if (lambdaNormal) scores.normal += 3;
-  if (state.co <= baseline.co.normalMax) scores.normal += 2;
-  if (state.co2 >= baseline.co2.normalMin) scores.normal += 2;
-  if (state.hc <= baseline.hc.normalMax) scores.normal += 2;
-  if (state.o2 <= baseline.o2.normalMax) scores.normal += 2;
+  if (state.lambda < 0.97) scores.rich += 4;
+  if (state.co > 1) scores.rich += 3;
+  if (state.o2 < 0.5) scores.rich += 2;
+  if (state.co2 < 12.5) scores.rich += 1;
+  if (state.hc > 250) scores.rich += 1;
 
-  if (state.lambda < baseline.lambda.normalMin) scores.rich += 4;
-  if (state.co > baseline.co.attentionMax) scores.rich += 3;
-  if (state.o2 < baseline.o2.normalMax) scores.rich += 2;
-  if (state.co2 < baseline.co2.normalMin) scores.rich += 1;
-  if (state.hc > baseline.hc.attentionMax) scores.rich += 1;
+  if (state.lambda > 1.03) scores.lean += 4;
+  if (state.o2 > 2) scores.lean += 3;
+  if (state.co < 0.1) scores.lean += 2;
+  if (state.co2 < 12.5) scores.lean += 1;
 
-  if (state.lambda > baseline.lambda.normalMax) scores.lean += 4;
-  if (state.o2 > baseline.o2.attentionMax) scores.lean += 3;
-  if (state.co < baseline.co.normalMax * 0.5) scores.lean += 2;
-  if (state.co2 < baseline.co2.normalMin) scores.lean += 1;
+  if (state.hc > 500) scores.misfire += 4;
+  if (state.o2 > 4) scores.misfire += 4;
+  if (state.co2 < 11) scores.misfire += 3;
+  if (state.hc > 1000) scores.misfire += 2;
 
-  if (state.hc > baseline.hc.warningMax) scores.misfire += 4;
-  if (state.o2 > baseline.o2.warningMax) scores.misfire += 4;
-  if (state.co2 < baseline.co2.attentionMin) scores.misfire += 3;
+  if (state.temperature >= 80 && state.lambda >= 0.97 && state.lambda <= 1.03) scores.catalyst += 3;
+  if (state.co > 1) scores.catalyst += 3;
+  if (state.hc > 250) scores.catalyst += 3;
+  if (state.o2 <= 2) scores.catalyst += 1;
 
-  /*
-   * Falha de catalisador sÃ³ pode ser hipÃ³tese quando o veÃ­culo
-   * realmente possui TWC.
-   */
-  if (baseline.catalystExpected) {
-    if (state.temperature >= 80 && lambdaNormal) {
-      scores.catalyst += 3;
-    }
-
-    if (state.co > baseline.co.attentionMax) {
-      scores.catalyst += 3;
-    }
-
-    if (state.hc > baseline.hc.attentionMax) {
-      scores.catalyst += 3;
-    }
-
-    if (state.o2 <= baseline.o2.attentionMax) {
-      scores.catalyst += 1;
-    }
-  } else {
-    scores.catalyst = -100;
-  }
-
-  if (state.lambda > baseline.lambda.attentionMax) {
-    scores['false-air'] += 3;
-  }
-
-  if (state.o2 > baseline.o2.warningMax) {
-    scores['false-air'] += 4;
-  }
-
-  if (state.co < baseline.co.normalMax * 0.5) {
-    scores['false-air'] += 3;
-  }
-
-  if (state.hc <= baseline.hc.warningMax) {
-    scores['false-air'] += 1;
-  }
+  if (state.lambda > 1.08) scores['false-air'] += 3;
+  if (state.o2 > 4) scores['false-air'] += 4;
+  if (state.co < 0.1) scores['false-air'] += 3;
+  if (state.hc <= 500) scores['false-air'] += 1;
 
   return scores;
 }
 
 function buildEvidence(state) {
   const evidence = [];
-  const baseline = resolveDiagnosticBaseline(state);
-
-  evidence.push(`ReferÃªncia tecnolÃ³gica: ${baseline.label}.`);
-
-  if (state.temperature < 70) {
-    evidence.push(`Temperatura baixa: ${formatNumber(state.temperature)} Â°C.`);
-  }
-
-  if (state.co > baseline.co.normalMax) {
-    evidence.push(`CO acima da referÃªncia da tecnologia: ${formatNumber(state.co, 2, 2)}%.`);
-  } else {
-    evidence.push(
-      `CO compatÃ­vel com a referÃªncia da tecnologia: ${formatNumber(state.co, 2, 2)}%.`,
-    );
-  }
-
-  if (state.co2 < baseline.co2.attentionMin) {
-    evidence.push(`COâ‚‚ reduzido: ${formatNumber(state.co2, 1, 1)}%.`);
-  } else if (state.co2 >= baseline.co2.normalMin) {
-    evidence.push(`COâ‚‚ em faixa esperada: ${formatNumber(state.co2, 1, 1)}%.`);
-  }
-
-  if (state.hc > baseline.hc.normalMax) {
-    evidence.push(`HC acima da referÃªncia da tecnologia: ${formatNumber(state.hc)} ppm.`);
-  } else {
-    evidence.push(`HC compatÃ­vel com a referÃªncia da tecnologia: ${formatNumber(state.hc)} ppm.`);
-  }
-
-  if (state.o2 > baseline.o2.normalMax) {
-    evidence.push(`Oâ‚‚ residual acima da referÃªncia: ${formatNumber(state.o2, 2, 2)}%.`);
-  } else {
-    evidence.push(`Oâ‚‚ residual compatÃ­vel: ${formatNumber(state.o2, 2, 2)}%.`);
-  }
-
+  if (state.temperature < 70)
+    evidence.push(`Temperatura baixa: ${formatNumber(state.temperature)} °C.`);
+  if (state.co > 1) evidence.push(`CO elevado: ${formatNumber(state.co, 2, 2)}%.`);
+  else evidence.push(`CO em nível baixo: ${formatNumber(state.co, 2, 2)}%.`);
+  if (state.co2 < 11) evidence.push(`CO₂ reduzido: ${formatNumber(state.co2, 1, 1)}%.`);
+  else if (state.co2 >= 12.5)
+    evidence.push(`CO₂ relativamente alto: ${formatNumber(state.co2, 1, 1)}%.`);
+  if (state.hc > 500) evidence.push(`HC elevado: ${formatNumber(state.hc)} ppm.`);
+  else evidence.push(`HC: ${formatNumber(state.hc)} ppm.`);
+  if (state.o2 > 4) evidence.push(`O₂ residual elevado: ${formatNumber(state.o2, 2, 2)}%.`);
+  else evidence.push(`O₂ residual: ${formatNumber(state.o2, 2, 2)}%.`);
   if (state.dilution) {
     const factorText = Number.isFinite(state.dilution.rawFactor)
       ? formatNumber(state.dilution.rawFactor, 2, 2)
       : 'indefinido';
 
     evidence.push(
-      `Fator de diluiÃ§Ã£o: ${factorText}. ` +
-        `${
-          state.dilution.validSample
-            ? 'Amostra dentro do critÃ©rio de diluiÃ§Ã£o.'
-            : 'Amostra acima do limite de diluiÃ§Ã£o; verificar a amostragem.'
-        }`,
+      `Fator de diluição: ${factorText}. ` +
+        `${state.dilution.validSample ? 'Amostra dentro do critério de diluição.' : 'Amostra acima do limite de diluição; verificar a amostragem.'}`,
     );
 
     if (Number.isFinite(state.dilution.coCorrected)) {
@@ -769,13 +581,6 @@ function buildEvidence(state) {
   evidence.push(
     `Lambda ${formatNumber(state.lambda, 2, 2)}: ${getMixtureState(state.lambda).toLowerCase()}.`,
   );
-
-  if (!baseline.catalystExpected) {
-    evidence.push(
-      'VeÃ­culo de referÃªncia sem TWC: falha de catalisador nÃ£o Ã© hipÃ³tese aplicÃ¡vel.',
-    );
-  }
-
   return evidence;
 }
 
@@ -822,7 +627,7 @@ function renderGasChart(container, state) {
     },
     {
       id: 'co2',
-      label: 'COâ‚‚',
+      label: 'CO₂',
       value: state.co2,
       maximum: 18,
       unit: '%',
@@ -836,14 +641,14 @@ function renderGasChart(container, state) {
     },
     {
       id: 'o2',
-      label: 'Oâ‚‚',
+      label: 'O₂',
       value: state.o2,
       maximum: 12,
       unit: '%',
     },
     {
       id: 'lambda',
-      label: 'Î»',
+      label: 'λ',
       value: state.lambda,
       minimum: 0.7,
       maximum: 1.3,
@@ -868,7 +673,7 @@ function renderGasChart(container, state) {
   const svg = createSvgElement('svg', {
     viewBox: `0 0 ${width} ${height}`,
     role: 'img',
-    'aria-label': 'GrÃ¡fico da composiÃ§Ã£o dos gases de escapamento',
+    'aria-label': 'Gráfico da composição dos gases de escapamento',
     class: 'otto-gases-svg',
     preserveAspectRatio: 'xMidYMid meet',
   });
@@ -882,7 +687,7 @@ function renderGasChart(container, state) {
     const x = margin.left + index * slotWidth + (slotWidth - barWidth) / 2;
     const y = baseline - barHeight;
 
-    const classification = classifyMetric(gas.id, gas.value, state);
+    const classification = classifyMetric(gas.id, gas.value);
 
     const group = createSvgElement('g', {
       class: `otto-chart-group state-${classification.level}`,
@@ -964,7 +769,7 @@ export function initializeGasesOttoSimulation(module, root) {
   void module;
 
   if (!root) {
-    throw new Error('Elemento raiz do mÃ³dulo de gases Otto nÃ£o informado.');
+    throw new Error('Elemento raiz do módulo de gases Otto não informado.');
   }
 
   const cleanupCallbacks = [];
@@ -992,7 +797,7 @@ export function initializeGasesOttoSimulation(module, root) {
   const missingControl = Object.entries(controls).find(([, element]) => !element);
 
   if (missingControl) {
-    throw new Error(`Controle do simulador nÃ£o encontrado: ${missingControl[0]}`);
+    throw new Error(`Controle do simulador não encontrado: ${missingControl[0]}`);
   }
 
   const outputs = Object.fromEntries(
@@ -1003,9 +808,13 @@ export function initializeGasesOttoSimulation(module, root) {
 
   const tabPanels = Array.from(root.querySelectorAll('[data-otto-panel]'));
 
-  const fuelTypeControls = Array.from(root.querySelectorAll('input[name="otto-fuel-type"]'));
+  const fuelTypeControls = Array.from(
+    root.querySelectorAll('input[name="otto-fuel-type"]'),
+  );
 
-  const blendControls = Array.from(root.querySelectorAll('input[name="otto-ethanol-blend"]'));
+  const blendControls = Array.from(
+    root.querySelectorAll('input[name="otto-ethanol-blend"]'),
+  );
 
   const gasolineOptions = requireElement(root, '#otto-gasoline-options');
 
@@ -1074,9 +883,6 @@ export function initializeGasesOttoSimulation(module, root) {
     lambdaModel: requireElement(root, '#otto-eng-lambda-model'),
     lambdaGases: requireElement(root, '#otto-eng-lambda-gases'),
 
-    combustionEfficiency: requireElement(root, '#otto-eng-combustion-efficiency'),
-    egt: requireElement(root, '#otto-eng-egt'),
-
     rawCo: requireElement(root, '#otto-eng-raw-co'),
     rawHc: requireElement(root, '#otto-eng-raw-hc'),
     rawO2: requireElement(root, '#otto-eng-raw-o2'),
@@ -1101,109 +907,135 @@ export function initializeGasesOttoSimulation(module, root) {
   };
 
   /*
-   * O mesmo grÃ¡fico exibido em "ComposiÃ§Ã£o dos gases de escapamento"
-   * serÃ¡ reutilizado para apresentar a resposta do modelo fÃ­sico
-   * quando os parÃ¢metros de Engenharia / REMAP forem alterados.
+   * O mesmo gráfico exibido em "Composição dos gases de escapamento"
+   * será reutilizado para apresentar a resposta do modelo físico
+   * quando os parâmetros de Engenharia / REMAP forem alterados.
    */
   const chartContainer =
     root.querySelector('#otto-gases-chart') ||
     root.querySelector('[data-chart-id="otto-gases-chart"]');
 
-  /*
-   * =========================================================
-   * SINCRONIZAÃ‡ÃƒO ANALISADOR â†’ SIMULADOR DE MEDIÃ‡ÃƒO
-   * =========================================================
-   *
-   * O ensaio automÃ¡tico utiliza runEmissionsModel() e publica
-   * os valores observÃ¡veis atravÃ©s de eventos globais.
-   *
-   * A seÃ§Ã£o legada "ComposiÃ§Ã£o dos gases / Resultados calculados"
-   * mantÃ©m sua prÃ³pria interface. Esta ponte transfere os valores
-   * fÃ­sicos do analisador para os controles existentes e reutiliza
-   * updateSimulation(), preservando:
-   *
-   * - fator de diluiÃ§Ã£o;
-   * - CO e HC corrigidos;
-   * - diagnÃ³stico;
-   * - cartÃµes de resultados;
-   * - grÃ¡fico de composiÃ§Ã£o.
-   */
-
-  let activeMeasurementVehicleId = null;
-
-  function applyAnalyzerMeasurementToSimulator(detail, source = 'preview') {
-    if (!detail) return;
-
     /*
-     * Preserva a tecnologia que originou a mediÃ§Ã£o.
-     * O diagnÃ³stico nÃ£o deve interpretar as concentraÃ§Ãµes
-     * sem conhecer o veÃ­culo correspondente.
-     */
-    activeMeasurementVehicleId =
-      detail.vehicleId || engineeringVehicle?.value || activeMeasurementVehicleId;
+ * =========================================================
+ * SINCRONIZAÇÃO ANALISADOR → SIMULADOR DE MEDIÇÃO
+ * =========================================================
+ *
+ * A área "Composição dos gases / Resultados calculados"
+ * nasceu como simulador manual e possui seu próprio estado.
+ *
+ * O analisador automático utiliza runEmissionsModel().
+ * Estes listeners fazem os dois componentes compartilharem
+ * os mesmos valores observáveis, sem duplicar a física.
+ */
 
-    const values = {
-      co: Number(detail.co),
-      co2: Number(detail.co2),
-      hc: Number(detail.hc),
-      o2: Number(detail.o2),
-      lambda: Number(detail.lambda),
-    };
+function applyAnalyzerMeasurementToSimulator(
+  detail,
+  source = 'preview',
+) {
+  if (!detail) return;
 
-    Object.entries(values).forEach(([key, value]) => {
-      if (!Number.isFinite(value)) return;
+  const values = {
+    co: Number(detail.co),
+    co2: Number(detail.co2),
+    hc: Number(detail.hc),
+    o2: Number(detail.o2),
+    lambda: Number(detail.lambda),
+  };
+
+  /*
+   * Transfere os resultados calculados pelo modelo físico
+   * para os controles do simulador legado.
+   *
+   * A partir daí updateSimulation() continua sendo responsável
+   * por:
+   *
+   * - cartões de resultados;
+   * - fator de diluição;
+   * - CO corrigido;
+   * - HC corrigido;
+   * - diagnóstico;
+   * - gráfico.
+   */
+  Object.entries(values).forEach(
+    ([key, value]) => {
+      if (!Number.isFinite(value)) {
+        return;
+      }
 
       const control = controls[key];
 
-      if (!control) return;
+      if (!control) {
+        return;
+      }
 
       control.value = String(value);
-    });
-
-    /*
-     * updateSimulation Ã© uma function declaration e pode ser chamada
-     * daqui mesmo estando definida posteriormente no arquivo.
-     */
-    updateSimulation({
-      preserveQuickCase: false,
-    });
-
-    setText(
-      simulationStatus,
-      source === 'hold'
-        ? 'Valores sincronizados com o Hold de rotaÃ§Ã£o elevada do ensaio automÃ¡tico.'
-        : 'PrÃ©via calculada a partir do veÃ­culo, REMAP e ponto de igniÃ§Ã£o selecionados.',
-    );
-  }
+    },
+  );
 
   /*
-   * window Ã© utilizado como barramento porque o analisador automÃ¡tico
-   * e o simulador de mediÃ§Ã£o nÃ£o devem depender da mesma subÃ¡rvore DOM.
-   *
-   * listen() tambÃ©m registra automaticamente a remoÃ§Ã£o dos listeners
-   * no cleanup do mÃ³dulo.
+   * Reprocessa toda a interface inferior.
    */
-  listen(window, 'otto:analyzer-preview', (event) => {
-    applyAnalyzerMeasurementToSimulator(event.detail, 'preview');
+  updateSimulation({
+    preserveQuickCase: false,
   });
 
-  listen(window, 'otto:analyzer-result', (event) => {
-    applyAnalyzerMeasurementToSimulator(event.detail, 'hold');
-  });
+  /*
+   * Mensagem explícita sobre a origem dos valores.
+   */
+  if (source === 'hold') {
+    setText(
+      simulationStatus,
+      'Valores sincronizados com o Hold de rotação elevada do ensaio automático.',
+    );
+  } else {
+    setText(
+      simulationStatus,
+      'Prévia calculada a partir do veículo, REMAP e ponto de ignição selecionados.',
+    );
+  }
+}
+
+/*
+ * Barramento de integração entre:
+ *
+ * analyzer-interface.js
+ *        ↓
+ * simulation.js
+ *
+ * Usa window para não depender da hierarquia DOM
+ * nem da ordem de montagem dos dois componentes.
+ */
+listen(window, 'otto:analyzer-preview', (event) => {
+  applyAnalyzerMeasurementToSimulator(
+    event.detail,
+    'preview',
+  );
+});
+
+listen(window, 'otto:analyzer-result', (event) => {
+  applyAnalyzerMeasurementToSimulator(
+    event.detail,
+    'hold',
+  );
+});
 
   function updateEngineeringSimulation() {
     /*
-     * VeÃ­culo atualmente selecionado no laboratÃ³rio de engenharia.
-     * Caso o ID nÃ£o seja encontrado, preserva-se o fallback existente.
+     * Veículo atualmente selecionado no laboratório de engenharia.
+     * Caso o ID não seja encontrado, preserva-se o fallback existente.
      */
     const vehicle =
-      VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === engineeringVehicle.value) ??
-      VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+      VEHICLE_LIBRARY.find(
+        (candidate) => candidate.vehicleId === engineeringVehicle.value,
+      ) ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
 
     /*
-     * Causas fÃ­sicas / parÃ¢metros de engenharia.
+     * Causas físicas / parâmetros de engenharia.
      */
-    const injectionCorrectionPct = toNumber(engineeringControls.injection.value, 0);
+    const injectionCorrectionPct = toNumber(
+      engineeringControls.injection.value,
+      0,
+    );
 
     const ignitionDeltaDeg = toNumber(engineeringControls.ignition.value, 0);
 
@@ -1211,52 +1043,75 @@ export function initializeGasesOttoSimulation(module, root) {
 
     const rpm = toNumber(engineeringControls.rpm.value, 850);
 
-    const engineTemperatureC = toNumber(engineeringControls.temperature.value, 90);
+    const engineTemperatureC = toNumber(
+      engineeringControls.temperature.value,
+      90,
+    );
 
-    const misfireFraction = toNumber(engineeringControls.misfire.value, 0) / 100;
+    const misfireFraction =
+      toNumber(engineeringControls.misfire.value, 0) / 100;
 
-    const samplingAirFraction = toNumber(engineeringControls.samplingAir.value, 0) / 100;
+    const samplingAirFraction =
+      toNumber(engineeringControls.samplingAir.value, 0) / 100;
 
     /*
-     * IdentificaÃ§Ã£o tecnolÃ³gica do veÃ­culo.
+     * Identificação tecnológica do veículo.
      */
     engineeringVehicleInfo.textContent =
-      `${vehicle.manufacturer} ${vehicle.model} ${vehicle.version} Â· ` +
-      `${vehicle.manufactureYear}/${vehicle.modelYear} Â· ` +
-      `${vehicle.fuel} Â· ${vehicle.fuelingSystem} Â· ` +
-      `${vehicle.catalyst === 'twc' ? 'TWC' : 'sem TWC'} Â· ` +
+      `${vehicle.manufacturer} ${vehicle.model} ${vehicle.version} · ` +
+      `${vehicle.manufactureYear}/${vehicle.modelYear} · ` +
+      `${vehicle.fuel} · ${vehicle.fuelingSystem} · ` +
+      `${vehicle.catalyst === 'twc' ? 'TWC' : 'sem TWC'} · ` +
       `${vehicle.closedLoop ? 'malha fechada' : 'malha aberta'}`;
 
     /*
      * Valores atuais dos controles.
      */
-    setText(engineeringOutputs.injection, `${formatNumber(injectionCorrectionPct, 0, 0)} %`);
+    setText(
+      engineeringOutputs.injection,
+      `${formatNumber(injectionCorrectionPct, 0, 0)} %`,
+    );
 
-    setText(engineeringOutputs.ignition, `${formatNumber(ignitionDeltaDeg, 0, 0)} Â°`);
+    setText(
+      engineeringOutputs.ignition,
+      `${formatNumber(ignitionDeltaDeg, 0, 0)} °`,
+    );
 
-    setText(engineeringOutputs.ethanol, `${formatNumber(ethanolContent, 0, 0)} %`);
+    setText(
+      engineeringOutputs.ethanol,
+      `${formatNumber(ethanolContent, 0, 0)} %`,
+    );
 
     setText(engineeringOutputs.rpm, `${formatNumber(rpm, 0, 0)} rpm`);
 
-    setText(engineeringOutputs.temperature, `${formatNumber(engineTemperatureC, 0, 0)} Â°C`);
+    setText(
+      engineeringOutputs.temperature,
+      `${formatNumber(engineTemperatureC, 0, 0)} °C`,
+    );
 
-    setText(engineeringOutputs.misfire, `${formatNumber(misfireFraction * 100, 0, 0)} %`);
+    setText(
+      engineeringOutputs.misfire,
+      `${formatNumber(misfireFraction * 100, 0, 0)} %`,
+    );
 
-    setText(engineeringOutputs.samplingAir, `${formatNumber(samplingAirFraction * 100, 0, 0)} %`);
+    setText(
+      engineeringOutputs.samplingAir,
+      `${formatNumber(samplingAirFraction * 100, 0, 0)} %`,
+    );
 
     /*
-     * Fonte Ãºnica do modelo fÃ­sico:
+     * Fonte única do modelo físico:
      *
-     * veÃ­culo
-     * â†’ combustÃ­vel
-     * â†’ REMAP
-     * â†’ AFR
-     * â†’ lambda
-     * â†’ combustÃ£o
-     * â†’ emissÃµes brutas
-     * â†’ TWC
-     * â†’ amostragem
-     * â†’ gases medidos.
+     * veículo
+     * → combustível
+     * → REMAP
+     * → AFR
+     * → lambda
+     * → combustão
+     * → emissões brutas
+     * → TWC
+     * → amostragem
+     * → gases medidos.
      */
     const result = runEmissionsModel({
       vehicle,
@@ -1271,13 +1126,12 @@ export function initializeGasesOttoSimulation(module, root) {
     });
 
     /*
-     * AtualizaÃ§Ã£o do grÃ¡fico principal.
+     * Atualização do gráfico principal.
      *
-     * O grÃ¡fico representa as grandezas observÃ¡veis pelo analisador
-     * no escapamento, e nÃ£o as emissÃµes brutas antes do catalisador.
+     * O gráfico representa as grandezas observáveis pelo analisador
+     * no escapamento, e não as emissões brutas antes do catalisador.
      */
     const engineeringChartState = {
-      vehicleId: vehicle.vehicleId,
       co: result.measurement.coMeasured,
       co2: result.measurement.co2,
       hc: result.measurement.hcMeasured,
@@ -1290,44 +1144,55 @@ export function initializeGasesOttoSimulation(module, root) {
     /*
      * AFR e lambda.
      */
-    setText(engineeringOutputs.afrStoich, formatNumber(result.fuel.afrStoich, 2, 2));
+    setText(
+      engineeringOutputs.afrStoich,
+      formatNumber(result.fuel.afrStoich, 2, 2),
+    );
 
-    setText(engineeringOutputs.afrReal, formatNumber(result.engine.realAfr, 2, 2));
+    setText(
+      engineeringOutputs.afrReal,
+      formatNumber(result.engine.realAfr, 2, 2),
+    );
 
-    setText(engineeringOutputs.lambdaModel, formatNumber(result.engine.lambdaModel, 3, 3));
+    setText(
+      engineeringOutputs.lambdaModel,
+      formatNumber(result.engine.lambdaModel, 3, 3),
+    );
 
-    setText(engineeringOutputs.lambdaGases, formatNumber(result.measurement.lambdaGases, 3, 3));
+    setText(
+      engineeringOutputs.lambdaGases,
+      formatNumber(result.measurement.lambdaGases, 3, 3),
+    );
 
     /*
-     * EmissÃµes brutas â€” antes do pÃ³s-tratamento.
+     * Emissões brutas — antes do pós-tratamento.
      */
-    setText(engineeringOutputs.rawCo, `${formatNumber(result.rawEmissions.co, 2, 2)}%`);
+    setText(
+      engineeringOutputs.rawCo,
+      `${formatNumber(result.rawEmissions.co, 2, 2)}%`,
+    );
 
-    setText(engineeringOutputs.rawHc, `${formatNumber(result.rawEmissions.hc, 0, 0)} ppm`);
+    setText(
+      engineeringOutputs.rawHc,
+      `${formatNumber(result.rawEmissions.hc, 0, 0)} ppm`,
+    );
 
-    setText(engineeringOutputs.rawO2, `${formatNumber(result.rawEmissions.o2, 2, 2)}%`);
+    setText(
+      engineeringOutputs.rawO2,
+      `${formatNumber(result.rawEmissions.o2, 2, 2)}%`,
+    );
 
-    setText(engineeringOutputs.rawNox, `${formatNumber(result.rawEmissions.nox, 0, 0)} ppm`);
+    setText(
+      engineeringOutputs.rawNox,
+      `${formatNumber(result.rawEmissions.nox, 0, 0)} ppm`,
+    );
 
     /*
-     * EficiÃªncias do catalisador de trÃªs vias.
+     * Eficiências do catalisador de três vias.
      */
     setText(
       engineeringOutputs.twcCo,
       `${formatNumber(result.catalyst.efficiencies.co * 100, 1, 1)}%`,
-    );
-
-    /*
-     * CombustÃ£o e efeito tÃ©rmico do ponto de igniÃ§Ã£o.
-     */
-    setText(
-      engineeringOutputs.combustionEfficiency,
-      `${formatNumber(result.combustion.efficiency * 100, 1, 1)}%`,
-    );
-
-    setText(
-      engineeringOutputs.egt,
-      `${formatNumber(result.combustion.exhaustTemperatureC, 0, 0)} Â°C`,
     );
 
     setText(
@@ -1341,14 +1206,20 @@ export function initializeGasesOttoSimulation(module, root) {
     );
 
     /*
-     * CondiÃ§Ã£o da amostra.
+     * Condição da amostra.
      */
-    setText(engineeringOutputs.dilution, formatNumber(result.measurement.dilutionFactor, 2, 2));
+    setText(
+      engineeringOutputs.dilution,
+      formatNumber(result.measurement.dilutionFactor, 2, 2),
+    );
 
     /*
      * Valores medidos e corrigidos.
      */
-    setText(engineeringOutputs.coMeasured, `${formatNumber(result.measurement.coMeasured, 2, 2)}%`);
+    setText(
+      engineeringOutputs.coMeasured,
+      `${formatNumber(result.measurement.coMeasured, 2, 2)}%`,
+    );
 
     setText(
       engineeringOutputs.coCorrected,
@@ -1365,41 +1236,42 @@ export function initializeGasesOttoSimulation(module, root) {
       `${formatNumber(result.measurement.hcCorrected, 0, 0)} ppm`,
     );
 
-    setText(engineeringOutputs.co2, `${formatNumber(result.measurement.co2, 2, 2)}%`);
+    setText(
+      engineeringOutputs.co2,
+      `${formatNumber(result.measurement.co2, 2, 2)}%`,
+    );
 
-    setText(engineeringOutputs.o2, `${formatNumber(result.measurement.o2, 2, 2)}%`);
+    setText(
+      engineeringOutputs.o2,
+      `${formatNumber(result.measurement.o2, 2, 2)}%`,
+    );
 
-    setText(engineeringOutputs.nox, `${formatNumber(result.measurement.noxDidactic, 0, 0)} ppm`);
+    setText(
+      engineeringOutputs.nox,
+      `${formatNumber(result.measurement.noxDidactic, 0, 0)} ppm`,
+    );
 
     /*
-     * SÃ­ntese didÃ¡tica da condiÃ§Ã£o de combustÃ£o.
+     * Síntese didática da condição de combustão.
      */
     const mixture =
       result.engine.lambdaModel < 0.98
         ? 'Mistura rica calculada'
         : result.engine.lambdaModel > 1.02
           ? 'Mistura pobre calculada'
-          : 'Mistura prÃ³xima da estequiometria';
+          : 'Mistura próxima da estequiometria';
 
     const sample = result.measurement.validSample
-      ? 'amostra vÃ¡lida'
-      : 'amostra excessivamente diluÃ­da';
-
-    const ignitionEffect =
-      ignitionDeltaDeg < 0
-        ? 'igniÃ§Ã£o atrasada: EGT tende a subir e NOx tende a cair'
-        : ignitionDeltaDeg > 0
-          ? 'igniÃ§Ã£o avanÃ§ada: EGT tende a cair e NOx tende a subir'
-          : 'ponto de igniÃ§Ã£o no mapa original';
+      ? 'amostra válida'
+      : 'amostra excessivamente diluída';
 
     setText(
       engineeringOutputs.status,
-      `${mixture} Â· ${sample} Â· ` +
-        `injeÃ§Ã£o ${injectionCorrectionPct >= 0 ? '+' : ''}` +
-        `${formatNumber(injectionCorrectionPct, 0, 0)}% Â· ` +
-        `igniÃ§Ã£o ${ignitionDeltaDeg >= 0 ? '+' : ''}` +
-        `${formatNumber(ignitionDeltaDeg, 0, 0)}Â° Â· ` +
-        `${ignitionEffect}`,
+      `${mixture} · ${sample} · ` +
+        `injeção ${injectionCorrectionPct >= 0 ? '+' : ''}` +
+        `${formatNumber(injectionCorrectionPct, 0, 0)}% · ` +
+        `ignição ${ignitionDeltaDeg >= 0 ? '+' : ''}` +
+        `${formatNumber(ignitionDeltaDeg, 0, 0)}°`,
     );
   }
 
@@ -1410,43 +1282,12 @@ export function initializeGasesOttoSimulation(module, root) {
   let activeQuickCase = null;
 
   const getQuickCaseId = (button) =>
-    button.dataset.caseId || button.dataset.quickCase || button.dataset.case || button.value || '';
+    button.dataset.caseId ||
+    button.dataset.quickCase ||
+    button.dataset.case ||
+    button.value ||
+    '';
 
-  function updateQuickCaseApplicability() {
-    /*
-     * O veículo efetivamente usado pelo ensaio tem prioridade.
-     * engineeringVehicle é apenas fallback.
-     */
-    const currentVehicleId = activeMeasurementVehicleId || engineeringVehicle.value;
-
-    const vehicle = VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === currentVehicleId);
-
-    /*
-     * Só ocultamos a hipótese de catalisador quando sabemos
-     * explicitamente que o veículo não possui TWC.
-     */
-    const catalystNotApplicable = vehicle?.catalyst === 'none';
-
-    quickCaseButtons.forEach((button) => {
-      const caseId = getQuickCaseId(button);
-
-      if (caseId !== 'catalyst') return;
-
-      button.hidden = catalystNotApplicable;
-      button.disabled = catalystNotApplicable;
-
-      button.setAttribute('aria-disabled', String(catalystNotApplicable));
-
-      if (catalystNotApplicable) {
-        button.classList.remove('is-active');
-        button.setAttribute('aria-pressed', 'false');
-      }
-    });
-
-    if (catalystNotApplicable && activeQuickCase === 'catalyst') {
-      activeQuickCase = null;
-    }
-  }
   function activateTab(tabId, focus = false) {
     tabButtons.forEach((button) => {
       const active = button.dataset.ottoTab === tabId;
@@ -1479,7 +1320,6 @@ export function initializeGasesOttoSimulation(module, root) {
         : clamp(toNumber(selectedBlend, 27), 0, 40);
 
     return {
-      vehicleId: activeMeasurementVehicleId || engineeringVehicle?.value || null,
       fuelType: selectedFuel === 'ethanol' ? 'ethanol' : 'gasoline',
       ethanolContent,
       rpm: toNumber(controls.rpm.value, DEFAULT_STATE.rpm),
@@ -1495,7 +1335,7 @@ export function initializeGasesOttoSimulation(module, root) {
   function updateControlOutputs(state) {
     setText(outputs.rpm, `${formatNumber(state.rpm)} rpm`);
 
-    setText(outputs.temperature, `${formatNumber(state.temperature)} Â°C`);
+    setText(outputs.temperature, `${formatNumber(state.temperature)} °C`);
 
     setText(outputs.co, `${formatNumber(state.co, 2, 2)}%`);
 
@@ -1539,10 +1379,10 @@ export function initializeGasesOttoSimulation(module, root) {
 
       setText(
         fuelResults.explanation,
-        'O aumento do teor de etanol anidro reduz a relaÃ§Ã£o ' +
-          'arâ€“combustÃ­vel estequiomÃ©trica da mistura. O gerenciamento ' +
-          'eletrÃ´nico deve compensar essa alteraÃ§Ã£o para manter lambda ' +
-          'prÃ³ximo de um.',
+        'O aumento do teor de etanol anidro reduz a relação ' +
+          'ar–combustível estequiométrica da mistura. O gerenciamento ' +
+          'eletrônico deve compensar essa alteração para manter lambda ' +
+          'próximo de um.',
       );
     } else {
       setText(fuelResults.selectedFuel, 'Etanol hidratado');
@@ -1552,8 +1392,8 @@ export function initializeGasesOttoSimulation(module, root) {
       setText(
         fuelResults.explanation,
         'O etanol hidratado requer menor massa de ar por massa de ' +
-          'combustÃ­vel do que a gasolina. Para manter lambda prÃ³ximo ' +
-          'de um, o sistema injeta maior massa de combustÃ­vel.',
+          'combustível do que a gasolina. Para manter lambda próximo ' +
+          'de um, o sistema injeta maior massa de combustível.',
       );
     }
 
@@ -1575,28 +1415,26 @@ export function initializeGasesOttoSimulation(module, root) {
 
     setText(
       metricElements.dilutionFactor,
-      Number.isFinite(dilution.rawFactor) ? formatNumber(dilution.rawFactor, 2, 2) : 'â€”',
+      Number.isFinite(dilution.rawFactor) ? formatNumber(dilution.rawFactor, 2, 2) : '—',
     );
 
     setText(
       metricElements.dilutionStatus,
       dilution.validSample
         ? dilution.rawFactor < 1
-          ? 'CorreÃ§Ã£o aplicada com fator 1,00'
-          : 'Amostra adequada para correÃ§Ã£o'
+          ? 'Correção aplicada com fator 1,00'
+          : 'Amostra adequada para correção'
         : 'Rever sonda e linha de amostragem',
     );
 
     setText(
       metricElements.coCorrected,
-      Number.isFinite(dilution.coCorrected)
-        ? `${formatNumber(dilution.coCorrected, 2, 2)}%`
-        : 'â€”',
+      Number.isFinite(dilution.coCorrected) ? `${formatNumber(dilution.coCorrected, 2, 2)}%` : '—',
     );
 
     setText(
       metricElements.hcCorrected,
-      Number.isFinite(dilution.hcCorrected) ? `${formatNumber(dilution.hcCorrected)} ppm` : 'â€”',
+      Number.isFinite(dilution.hcCorrected) ? `${formatNumber(dilution.hcCorrected)} ppm` : '—',
     );
 
     setText(
@@ -1607,7 +1445,7 @@ export function initializeGasesOttoSimulation(module, root) {
     ['co', 'co2', 'hc', 'o2', 'lambda'].forEach((metric) => {
       applyStateClass(
         metricElements[metric].closest('.metric-card'),
-        classifyMetric(metric, state[metric], state).level,
+        classifyMetric(metric, state[metric]).level,
       );
     });
 
@@ -1643,11 +1481,11 @@ export function initializeGasesOttoSimulation(module, root) {
     setText(
       diagnosisElements.alert,
       dilutionInvalid
-        ? 'InterpretaÃ§Ã£o condicionada: o fator de diluiÃ§Ã£o estÃ¡ acima de 2,50. Verifique a amostragem e repita o ensaio antes de considerar o diagnÃ³stico conclusivo.'
+        ? 'Interpretação condicionada: o fator de diluição está acima de 2,50. Verifique a amostragem e repita o ensaio antes de considerar o diagnóstico conclusivo.'
         : score === null
-          ? 'MediÃ§Ã£o didÃ¡tica inconclusiva enquanto o motor permanecer frio.'
-          : `HipÃ³tese didÃ¡tica predominante: ${diagnosis.title}. ` +
-            `Ãndice de compatibilidade: ${score} ` +
+          ? 'Medição didática inconclusiva enquanto o motor permanecer frio.'
+          : `Hipótese didática predominante: ${diagnosis.title}. ` +
+            `Índice de compatibilidade: ${score} ` +
             `ponto${score === 1 ? '' : 's'}.`,
     );
 
@@ -1694,8 +1532,8 @@ export function initializeGasesOttoSimulation(module, root) {
       setText(
         simulationStatus,
         state.dilution.validSample
-          ? 'Valores ajustados manualmente. Analise as leituras medidas, os valores corrigidos e o diagnÃ³stico apresentado.'
-          : 'Fator de diluiÃ§Ã£o acima de 2,50. Verifique a posiÃ§Ã£o da sonda e a integridade da linha de amostragem antes de interpretar o ensaio como conclusivo.',
+          ? 'Valores ajustados manualmente. Analise as leituras medidas, os valores corrigidos e o diagnóstico apresentado.'
+          : 'Fator de diluição acima de 2,50. Verifique a posição da sonda e a integridade da linha de amostragem antes de interpretar o ensaio como conclusivo.',
       );
 
       applyStateClass(simulationStatus, state.dilution.validSample ? diagnosis.level : 'critical');
@@ -1706,101 +1544,35 @@ export function initializeGasesOttoSimulation(module, root) {
     const selectedCase = QUICK_CASES[caseId];
 
     if (!selectedCase) {
-      console.warn(`Caso rÃ¡pido nÃ£o encontrado: ${caseId}`);
-
-      return;
-    }
-
-    const currentVehicle =
-      VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === engineeringVehicle.value) ??
-      VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
-
-    if (caseId === 'catalyst' && currentVehicle.catalyst !== 'twc') {
-      activeQuickCase = null;
-
-      setText(
-        simulationStatus,
-        'Caso nÃ£o aplicÃ¡vel: o veÃ­culo selecionado nÃ£o possui catalisador.',
-      );
+      console.warn(`Caso rápido não encontrado: ${caseId}`);
 
       return;
     }
 
     activeQuickCase = caseId;
+    const physicalPerturbation =
+  QUICK_CASE_PHYSICAL_PERTURBATIONS[caseId] ??
+  QUICK_CASE_PHYSICAL_PERTURBATIONS.normal;
 
-    if (selectedCase.technologyAware && caseId === 'normal') {
-      /*
-       * Resultado OK deve restaurar diretamente os controles
-       * da seção Medição. Não deve depender de evento posterior.
-       */
+window.dispatchEvent(
+  new CustomEvent('otto:quick-case-physical-perturbation', {
+    detail: {
+      ...physicalPerturbation,
+    },
+  }),
+);
 
-      const currentVehicleId = activeMeasurementVehicleId || engineeringVehicle.value;
+    Object.entries(selectedCase.values).forEach(([name, value]) => {
+      const control = controls[name];
 
-      const vehicle =
-        VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === currentVehicleId) ??
-        VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+      if (!control) {
+        console.warn(`Controle não encontrado para o parâmetro: ${name}`);
 
-      engineeringVehicle.value = vehicle.vehicleId;
-      activeMeasurementVehicleId = vehicle.vehicleId;
+        return;
+      }
 
-      engineeringControls.injection.value = '0';
-      engineeringControls.ignition.value = '0';
-      engineeringControls.misfire.value = '0';
-
-      engineeringControls.ethanol.value = String(vehicle.ethanolContent ?? 27);
-
-      engineeringControls.temperature.value = '90';
-      engineeringControls.rpm.value = '2500';
-
-      engineeringControls.catalystState.value =
-        vehicle.catalyst === 'twc' ? 'efficient' : 'inefficient';
-
-      /*
-       * Calcula a condição física normal diretamente.
-       */
-      const normalResult = runEmissionsModel({
-        vehicle,
-        ethanolContent: vehicle.ethanolContent ?? 27,
-        rpm: 2500,
-        engineTemperatureC: 90,
-        injectionCorrectionPct: 0,
-        ignitionDeltaDeg: 0,
-        catalystState: vehicle.catalyst === 'twc' ? 'efficient' : 'inefficient',
-        misfireFraction: 0,
-        samplingAirFraction: 0,
-      });
-
-      /*
-       * Copia explicitamente a medição para os controles
-       * usados por readState().
-       */
-      controls.rpm.value = '2500';
-      controls.temperature.value = '90';
-
-      controls.co.value = String(normalResult.measurement.coMeasured);
-
-      controls.co2.value = String(normalResult.measurement.co2);
-
-      controls.hc.value = String(normalResult.measurement.hcMeasured);
-
-      controls.o2.value = String(normalResult.measurement.o2);
-
-      controls.lambda.value = String(normalResult.measurement.lambdaGases);
-
-      updateEngineeringSimulation();
-      updateQuickCaseApplicability();
-    } else {
-      Object.entries(selectedCase.values ?? {}).forEach(([name, value]) => {
-        const control = controls[name];
-
-        if (!control) {
-          console.warn(`Controle nÃ£o encontrado para o parÃ¢metro: ${name}`);
-          return;
-        }
-
-        control.value = String(value);
-      });
-    }
+      control.value = String(value);
+    });
 
     quickCaseButtons.forEach((button) => {
       const active = getQuickCaseId(button) === caseId;
@@ -1816,27 +1588,27 @@ export function initializeGasesOttoSimulation(module, root) {
 
     const statusMessage = selectedCase.description
       ? `Caso carregado: ${selectedCase.label}. ${selectedCase.description}`
-      : `Caso carregado: ${selectedCase.label}. Analise a correlaÃ§Ã£o entre os gases.`;
+      : `Caso carregado: ${selectedCase.label}. Analise a correlação entre os gases.`;
 
     setText(simulationStatus, statusMessage);
   }
 
   listen(engineeringVehicle, 'change', () => {
     const vehicle =
-      VEHICLE_LIBRARY.find((candidate) => candidate.vehicleId === engineeringVehicle.value) ??
-      VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
+      VEHICLE_LIBRARY.find(
+        (candidate) => candidate.vehicleId === engineeringVehicle.value,
+      ) ?? VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
 
-    // O combustÃ­vel-base acompanha o veÃ­culo selecionado.
+    // O combustível-base acompanha o veículo selecionado.
     engineeringControls.ethanol.value = String(vehicle.ethanolContent ?? 27);
 
-    // Para veÃ­culos com TWC, inicia-se pelo estado eficiente.
-    // VeÃ­culos sem TWC usam o estado ineficiente como aproximaÃ§Ã£o
-    // operacional do modelo, sem afirmar a existÃªncia fÃ­sica do TWC.
+    // Para veículos com TWC, inicia-se pelo estado eficiente.
+    // Veículos sem TWC usam o estado ineficiente como aproximação
+    // operacional do modelo, sem afirmar a existência física do TWC.
     engineeringControls.catalystState.value =
       vehicle.catalyst === 'twc' ? 'efficient' : 'inefficient';
 
     updateEngineeringSimulation();
-    updateQuickCaseApplicability();
   });
 
   listen(engineeringResetMap, 'click', () => {
@@ -1851,7 +1623,6 @@ export function initializeGasesOttoSimulation(module, root) {
   });
 
   updateEngineeringSimulation();
-  updateQuickCaseApplicability();
 
   tabButtons.forEach((button, index) => {
     listen(button, 'click', () => activateTab(button.dataset.ottoTab));
@@ -1903,21 +1674,7 @@ export function initializeGasesOttoSimulation(module, root) {
     listen(button, 'click', () => loadQuickCase(getQuickCaseId(button)));
   });
 
-  /*
-   * A disponibilidade dos casos rÃ¡pidos depende da tecnologia
-   * do veÃ­culo atualmente selecionado.
-   */
-  listen(engineeringVehicle, 'change', () => {
-    updateQuickCaseApplicability();
-  });
-
   activateTab('measurement');
-
-  /*
-   * O primeiro veÃ­culo tambÃ©m precisa ter seus casos
-   * compatÃ­veis definidos antes da interaÃ§Ã£o do usuÃ¡rio.
-   */
-  updateQuickCaseApplicability();
 
   updateSimulation({
     preserveQuickCase: true,
@@ -1925,7 +1682,7 @@ export function initializeGasesOttoSimulation(module, root) {
 
   setText(
     simulationStatus,
-    'Simulador inicializado com gasolina E27 e combustÃ£o prÃ³xima da condiÃ§Ã£o estequiomÃ©trica.',
+    'Simulador inicializado com gasolina E27 e combustão próxima da condição estequiométrica.',
   );
 
   return () => {
