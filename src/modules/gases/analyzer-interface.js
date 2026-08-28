@@ -546,6 +546,14 @@ export function initializeGasesAnalyzer(root) {
   let activeScenario = null;
 
   /*
+   * Perturbacao fisica atualmente selecionada no simulador.
+   *
+   * Ela representa a causa fisica que deve ser percebida pela
+   * estrategia adaptativa da ECU e permanece separada do REMAP.
+   */
+  let quickCasePhysicalPerturbation = null;
+
+  /*
    * =========================================================
    * HELPERS
    * =========================================================
@@ -1017,11 +1025,58 @@ export function initializeGasesAnalyzer(root) {
 
   /*
    * =========================================================
+   * INTEGRACAO COM QUICK CASES
+   * =========================================================
+   */
+
+  function onQuickCasePhysicalPerturbation(event) {
+    const detail = event?.detail;
+
+    if (!detail || typeof detail !== 'object') {
+      quickCasePhysicalPerturbation = null;
+      return;
+    }
+
+    quickCasePhysicalPerturbation = {
+      caseId: detail.caseId ?? null,
+      lambdaBias: Number.isFinite(Number(detail.lambdaBias)) ? Number(detail.lambdaBias) : 1,
+      controllerLambdaBias: Number.isFinite(Number(detail.controllerLambdaBias))
+        ? Number(detail.controllerLambdaBias)
+        : 1,
+      misfireFraction: Number.isFinite(Number(detail.misfireFraction))
+        ? Number(detail.misfireFraction)
+        : 0,
+      catalystState: detail.catalystState ?? null,
+      samplingAirFraction: Number.isFinite(Number(detail.samplingAirFraction))
+        ? Number(detail.samplingAirFraction)
+        : 0,
+    };
+
+    /*
+     * Atualiza a previa imediatamente, sem alterar um ensaio
+     * que ja esteja em andamento. O snapshot definitivo ocorre
+     * somente em buildScenario() ao iniciar o ciclo.
+     */
+    publishAnalyzerPreview();
+  }
+
+  /*
+   * =========================================================
    * SNAPSHOT DO ENSAIO
    * =========================================================
    */
 
   function buildScenario() {
+    const perturbation = quickCasePhysicalPerturbation ?? {};
+
+    const lambdaBias = Number.isFinite(Number(perturbation.lambdaBias))
+      ? Number(perturbation.lambdaBias)
+      : 1;
+
+    const controllerLambdaBias = Number.isFinite(Number(perturbation.controllerLambdaBias))
+      ? Number(perturbation.controllerLambdaBias)
+      : lambdaBias;
+
     return Object.freeze({
       vehicle: selectedVehicle,
 
@@ -1031,9 +1086,35 @@ export function initializeGasesAnalyzer(root) {
 
       engineTemperatureC: 90,
 
+      /*
+       * REMAP permanece separado da perturbacao fisica.
+       * O analyzer-model.js remove este termo apenas do
+       * caminho usado pelo controlador adaptativo.
+       */
       injectionCorrectionPct: numberValue(injectionControl),
 
       ignitionDeltaDeg: numberValue(ignitionControl),
+
+      /*
+       * Condicao fisica do quick case.
+       */
+      idleLambda: lambdaBias,
+
+      highRpmLambda: lambdaBias,
+
+      controllerLambdaBias,
+
+      misfireFraction: Number.isFinite(Number(perturbation.misfireFraction))
+        ? Number(perturbation.misfireFraction)
+        : 0,
+
+      catalystState: perturbation.catalystState ?? 'efficient',
+
+      samplingAirFraction: Number.isFinite(Number(perturbation.samplingAirFraction))
+        ? Number(perturbation.samplingAirFraction)
+        : 0,
+
+      quickCaseId: perturbation.caseId ?? 'normal',
     });
   }
 
@@ -1561,6 +1642,8 @@ export function initializeGasesAnalyzer(root) {
 
   restoreMapButton?.addEventListener('click', restoreOriginalMap);
 
+  window.addEventListener('otto:quick-case-physical-perturbation', onQuickCasePhysicalPerturbation);
+
   /*
    * Estado inicial do analisador.
    */
@@ -1588,5 +1671,10 @@ export function initializeGasesAnalyzer(root) {
     ignitionControl?.removeEventListener('input', onRemapInput);
 
     restoreMapButton?.removeEventListener('click', restoreOriginalMap);
+
+    window.removeEventListener(
+      'otto:quick-case-physical-perturbation',
+      onQuickCasePhysicalPerturbation,
+    );
   };
 }

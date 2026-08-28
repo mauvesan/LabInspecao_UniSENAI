@@ -281,10 +281,17 @@ export function holdTransitionSnapshot(previousState, nextState, phaseHistory, c
   return null;
 }
 
-/** @returns {Record<string, number | boolean>} */
+/** @returns {Record<string, number | boolean | string>} */
 export function holdAverage(history, count = 3) {
   const samples = history.slice(-Math.max(1, count));
   const result = {};
+
+  /*
+   * Grandezas contínuas do Hold.
+   *
+   * Mantemos a média das últimas amostras da janela estável
+   * também para as variáveis contínuas do controle adaptativo.
+   */
   for (const key of [
     'co',
     'co2',
@@ -298,12 +305,33 @@ export function holdAverage(history, count = 3) {
     'hcCorrected',
     'nox',
     'modelLambda',
+    'lambdaPreCorrection',
+    'stftPct',
+    'ltftPct',
+    'totalTrimPct',
   ]) {
     const values = samples.map((item) => item[key]).filter(Number.isFinite);
+
     result[key] = values.length
       ? values.reduce((sum, value) => sum + value, 0) / values.length
       : Number.NaN;
   }
+
+  /*
+   * Estados discretos da ECU não podem ser promediados.
+   *
+   * O Hold preserva o estado correspondente à última amostra
+   * da janela retida.
+   */
+  const latestSample = samples[samples.length - 1];
+
+  result.fuelTrimApplicable = latestSample?.fuelTrimApplicable === true;
+
+  result.fuelTrimControlMode = latestSample?.fuelTrimControlMode ?? 'OPEN_LOOP';
+
+  result.fuelTrimSaturated = latestSample?.fuelTrimSaturated === true;
+
   result.validSample = samples.every((item) => item.validSample !== false);
+
   return result;
 }
