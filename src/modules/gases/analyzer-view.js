@@ -1,4 +1,4 @@
-export function analyzerPanel() {
+﻿export function analyzerPanel() {
   return `
     <section class="otto-analyzer" data-otto-analyzer aria-labelledby="otto-analyzer-title">
       <header class="otto-analyzer__header">
@@ -6,11 +6,6 @@ export function analyzerPanel() {
           <span class="otto-results-eyebrow">Ensaio automático</span>
           <h3 id="otto-analyzer-title">Analisador de quatro gases — ciclo completo</h3>
           <p>A sequência reproduz, em tempo didático acelerado, aquecimento, autoteste, zero, preparação, estabilização, medição, Hold e purga. Os gases convergem por resposta dinâmica de primeira ordem.</p>
-        </div>
-        <div class="otto-analyzer__actions">
-          <button class="button" type="button" data-analyzer-action="start">Iniciar ensaio</button>
-          <button class="button button--secondary" type="button" data-analyzer-action="reset">Reiniciar</button>
-          <button class="button button--secondary" type="button" data-analyzer-action="report" disabled>Relatório / PDF</button>
         </div>
       </header>
 
@@ -120,9 +115,11 @@ export function analyzerPanel() {
             </div>
           </section>
 
+          
+
           <section class="otto-analyzer__physics-group">
             <header>
-              <strong>2. Antes do TWC</strong>
+              <strong>3. Antes do TWC</strong>
               <small>Emissões brutas calculadas na saída do motor.</small>
             </header>
 
@@ -149,7 +146,7 @@ export function analyzerPanel() {
 
           <section class="otto-analyzer__physics-group">
             <header>
-              <strong>3. Conversão catalítica</strong>
+              <strong>4. Conversão catalítica</strong>
               <small>Eficiências calculadas para o catalisador de três vias.</small>
             </header>
 
@@ -176,7 +173,7 @@ export function analyzerPanel() {
 
           <section class="otto-analyzer__physics-group">
             <header>
-              <strong>4. Após o TWC</strong>
+              <strong>5. Após o TWC</strong>
               <small>Concentrações calculadas depois do catalisador.</small>
             </header>
 
@@ -211,6 +208,44 @@ export function analyzerPanel() {
         </p>
       </section>
 
+      <div
+        class="otto-analyzer__control-bar"
+        role="group"
+        aria-label="Comandos do ensaio"
+      >
+        <div class="otto-analyzer__control-bar-label">
+          <strong>Controle do ensaio</strong>
+          <small>Comandos disponíveis durante todo o ciclo</small>
+        </div>
+
+        <div class="otto-analyzer__actions">
+          <button
+            class="button"
+            type="button"
+            data-analyzer-action="start"
+          >
+            Iniciar ensaio
+          </button>
+
+          <button
+            class="button button--secondary"
+            type="button"
+            data-analyzer-action="reset"
+          >
+            Reiniciar
+          </button>
+
+          <button
+            class="button button--secondary"
+            type="button"
+            data-analyzer-action="report"
+            disabled
+          >
+            Relatório / PDF
+          </button>
+        </div>
+      </div>
+
       <div class="otto-analyzer__status-grid">
         <article class="otto-analyzer__display">
           <span>Estado</span>
@@ -231,6 +266,60 @@ export function analyzerPanel() {
       </div>
 
       <div class="otto-analyzer__timeline" aria-label="Etapas do ensaio" data-analyzer-timeline></div>
+
+<section class="otto-analyzer__physics-group otto-analyzer__physics-group--fuel-trim">
+        <header>
+          <strong>2. Controle da mistura — ECU</strong>
+          <small>
+            Correções de combustível realizadas pela estratégia de controle em malha fechada.
+          </small>
+        </header>
+
+        <div class="otto-analyzer__physics-grid otto-analyzer__physics-grid--fuel-trim">
+          <article class="otto-analyzer__display">
+            <span>Estado da malha</span>
+            <strong data-analyzer-fuel-trim="mode">—</strong>
+            <small data-analyzer-fuel-trim-help="mode">
+              estratégia de controle da mistura
+            </small>
+          </article>
+
+          <article class="otto-analyzer__display">
+            <span>Correção total</span>
+            <strong data-analyzer-fuel-trim="total">—</strong>
+            <small>STFT + LTFT</small>
+          </article>
+
+          <article class="otto-analyzer__display">
+            <span>STFT</span>
+            <strong data-analyzer-fuel-trim="stft">—</strong>
+            <small>Short Term Fuel Trim</small>
+          </article>
+
+          <article class="otto-analyzer__display">
+            <span>LTFT</span>
+            <strong data-analyzer-fuel-trim="ltft">—</strong>
+            <small>Long Term Fuel Trim</small>
+          </article>
+
+          <article class="otto-analyzer__display">
+            <span>λ pré-correção</span>
+            <strong data-analyzer-fuel-trim="lambda-pre">—</strong>
+            <small>condição antes da atuação adaptativa</small>
+          </article>
+
+          <article class="otto-analyzer__display">
+            <span>λ efetivo</span>
+            <strong data-analyzer-fuel-trim="lambda-effective">—</strong>
+            <small>condição após a correção da ECU</small>
+          </article>
+        </div>
+
+        <p class="otto-analyzer__fuel-trim-note">
+          Valores positivos indicam adição de combustível; valores negativos
+          indicam redução de combustível.
+        </p>
+      </section>
 
       <div class="otto-analyzer__charts">
         <article><h4>RPM × tempo</h4><svg data-analyzer-chart="rpm" viewBox="0 0 600 150" role="img" aria-label="Série temporal de rotação"></svg></article>

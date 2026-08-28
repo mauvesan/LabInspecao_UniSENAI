@@ -1,4 +1,4 @@
-import {
+﻿import {
   ANALYZER_STATES,
   STATE_LABELS,
   createAnalyzerStateMachine,
@@ -14,7 +14,7 @@ import { createEmissionsReportHtml, evaluateEmissionHolds } from './reporting.js
 
 import { resolveRegulation } from './model/regulation.js';
 
-import { VEHICLE_LIBRARY, runEmissionsModel } from './model/index.js';
+import { VEHICLE_LIBRARY, resolveVehicleTechnology, runEmissionsModel } from './model/index.js';
 
 const HOLD_STATES = new Set([ANALYZER_STATES.HOLD_IDLE, ANALYZER_STATES.HOLD_HIGH_RPM]);
 
@@ -283,7 +283,7 @@ function renderChart(svg, { values, series, leftAxis, rightAxis = null, xLabel =
 
   /*
    * =======================================================
-   * EIXO Y DIREITO — QUANDO NECESSÁRIO
+   * EIXO Y DIREITO â€” QUANDO NECESSÁRIO
    * =======================================================
    */
 
@@ -495,6 +495,16 @@ export function initializeGasesAnalyzer(root) {
 
   const complementaryPostNox = panel.querySelector('[data-analyzer-complementary="post-nox"]');
 
+  const fuelTrimElements = {
+    mode: panel.querySelector('[data-analyzer-fuel-trim="mode"]'),
+    total: panel.querySelector('[data-analyzer-fuel-trim="total"]'),
+    stft: panel.querySelector('[data-analyzer-fuel-trim="stft"]'),
+    ltft: panel.querySelector('[data-analyzer-fuel-trim="ltft"]'),
+    lambdaPre: panel.querySelector('[data-analyzer-fuel-trim="lambda-pre"]'),
+    lambdaEffective: panel.querySelector('[data-analyzer-fuel-trim="lambda-effective"]'),
+    modeHelp: panel.querySelector('[data-analyzer-fuel-trim-help="mode"]'),
+  };
+
   let selectedVehicle = VEHICLE_LIBRARY[VEHICLE_LIBRARY.length - 1];
 
   /*
@@ -513,6 +523,155 @@ export function initializeGasesAnalyzer(root) {
     const value = Number(control?.value);
 
     return Number.isFinite(value) ? value : fallback;
+  }
+
+  function formatSignedPercent(value, digits = 1) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return '—';
+    }
+
+    const prefix = number > 0 ? '+' : '';
+
+    return `${prefix}${format(number, digits)}%`;
+  }
+
+  function renderFuelTrimUnavailable() {
+    if (fuelTrimElements.mode) {
+      fuelTrimElements.mode.textContent = 'OPEN LOOP';
+    }
+
+    if (fuelTrimElements.total) {
+      fuelTrimElements.total.textContent = 'N/A';
+    }
+
+    if (fuelTrimElements.stft) {
+      fuelTrimElements.stft.textContent = 'N/A';
+    }
+
+    if (fuelTrimElements.ltft) {
+      fuelTrimElements.ltft.textContent = 'N/A';
+    }
+
+    if (fuelTrimElements.lambdaPre) {
+      fuelTrimElements.lambdaPre.textContent = '—';
+    }
+
+    if (fuelTrimElements.lambdaEffective) {
+      fuelTrimElements.lambdaEffective.textContent = '—';
+    }
+
+    if (fuelTrimElements.modeHelp) {
+      fuelTrimElements.modeHelp.textContent = 'controle mecânico / sem adaptação STFT-LTFT';
+    }
+  }
+
+  function renderFuelTrimPreview(preview, vehicle) {
+    const technology = resolveVehicleTechnology(vehicle);
+
+    if (!technology.closedLoop || !technology.lambdaSensor) {
+      renderFuelTrimUnavailable();
+
+      if (fuelTrimElements.lambdaEffective && Number.isFinite(preview?.engine?.lambdaModel)) {
+        fuelTrimElements.lambdaEffective.textContent = format(preview.engine.lambdaModel, 3);
+      }
+
+      return;
+    }
+
+    if (fuelTrimElements.mode) {
+      fuelTrimElements.mode.textContent = 'CLOSED LOOP';
+    }
+
+    if (fuelTrimElements.total) {
+      fuelTrimElements.total.textContent = '0,0%';
+    }
+
+    if (fuelTrimElements.stft) {
+      fuelTrimElements.stft.textContent = '0,0%';
+    }
+
+    if (fuelTrimElements.ltft) {
+      fuelTrimElements.ltft.textContent = '0,0%';
+    }
+
+    /*
+     * Antes do ensaio ainda não existe histórico adaptativo.
+     * A condição pré e pós-correção coincide nesse instante.
+     */
+    if (fuelTrimElements.lambdaPre) {
+      fuelTrimElements.lambdaPre.textContent = Number.isFinite(preview?.engine?.lambdaModel)
+        ? format(preview.engine.lambdaModel, 3)
+        : '—';
+    }
+
+    if (fuelTrimElements.lambdaEffective) {
+      fuelTrimElements.lambdaEffective.textContent = Number.isFinite(preview?.engine?.lambdaModel)
+        ? format(preview.engine.lambdaModel, 3)
+        : '—';
+    }
+
+    if (fuelTrimElements.modeHelp) {
+      fuelTrimElements.modeHelp.textContent = 'adaptação STFT/LTFT evolui durante o ensaio';
+    }
+  }
+
+  function renderFuelTrimSample(sample, vehicle) {
+    const technology = resolveVehicleTechnology(vehicle);
+
+    if (!technology.closedLoop || !technology.lambdaSensor) {
+      renderFuelTrimUnavailable();
+
+      if (fuelTrimElements.lambdaEffective && Number.isFinite(sample?.modelLambda)) {
+        fuelTrimElements.lambdaEffective.textContent = format(sample.modelLambda, 3);
+      }
+
+      return;
+    }
+
+    const active =
+      sample?.fuelTrimApplicable === true && sample?.fuelTrimControlMode === 'CLOSED_LOOP';
+
+    if (fuelTrimElements.mode) {
+      fuelTrimElements.mode.textContent = active ? 'CLOSED LOOP' : 'CLOSED LOOP · INATIVO';
+    }
+
+    if (fuelTrimElements.stft) {
+      fuelTrimElements.stft.textContent = active ? formatSignedPercent(sample.stftPct) : '0,0%';
+    }
+
+    if (fuelTrimElements.ltft) {
+      fuelTrimElements.ltft.textContent = Number.isFinite(sample?.ltftPct)
+        ? formatSignedPercent(sample.ltftPct)
+        : '0,0%';
+    }
+
+    if (fuelTrimElements.total) {
+      fuelTrimElements.total.textContent = active
+        ? formatSignedPercent(sample.totalTrimPct)
+        : '0,0%';
+    }
+
+    if (fuelTrimElements.lambdaPre) {
+      fuelTrimElements.lambdaPre.textContent = Number.isFinite(sample?.lambdaPreCorrection)
+        ? format(sample.lambdaPreCorrection, 3)
+        : '—';
+    }
+
+    if (fuelTrimElements.lambdaEffective) {
+      fuelTrimElements.lambdaEffective.textContent = Number.isFinite(sample?.modelLambda)
+        ? format(sample.modelLambda, 3)
+        : '—';
+    }
+
+    if (fuelTrimElements.modeHelp) {
+      fuelTrimElements.modeHelp.textContent = active
+        ? sample?.fuelTrimSaturated
+          ? 'controle ativo · limite de correção atingido'
+          : 'controle adaptativo ativo'
+        : 'controle disponível · aguardando condição de ensaio';
+    }
   }
 
   function vehicleLabel(vehicle) {
@@ -659,11 +818,11 @@ export function initializeGasesAnalyzer(root) {
    * veículo
    * + injeção
    * + ignição
-   *       ↓
+   *       â†“
    * runEmissionsModel()
-   *       ↓
+   *       â†“
    * gases medidos
-   *       ↓
+   *       â†“
    * gráfico principal
    */
 
@@ -728,6 +887,13 @@ export function initializeGasesAnalyzer(root) {
     if (complementaryEgt) {
       complementaryEgt.textContent = `${format(preview.combustion.exhaustTemperatureC, 0)} °C`;
     }
+
+    /*
+     * Fuel Trim:
+     * antes do início do ensaio mostramos a disponibilidade da
+     * estratégia, mas não inventamos uma adaptação temporal.
+     */
+    renderFuelTrimPreview(preview, selectedVehicle);
 
     /*
      * Emissões brutas - saída do motor / entrada do TWC.
@@ -1004,13 +1170,21 @@ export function initializeGasesAnalyzer(root) {
    */
 
   function render(sample, snapshot) {
+    /*
+     * Em COMPLETE, a amostra dinâmica corrente já corresponde
+     * à purga/ar ambiente. Para a interface final, exibimos
+     * preferencialmente o Hold válido de rotação elevada.
+     */
+    const displaySample =
+      snapshot.state === ANALYZER_STATES.COMPLETE ? (holds.high ?? holds.idle ?? sample) : sample;
+
     stateElement.textContent = snapshot.state;
 
     stateLabel.textContent = snapshot.label;
 
     timeElement.textContent = `${format(snapshot.totalElapsed, 0)} s`;
 
-    rpmElement.textContent = `${format(sample.rpm ?? 0, 0)} rpm`;
+    rpmElement.textContent = `${format(displaySample.rpm ?? 0, 0)} rpm`;
 
     const stable = STABILIZING_STATES.has(snapshot.state) && isStableSample(phaseHistory);
 
@@ -1020,11 +1194,17 @@ export function initializeGasesAnalyzer(root) {
         : 'Convergindo'
       : '—';
 
-    gasElements.co.textContent = `${format(sample.co)}%`;
-    gasElements.co2.textContent = `${format(sample.co2)}%`;
-    gasElements.hc.textContent = `${format(sample.hc, 0)} ppm`;
-    gasElements.o2.textContent = `${format(sample.o2)}%`;
-    gasElements.lambda.textContent = format(sample.lambda, 3);
+    gasElements.co.textContent = `${format(displaySample.co)}%`;
+    gasElements.co2.textContent = `${format(displaySample.co2)}%`;
+    gasElements.hc.textContent = `${format(displaySample.hc, 0)} ppm`;
+    gasElements.o2.textContent = `${format(displaySample.o2)}%`;
+    gasElements.lambda.textContent = format(displaySample.lambda, 3);
+
+    /*
+     * Durante o ensaio os trims vêm diretamente do estado temporal
+     * mantido por createAnalyzerDynamics().
+     */
+    renderFuelTrimSample(displaySample, activeScenario?.vehicle || selectedVehicle);
 
     renderTimeline(timelineElement, snapshot.state);
 
@@ -1130,7 +1310,7 @@ export function initializeGasesAnalyzer(root) {
 
   /*
    * =========================================================
-   * EXECUÇÃO DA MÁQUINA DE ESTADOS
+   * EXECUÇÃO DA MÃQUINA DE ESTADOS
    * =========================================================
    */
 
@@ -1252,7 +1432,23 @@ export function initializeGasesAnalyzer(root) {
 
     render(dynamics.getSample(), machine.getSnapshot());
 
-    timer = window.setInterval(step, 120);
+    /*
+     * Ao iniciar o ensaio, posiciona automaticamente o usuário
+     * na área operacional. A barra permanece sticky e os
+     * indicadores/gráficos ficam imediatamente abaixo.
+     */
+    const controlBar = panel.querySelector('.otto-analyzer__control-bar');
+
+    if (controlBar) {
+      window.requestAnimationFrame(() => {
+        controlBar.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    }
+
+    timer = window.setInterval(step, 200);
   }
 
   /*

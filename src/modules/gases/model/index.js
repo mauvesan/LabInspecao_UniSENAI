@@ -1,5 +1,6 @@
 export * from './constants.js';
 export * from './fuel-model.js';
+export * from './fuel-trim-model.js';
 export * from './vehicle-technology.js';
 export * from './brettschneider.js';
 export * from './combustion-model.js';

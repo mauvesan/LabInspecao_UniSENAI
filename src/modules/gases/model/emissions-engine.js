@@ -16,9 +16,17 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
 
   const injectionCorrectionPct = clamp(input.injectionCorrectionPct ?? 0, -20, 20);
 
+  /*
+   * Fuel Trim é uma correção adaptativa da ECU e permanece
+   * separado do REMAP/ajuste-base para fins didáticos.
+   */
+  const fuelTrimPct = clamp(input.fuelTrimPct ?? 0, -35, 35);
+
+  const effectiveFuelCorrectionPct = clamp(injectionCorrectionPct + fuelTrimPct, -45, 55);
+
   const targetLambda = clamp(input.baseLambda ?? operatingProfile.baseLambda, 0.7, 1.3);
 
-  const realAfr = (fuel.afrStoich * targetLambda) / (1 + injectionCorrectionPct / 100);
+  const realAfr = (fuel.afrStoich * targetLambda) / (1 + effectiveFuelCorrectionPct / 100);
 
   const lambdaModel = calculateModelLambda(realAfr, fuel.afrStoich);
   const engineTemperatureC = Number(input.engineTemperatureC ?? 90);
@@ -86,6 +94,8 @@ export function runEmissionsModel(input, calibration = DEFAULT_CALIBRATION) {
       engineTemperatureC,
       ignitionDeltaDeg,
       injectionCorrectionPct,
+      fuelTrimPct,
+      effectiveFuelCorrectionPct,
       realAfr,
       lambdaModel,
     },

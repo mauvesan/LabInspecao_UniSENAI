@@ -45,16 +45,28 @@ export const DEFAULT_ANALYZER_TIMINGS = Object.freeze({
   SELF_TEST: 2,
   ZEROING: 2,
   READY: 1,
-  VEHICLE_PREPARATION: 2,
-  PROBE_INSERTION: 2,
-  STABILIZING_IDLE: 5,
-  MEASURING_IDLE: 4,
-  HOLD_IDLE: 2,
-  TRANSITION_HIGH_RPM: 3,
-  STABILIZING_HIGH_RPM: 5,
-  MEASURING_HIGH_RPM: 4,
-  HOLD_HIGH_RPM: 2,
-  PURGING: 5,
+
+  VEHICLE_PREPARATION: 3,
+  PROBE_INSERTION: 3,
+
+  /*
+   * Janelas didáticas ampliadas para permitir observar:
+   * - convergência das concentrações;
+   * - atuação do STFT;
+   * - início da adaptação do LTFT;
+   * - estabilização antes da retenção no Hold.
+   */
+  STABILIZING_IDLE: 15,
+  MEASURING_IDLE: 12,
+  HOLD_IDLE: 4,
+
+  TRANSITION_HIGH_RPM: 5,
+
+  STABILIZING_HIGH_RPM: 15,
+  MEASURING_HIGH_RPM: 12,
+  HOLD_HIGH_RPM: 4,
+
+  PURGING: 6,
   VALIDATING: 2,
   COMPLETE: 1,
 });
